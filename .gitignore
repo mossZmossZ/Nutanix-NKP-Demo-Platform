@@ -1,0 +1,24 @@
+# Environment / secrets — never commit real .env files (see SECURITY.md).
+# .env.example is intentionally tracked as the template.
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Logs & debug
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

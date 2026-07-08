@@ -13,4 +13,9 @@ export const env = {
   port: Number(process.env.PORT ?? 4000),
   mongoUri: required("MONGO_URI", "mongodb://localhost:27017/nkp-workshop"),
   jwtSecret: process.env.JWT_SECRET ?? "dev-secret-change-me",
+  // Static admin, upserted from env on every boot (env is the source of truth).
+  adminUser: required("ADMIN_USER", "admin"),
+  adminPassword: required("ADMIN_PASSWORD", "changeme"),
 };
+
+export const isProd = env.nodeEnv === "production";
