@@ -251,4 +251,6 @@ body {
   margin: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* DESIGN.md "Note on Font Substitutes": Inter ss03 approximates SF Pro's rounded a. */
+  font-feature-settings: "ss03";
 }
