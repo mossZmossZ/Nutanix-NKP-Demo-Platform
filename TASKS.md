@@ -12,15 +12,16 @@ sync with reality (it's the "current state" file).
 - [x] `.env.example` (root, comprehensive) + `backend/.env.example` (backend subset)
 - [x] ✅ Checkpoint: frontend/backend typecheck+build green, compose validates, health route wired
 
-## Phase 1 — Auth & RBAC  ◀◀◀ NEXT
-- [ ] `User` model (`user`, `passwordHash`, `role`)
-- [ ] Seed static admin from `ADMIN_USER`/`ADMIN_PASSWORD` on boot
-- [ ] JWT login (httpOnly cookie), `requireAuth`, `requireAdmin`
-- [ ] Frontend: login page, auth context, protected routes, redirect on no JWT
-- [ ] Admin → Users: list + create user
-- [ ] ✅ Checkpoint: admin logs in, `user` blocked from `/admin/*`, created user logs in
+## Phase 1 — Auth & RBAC
+- [x] `User` model (`username`, `passwordHash`, `role`) — bcryptjs hashing
+- [x] Seed static admin from `ADMIN_USER`/`ADMIN_PASSWORD` on boot (upsert every boot — env is source of truth)
+- [x] JWT login (httpOnly cookie, 7-day, SameSite=Lax), `requireAuth`, `requireAdmin`; `/api/auth/{login,logout,me}`
+- [x] Frontend: login page, auth context (`/me` on load), protected + admin routes, redirect on no JWT (Vite dev proxy → single-origin cookie)
+- [x] Admin → Users: full CRUD (list/create/edit role+password/delete) with self-delete + last-admin guards
+- [x] ✅ Checkpoint: admin logs in, `user` blocked from `/admin/*` (403), created user logs in — verified end-to-end through the Vite proxy
+- [x] Backend test suite: vitest + supertest + mongodb-memory-server (`npm test`), 60 tests — smoke, auth/JWT tampering, RBAC, NoSQL-injection, CRUD guards
 
-## Phase 2 — Landing + Docs (MDX)
+## Phase 2 — Landing + Docs (MDX)  ◀◀◀ NEXT
 - [ ] MDX pipeline (`@mdx-js/rollup`) + shadcn typography
 - [ ] Apple-style landing page (DESIGN.md tiles/accent/pills)
 - [ ] Docs page rendering `/docs-content/*.mdx` + nav entry

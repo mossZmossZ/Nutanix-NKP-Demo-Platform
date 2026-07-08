@@ -11,4 +11,11 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  // Single-origin dev: proxy the API to the backend so the auth cookie is
+  // first-party (mirrors the nginx single-origin setup in prod).
+  server: {
+    proxy: {
+      '/api': 'http://localhost:4000',
+    },
+  },
 })
