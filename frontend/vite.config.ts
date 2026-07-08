@@ -33,7 +33,6 @@ export default defineConfig({
       allow: [path.resolve(__dirname, '..')],
     },
   },
-  // @ts-expect-error - Vitest config extends Vite config
   test: {
     environment: 'jsdom',
     globals: true,
