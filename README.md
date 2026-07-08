@@ -1,1 +1,1 @@
-# Nutanix-NKP-Demo-Platform
+# Nutanix-NKP-Workshop-Platform
