@@ -3,8 +3,9 @@ import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 
-// DESIGN.md component.button-dark-utility grammar (bg-ink, rounded.sm) carried
-// into the menu surface — flat, no shadow, matches the global-nav chrome it hangs off.
+// design.md §4 App shell / §3 Elevation: surface fill, line-200 border,
+// radius md, single `shadow` (dropdowns/standard floating surfaces).
+// Motion per design.md §6: base — scale 0.96→1 + fade, origin at trigger.
 function DropdownMenu(props: React.ComponentProps<typeof DropdownMenuPrimitive.Root>) {
   return <DropdownMenuPrimitive.Root data-slot="dropdown-menu" {...props} />
 }
@@ -26,7 +27,7 @@ function DropdownMenuContent({
         data-slot="dropdown-menu-content"
         sideOffset={sideOffset}
         className={cn(
-          "z-50 min-w-[176px] rounded-sm border border-on-dark/10 bg-ink p-xs",
+          "z-50 min-w-[176px] origin-(--radix-dropdown-menu-content-transform-origin) rounded-md border border-border bg-popover p-xs text-popover-foreground shadow duration-[var(--duration-base)] ease-standard data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
           className
         )}
         {...props}
@@ -43,7 +44,7 @@ function DropdownMenuItem({
     <DropdownMenuPrimitive.Item
       data-slot="dropdown-menu-item"
       className={cn(
-        "flex cursor-pointer items-center rounded-sm px-sm py-xs font-text text-button-utility text-on-dark outline-none select-none hover:bg-on-dark/10 focus:bg-on-dark/10",
+        "flex cursor-pointer items-center rounded-sm px-sm py-xs text-body-sm text-foreground outline-none transition-colors duration-[var(--duration-fast)] ease-standard select-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
         className
       )}
       {...props}
@@ -58,7 +59,7 @@ function DropdownMenuSeparator({
   return (
     <DropdownMenuPrimitive.Separator
       data-slot="dropdown-menu-separator"
-      className={cn("my-xs h-px bg-on-dark/10", className)}
+      className={cn("my-xs h-px bg-border", className)}
       {...props}
     />
   )
