@@ -32,15 +32,20 @@ export function LandingPage() {
             style={revealDelay(1)}
             className={`mt-sm text-display text-primary-foreground ${revealClass(heroTitle.visible)}`}
           >
-            Learn Kubernetes on real infrastructure.
+            Production-Grade Kubernetes.
+            <br />
+            <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
+              Zero Setup Required.
+            </span>
           </h1>
           <p
             ref={heroLead.ref}
             style={revealDelay(2)}
             className={`mt-md text-body-lg text-primary-foreground/70 ${revealClass(heroLead.visible)}`}
           >
-            No installs, no simulators — every lab boots a real cluster and hands
-            you a live terminal, right in the browser.
+            Experience enterprise Kubernetes on <strong className="text-primary-foreground">real Nutanix infrastructure</strong>.
+            Full multi-node NKP clusters, live terminals, and complete RDP desktops —
+            all streaming to your browser in seconds.
           </p>
           <div
             ref={heroCta.ref}

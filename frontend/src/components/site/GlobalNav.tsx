@@ -36,7 +36,7 @@ export function GlobalNav() {
 
           {user ? (
             <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center gap-xs rounded-md border border-border bg-surface py-[6px] pr-[12px] pl-[6px] text-button text-foreground outline-none transition-colors hover:bg-accent">
+              <DropdownMenuTrigger className="flex items-center gap-xs rounded-md border border-border bg-surface py-[6px] pr-[12px] pl-[6px] text-button text-foreground outline-none transition-colors hover:bg-accent select-none">
                 <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-label text-primary-foreground uppercase">
                   {user.username.charAt(0)}
                 </span>
