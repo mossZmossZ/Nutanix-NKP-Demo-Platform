@@ -21,13 +21,13 @@ sync with reality (it's the "current state" file).
 - [x] ✅ Checkpoint: admin logs in, `user` blocked from `/admin/*` (403), created user logs in — verified end-to-end through the Vite proxy
 - [x] Backend test suite: vitest + supertest + mongodb-memory-server (`npm test`), 60 tests — smoke, auth/JWT tampering, RBAC, NoSQL-injection, CRUD guards
 
-## Phase 2 — Landing + Docs (MDX)  ◀◀◀ NEXT
-- [ ] MDX pipeline (`@mdx-js/rollup`) + shadcn typography
-- [ ] Apple-style landing page (DESIGN.md tiles/accent/pills)
-- [ ] Docs page rendering `/docs-content/*.mdx` + nav entry
-- [ ] ✅ Checkpoint: landing follows DESIGN.md rules; MDX renders styled
+## Phase 2 — Landing + Docs (MDX)
+- [x] MDX pipeline (`@mdx-js/rollup`) + shadcn typography
+- [x] Apple-style landing page (DESIGN.md tiles/accent/pills)
+- [x] Docs page rendering `/docs-content/*.mdx` + nav entry
+- [x] ✅ Checkpoint: landing follows DESIGN.md rules; MDX renders styled
 
-## Phase 3 — Domain model + static assignment
+## Phase 3 — Domain model + static assignment  ◀◀◀ NEXT
 - [ ] `Lab`, `Machine`, `Assignment` models
 - [ ] Admin → Machines: create static machine
 - [ ] Admin → Assignments: assign `(user, lab)` creds + variables; inline assign from machine
