@@ -1,11 +1,16 @@
-import { Navigate, Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/auth/AuthContext'
 import { Button } from '@/components/ui/button'
 import { BrowserMockup } from '@/components/site/BrowserMockup'
 
 export function LandingPage() {
-  const { user } = useAuth()
-  if (user) return <Navigate to="/home" replace />
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  async function onSignOut() {
+    await logout()
+    navigate('/', { replace: true })
+  }
 
   return (
     <>
@@ -18,8 +23,17 @@ export function LandingPage() {
           </p>
           <div className="mt-xl flex items-center justify-center gap-md">
             <Button asChild variant="primary">
-              <Link to="/login">Sign in</Link>
+              <Link to="/lab-access">Lab access</Link>
             </Button>
+            {user ? (
+              <Button variant="secondary" onClick={onSignOut}>
+                Sign out
+              </Button>
+            ) : (
+              <Button asChild variant="secondary">
+                <Link to="/login">Sign in</Link>
+              </Button>
+            )}
             <Button asChild variant="secondary">
               <Link to="/docs">Read the docs →</Link>
             </Button>

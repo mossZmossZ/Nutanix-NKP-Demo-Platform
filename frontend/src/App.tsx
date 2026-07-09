@@ -4,9 +4,10 @@ import { PublicLayout } from "@/layouts/PublicLayout";
 import { LandingPage } from "@/pages/LandingPage";
 import { DocsIndexPage } from "@/pages/docs/DocsIndexPage";
 import { DocPage } from "@/pages/docs/DocPage";
-import { HomePage } from "@/pages/HomePage";
+import { LabAccessPage } from "@/pages/LabAccessPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { UsersPage } from "@/pages/admin/UsersPage";
+import { AdminPortalPage } from "@/pages/admin/AdminPortalPage";
 
 function App() {
   return (
@@ -22,10 +23,11 @@ function App() {
 
       {/* Authenticated app keeps its own chrome (AppLayout arrives in Phase 3). */}
       <Route element={<ProtectedRoute />}>
-        <Route path="/home" element={<HomePage />} />
+        <Route path="/lab-access" element={<LabAccessPage />} />
       </Route>
 
       <Route element={<AdminRoute />}>
+        <Route path="/admin" element={<AdminPortalPage />} />
         <Route path="/admin/users" element={<UsersPage />} />
       </Route>
 
