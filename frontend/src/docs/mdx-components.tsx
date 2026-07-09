@@ -57,8 +57,15 @@ export const mdxComponents = {
   code: (p: ComponentPropsWithoutRef<'code'>) => (
     <code className="rounded-xs bg-canvas-parchment px-xxs py-[2px] font-mono text-caption text-ink" {...p} />
   ),
+  // Fenced blocks compile to <pre><code>, so both entries apply, nested.
+  // Neutralize the inline-code chip styling on the nested `code` so the
+  // fenced block renders as one clean dark box instead of a light chip
+  // sitting inside a dark one.
   pre: (p: ComponentPropsWithoutRef<'pre'>) => (
-    <pre className="my-lg overflow-x-auto rounded-md bg-surface-tile-1 p-lg font-mono text-caption text-on-dark" {...p} />
+    <pre
+      className="my-lg overflow-x-auto rounded-md bg-surface-tile-1 p-lg font-mono text-caption text-on-dark [&>code]:bg-transparent [&>code]:p-0 [&>code]:rounded-none [&>code]:text-inherit"
+      {...p}
+    />
   ),
   Callout,
   Steps,
