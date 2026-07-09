@@ -242,6 +242,11 @@
   }
   html {
     @apply font-sans;
+    /* Force the scrollbar track to always render, so Radix locking scroll on
+       dropdown/dialog open (overflow: hidden on body) never changes the viewport's
+       clientWidth and shifts a visible seam on the right. scrollbar-gutter: stable
+       alone doesn't cover this — it needs html's own overflow to be non-visible. */
+    overflow-y: scroll;
   }
 }
 

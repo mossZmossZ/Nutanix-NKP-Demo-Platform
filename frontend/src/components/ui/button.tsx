@@ -17,6 +17,10 @@ const buttonVariants = cva(
         // DESIGN.md component.button-secondary-pill
         secondary:
           "border border-primary bg-transparent text-primary hover:bg-primary/5",
+        // Dark-surface counterpart: Action Blue "disappears" on dark tiles per
+        // DESIGN.md, so this uses Sky Link Blue (primary-on-dark) instead.
+        "secondary-dark":
+          "border border-on-dark/20 bg-transparent text-primary-on-dark hover:bg-on-dark/5",
       },
     },
     defaultVariants: {

@@ -1,40 +1,28 @@
-import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '@/auth/AuthContext'
+import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { BrowserMockup } from '@/components/site/BrowserMockup'
 
 export function LandingPage() {
-  const { user, logout } = useAuth()
-  const navigate = useNavigate()
-
-  async function onSignOut() {
-    await logout()
-    navigate('/', { replace: true })
-  }
-
   return (
     <>
-      {/* Hero — parchment */}
-      <section className="bg-canvas-parchment px-lg py-section text-center">
+      {/* Hero — black stage: the terminal demo IS the pitch */}
+      <section className="bg-surface-black px-lg py-section text-center text-on-dark">
         <div className="mx-auto max-w-[820px]">
-          <h1 className="font-display text-hero-display text-ink">Nutanix NKP Workshop</h1>
-          <p className="mt-md font-display text-lead text-ink-muted-80">
-            Hands-on Kubernetes labs, running in your browser.
+          <p className="font-text text-caption-strong tracking-[0.08em] text-primary-on-dark uppercase">
+            Nutanix NKP · Hands-on Workshop
+          </p>
+          <h1 className="mt-sm font-display text-hero-display text-on-dark">
+            Learn Kubernetes on real infrastructure.
+          </h1>
+          <p className="mt-md font-display text-lead text-body-muted">
+            No installs, no simulators — every lab boots a real cluster and hands
+            you a live terminal, right in the browser.
           </p>
           <div className="mt-xl flex items-center justify-center gap-md">
             <Button asChild variant="primary">
               <Link to="/lab-access">Lab access</Link>
             </Button>
-            {user ? (
-              <Button variant="secondary" onClick={onSignOut}>
-                Sign out
-              </Button>
-            ) : (
-              <Button asChild variant="secondary">
-                <Link to="/login">Sign in</Link>
-              </Button>
-            )}
-            <Button asChild variant="secondary">
+            <Button asChild variant="secondary-dark">
               <Link to="/docs">Read the docs →</Link>
             </Button>
           </div>
@@ -44,24 +32,24 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* Tile 2 — dark: the remote desktop story */}
-      <section className="bg-surface-tile-1 px-lg py-section text-center text-on-dark">
+      {/* Tile 2 — light: the remote desktop story */}
+      <section className="bg-canvas px-lg py-section text-center">
         <div className="mx-auto max-w-[820px]">
-          <h2 className="font-display text-display-lg text-on-dark">
+          <h2 className="font-display text-display-lg text-ink">
             A full Linux desktop. In your browser.
           </h2>
-          <p className="mt-md font-display text-lead text-body-muted">
+          <p className="mt-md font-display text-lead text-ink-muted-80">
             No installs, no SSH keys. Click your lab and you are on the machine —
             a real RDP desktop streamed to a browser tab.
           </p>
         </div>
       </section>
 
-      {/* Tile 3 — light: the guided labs story */}
-      <section className="bg-canvas px-lg py-section text-center">
+      {/* Tile 3 — dark: the guided labs story */}
+      <section className="bg-surface-tile-1 px-lg py-section text-center text-on-dark">
         <div className="mx-auto max-w-[820px]">
-          <h2 className="font-display text-display-lg text-ink">Guided labs, step by step.</h2>
-          <p className="mt-md font-display text-lead text-ink-muted-80">
+          <h2 className="font-display text-display-lg text-on-dark">Guided labs, step by step.</h2>
+          <p className="mt-md font-display text-lead text-body-muted">
             Every lab pairs a written guide with the live machine beside it —
             read on the left, do on the right.
           </p>
