@@ -12,7 +12,6 @@
   --color-primary-focus: #0071e3;
   --color-primary-on-dark: #2997ff;
   --color-ink: #1d1d1f;
-  --color-body: #1d1d1f;
   --color-body-on-dark: #ffffff;
   --color-body-muted: #cccccc;
   --color-ink-muted-80: #333333;
@@ -85,7 +84,6 @@
   --color-primary-focus: var(--color-primary-focus);
   --color-primary-on-dark: var(--color-primary-on-dark);
   --color-ink: var(--color-ink);
-  --color-body: var(--color-body);
   --color-body-on-dark: var(--color-body-on-dark);
   --color-body-muted: var(--color-body-muted);
   --color-ink-muted-80: var(--color-ink-muted-80);
