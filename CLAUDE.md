@@ -41,7 +41,8 @@ it to a user are two separate steps bridged by the admin. Don't auto-wire them.
 /infra         terraform/ + ansible/ templates (Nutanix)
 /docs-content  .mdx lab guides + doc pages
 /deploy        docker-compose.dev.yml, docker-compose.prod.yml, nginx/
-DESIGN.md      design-system source of truth (Apple-inspired) — see "Design" below
+design.md      design-system source of truth (violet SaaS) — see "Design" below
+design/        per-page layout references (homepage/login/admin/users) — refs only, tokens live in design.md
 ARCHITECTURE.md, PLAN.md, TASKS.md, SECURITY.md
 ```
 
@@ -51,10 +52,12 @@ ARCHITECTURE.md, PLAN.md, TASKS.md, SECURITY.md
   reviewing, or refactoring code, and follow it: minimum code that solves the task, surgical
   changes, surface assumptions/tradeoffs, define verifiable success criteria. Don't add
   speculative abstraction/config/error-handling.
-- **Design is a spec, not a suggestion.** All UI follows `DESIGN.md`: Action Blue `#0066cc`
-  is the *only* accent, SF Pro / Inter type ladder (300/400/600/700 — no 500), `{rounded.pill}`
-  for actions, one product-shadow only, alternating light/dark full-bleed tiles. Map tokens
-  into the Tailwind theme; theme shadcn components from those tokens. Never inline hex.
+- **Design is a spec, not a suggestion.** All UI follows `design.md`: violet `#702DFF`
+  is the *only* accent (status colors are functional-only), **Inter** type ladder
+  (400/500/600/700), radius 8px default / 12px panels / pill for chips+avatars+hero CTAs, one
+  product-shadow style only, light-only on semantic tokens. Map tokens into the Tailwind theme;
+  theme shadcn components from those tokens. Never inline hex. Files in `design/` are layout
+  references only — their token values are superseded by `design.md`.
 - **Never run Terraform/Ansible inside an HTTP request.** Provisioning is always a BullMQ
   job; the API enqueues and returns a `jobId`; the worker streams logs.
 - **Secrets never touch the repo or client logs.** RDP passwords, JWT secret, Nutanix creds
@@ -83,7 +86,7 @@ ARCHITECTURE.md, PLAN.md, TASKS.md, SECURITY.md
 - **What to build and in what order** → `PLAN.md`
 - **Concrete checklist / current state** → `TASKS.md`
 - **Handling secrets, RDP creds, provisioning safety** → `SECURITY.md`
-- **Any UI decision** → `DESIGN.md`
+- **Any UI decision** → `design.md`
 
 ## Working style (this maintainer)
 

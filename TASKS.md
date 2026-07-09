@@ -27,17 +27,41 @@ sync with reality (it's the "current state" file).
 - [x] Docs page rendering `/docs-content/*.mdx` + nav entry
 - [x] ✅ Checkpoint: landing follows DESIGN.md rules; MDX renders styled
 
-## Phase 3 — Web design: portals + SaaS-grade redesign  ◀◀◀ NEXT
+## Phase 3 — Web Design & UX/UI (the whole-app design pass)  ◀◀◀ NEXT
+> This is the **last** phase that designs UI. Phases 4+ are functional and have no design
+> plan — they inherit the system this phase establishes. So Phase 3 owns **every existing
+> surface** and locks the design system before functional work begins.
+>
+> **Source of truth: `design.md`** (root) — unified violet SaaS system (accent `#702DFF`,
+> Inter, 8/12/pill radii, light-only on semantic tokens). Supersedes the old `DESIGN.md`.
+> Per-page layout refs live in `design/`.
+>
+> **Workflow (human-in-the-loop):** foundation first, then one surface at a time —
+> I edit a surface → maintainer reviews → iterate until approved → next surface. A final
+> whole-app cohesion sign-off gates entry to Phase 4. **Do not start Phase 4 until the
+> maintainer confirms.**
+
+- [x] Design system consolidated: root `design.md` (single source of truth) + `design/` page refs
 - [x] Role-based landing stubs: `LabAccessPage`, `AdminPortalPage`, profile dropdown nav
       (replaces old single `HomePage`) — uncommitted, needs a baseline commit
-- [ ] Landing page: stronger hero + tile storytelling ("powerful home page" pass)
-- [ ] Lab Access Portal: SaaS dashboard shell (app nav/sidebar) + "My Labs" placeholder
-      card list + Credentials tab placeholder
-- [ ] Admin Portal: SaaS dashboard shell (sidebar: Users/Machines/Assignments) + summary
-      tiles; Users section wired live to real API, Machines/Assignments as placeholders
+- [ ] **Foundation pass** — map `design.md` tokens into Tailwind `@theme`; re-theme shadcn
+      components (buttons, cards, inputs, badges) + the dashboard shell (sidebar/top bar) from
+      tokens. No hardcoded hex anywhere. Includes:
+      - Motion tokens (durations/easings as CSS vars) + a `prefers-reduced-motion` reset;
+        base transitions on buttons/cards/nav/dropdowns/modals/toasts per `design.md §6`.
+      - Lazy-load infra: `React.lazy` + `Suspense` per top-level route; branded skeleton
+        fallbacks (shell stays, content region swaps); reusable `Skeleton` component (`design.md §7`).
+- [ ] **Login** — redesign to `design.md` · _review → approve_
+- [ ] **Home (landing)** — stronger hero + alternating-tile storytelling · _review → approve_
+- [ ] **Lab Access Portal** (user) — dashboard shell + "My Labs" placeholder cards +
+      Credentials tab placeholder · _review → approve_
+- [ ] **Admin Portal** — dashboard shell (sidebar: Users/Machines/Assignments) + summary
+      tiles; Users wired to the real API, Machines/Assignments placeholders · _review → approve_
+- [ ] **Docs + global shell** — MDX typography + nav/profile dropdown refined to the shell · _review → approve_
 - [ ] Mock/placeholder data isolated in one fixtures location (easy to remove in Phase 4)
-- [ ] ✅ Checkpoint: all three surfaces follow `DESIGN.md`, read as one cohesive SaaS
-      product; Admin → Users still fully functional against the real API
+- [ ] ✅ **Cohesion sign-off** — all surfaces follow `design.md`, read as one cohesive SaaS
+      product; Admin → Users still fully functional against the real API. **Maintainer confirms
+      before Phase 4.**
 
 ## Phase 4 — Domain model + static assignment
 - [ ] `Lab`, `Machine`, `Assignment` models
