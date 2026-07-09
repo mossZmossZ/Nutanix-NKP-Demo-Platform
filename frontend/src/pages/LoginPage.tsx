@@ -36,12 +36,14 @@ export function LoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-canvas-parchment px-lg">
       <form
         onSubmit={onSubmit}
-        className="w-full max-w-sm rounded-lg border border-hairline bg-canvas p-xl"
+        className="w-full max-w-[24rem] rounded-lg border border-hairline bg-canvas p-xl"
       >
-        <h1 className="font-display text-display-md text-ink">Sign in</h1>
-        <p className="mt-xs font-text text-body text-ink-muted-48">
-          NKP Workshop Platform
-        </p>
+        <div className="text-center">
+          <h1 className="font-display text-display-md text-ink">Sign in</h1>
+          <p className="mt-xs font-text text-body text-ink-muted-48">
+            NKP Workshop Platform
+          </p>
+        </div>
 
         <div className="mt-xl flex flex-col gap-lg">
           <label className="flex flex-col gap-xs">
