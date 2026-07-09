@@ -21,5 +21,5 @@ export function AdminRoute() {
   const { user, loading } = useAuth();
   if (loading) return <Loading />;
   if (!user) return <Navigate to="/login" replace />;
-  return user.role === "admin" ? <Outlet /> : <Navigate to="/" replace />;
+  return user.role === "admin" ? <Outlet /> : <Navigate to="/home" replace />;
 }

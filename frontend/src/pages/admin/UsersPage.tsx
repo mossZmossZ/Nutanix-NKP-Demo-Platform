@@ -74,7 +74,7 @@ export function UsersPage() {
   return (
     <main className="min-h-screen bg-canvas-parchment px-lg py-xl">
       <div className="mx-auto max-w-3xl">
-        <Link to="/" className="font-text text-caption text-primary hover:underline">
+        <Link to="/home" className="font-text text-caption text-primary hover:underline">
           ← Back
         </Link>
         <h1 className="mt-sm font-display text-display-md text-ink">Users</h1>

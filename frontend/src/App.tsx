@@ -1,5 +1,9 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AdminRoute, ProtectedRoute } from "@/components/RouteGuards";
+import { PublicLayout } from "@/layouts/PublicLayout";
+import { LandingPage } from "@/pages/LandingPage";
+import { DocsIndexPage } from "@/pages/docs/DocsIndexPage";
+import { DocPage } from "@/pages/docs/DocPage";
 import { HomePage } from "@/pages/HomePage";
 import { LoginPage } from "@/pages/LoginPage";
 import { UsersPage } from "@/pages/admin/UsersPage";
@@ -7,10 +11,18 @@ import { UsersPage } from "@/pages/admin/UsersPage";
 function App() {
   return (
     <Routes>
+      {/* Public marketing + docs share the PublicLayout chrome. */}
+      <Route element={<PublicLayout />}>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/docs" element={<DocsIndexPage />} />
+        <Route path="/docs/:slug" element={<DocPage />} />
+      </Route>
+
       <Route path="/login" element={<LoginPage />} />
 
+      {/* Authenticated app keeps its own chrome (AppLayout arrives in Phase 3). */}
       <Route element={<ProtectedRoute />}>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/home" element={<HomePage />} />
       </Route>
 
       <Route element={<AdminRoute />}>
