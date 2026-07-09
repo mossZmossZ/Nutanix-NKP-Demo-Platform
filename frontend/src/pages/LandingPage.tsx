@@ -14,11 +14,6 @@ export function LandingPage() {
   const tile2Title = useReveal<HTMLHeadingElement>()
   const tile2Lead = useReveal<HTMLParagraphElement>()
 
-  const tile3Title = useReveal<HTMLHeadingElement>()
-  const tile3Lead = useReveal<HTMLParagraphElement>()
-
-  const tile4Title = useReveal<HTMLHeadingElement>()
-  const tile4Lead = useReveal<HTMLParagraphElement>()
 
   return (
     <>
@@ -90,47 +85,6 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* Tile 3 — violet-50: the guided labs story */}
-      <section className="bg-violet-50 px-lg py-section text-center">
-        <div className="mx-auto max-w-[820px]">
-          <h2
-            ref={tile3Title.ref}
-            style={revealDelay(0)}
-            className={`text-h2 text-foreground ${revealClass(tile3Title.visible)}`}
-          >
-            Guided labs, step by step.
-          </h2>
-          <p
-            ref={tile3Lead.ref}
-            style={revealDelay(1)}
-            className={`mt-md text-body-lg text-muted-foreground ${revealClass(tile3Lead.visible)}`}
-          >
-            Every lab pairs a written guide with the live machine beside it —
-            read on the left, do on the right.
-          </p>
-        </div>
-      </section>
-
-      {/* Tile 4 — white: the provisioning story */}
-      <section className="bg-white px-lg py-section text-center">
-        <div className="mx-auto max-w-[820px]">
-          <h2
-            ref={tile4Title.ref}
-            style={revealDelay(0)}
-            className={`text-h2 text-foreground ${revealClass(tile4Title.visible)}`}
-          >
-            Provisioned on demand.
-          </h2>
-          <p
-            ref={tile4Lead.ref}
-            style={revealDelay(1)}
-            className={`mt-md text-body-lg text-muted-foreground ${revealClass(tile4Lead.visible)}`}
-          >
-            Instructors spin up machines on Nutanix with Terraform and Ansible,
-            then hand each learner their own credentials.
-          </p>
-        </div>
-      </section>
     </>
   )
 }
