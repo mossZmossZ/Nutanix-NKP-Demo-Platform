@@ -7,7 +7,7 @@ Track concrete items in `TASKS.md`.
 ## Phase 0 — Scaffold & dev loop
 Goal: repos exist, dev infra runs, both apps boot.
 - Monorepo dirs (`/frontend /backend /infra /docs-content /deploy`).
-- Frontend: Vite + React + TS + Tailwind + shadcn init; map `DESIGN.md` tokens into the
+- Frontend: Vite + React + TS + Tailwind + shadcn init; map `design.md` tokens into the
   Tailwind theme (colors, type ladder, radii, spacing).
 - Backend: Express + TS, Mongoose connect, health route, env config.
 - `docker-compose.dev.yml` (mongo + redis). `.env.example`.
@@ -18,7 +18,7 @@ Goal: repos exist, dev infra runs, both apps boot.
 Goal: seeded admin can log in; RBAC guards admin routes.
 - `User` model; seed static admin from `ADMIN_USER`/`ADMIN_PASSWORD` on boot.
 - JWT login (httpOnly cookie), `requireAuth` + `requireAdmin` middleware.
-- Frontend: login page (DESIGN.md styling), auth context, protected routes, redirect on
+- Frontend: login page (design.md styling), auth context, protected routes, redirect on
   missing/expired JWT.
 - Admin → Users: list + create user (username, password, role).
 - **Verify:** seeded admin logs in; `user`-role token is 403 on `/admin/*`; created user can
@@ -27,9 +27,9 @@ Goal: seeded admin can log in; RBAC guards admin routes.
 ## Phase 2 — Landing + Docs (MDX)
 Goal: the public face and the MDX pipeline.
 - MDX pipeline (`@mdx-js/rollup`) + shadcn typography.
-- Apple-style **landing page** from `DESIGN.md` (alternating full-bleed tiles, Action Blue).
+- **Landing page** from `design.md` (alternating full-bleed tiles, violet accent).
 - **Docs page** rendering `.mdx` from `/docs-content`, nav entry.
-- **Verify:** landing matches DESIGN.md rules (single accent, pill CTAs, tile rhythm); a docs
+- **Verify:** landing matches design.md rules (single accent, pill CTAs, tile rhythm); a docs
   MDX file renders with styled typography.
 
 ## Phase 3 — Web design: portals + SaaS-grade redesign
@@ -37,7 +37,7 @@ Goal: the authenticated app looks and feels like a real SaaS product — before 
 data is real. Mock/hardcoded content only; no new backend calls. This sets the IA that
 Phase 4's models/APIs will populate.
 - **Landing page:** elevate to a genuinely strong "powerful home page" — sharper hero,
-  richer alternating-tile storytelling, tighter CTAs. Stays Apple-style per `DESIGN.md`
+  richer alternating-tile storytelling, tighter CTAs. Follows `design.md`
   (this page is the public marketing face).
 - **Lab Access Portal** (user-side): SaaS dashboard shell (persistent app nav/sidebar) +
   "My Labs" placeholder card list (lab name, status, "Enter lab" CTA) + Credentials tab
@@ -49,9 +49,9 @@ Phase 4's models/APIs will populate.
 - Global nav / profile dropdown (already landed) — refine to match the new shell.
 - Placeholder data lives in one clearly-marked fixtures location so it's trivial to rip
   out when Phase 4 wires real data.
-- **Verify:** Landing, Lab Access, and Admin portals all follow `DESIGN.md` tokens (Action
-  Blue only accent, pill CTAs, type ladder) and read as one cohesive SaaS product; Admin →
-  Users still fully functions against the real API throughout.
+- **Verify:** Landing, Lab Access, and Admin portals all follow `design.md` tokens (violet
+  `#702DFF` only accent, Inter ladder, 8px radii/pill CTAs) and read as one cohesive SaaS
+  product; Admin → Users still fully functions against the real API throughout.
 
 ## Phase 4 — Domain model + static assignment
 Goal: admin can create a machine manually and assign RDP creds to a user (no Terraform yet).

@@ -1,7 +1,7 @@
 # Architecture
 
 How the Nutanix NKP Workshop Platform fits together. See `CLAUDE.md` for the stack table and
-`DESIGN.md` for the visual system.
+`design.md` for the visual system.
 
 ## System overview
 

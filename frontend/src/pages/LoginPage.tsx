@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
 
 const fieldClass =
-  "w-full rounded-md border border-hairline bg-canvas px-md py-sm font-text text-body text-ink " +
-  "outline-none focus-visible:ring-2 focus-visible:ring-primary-focus";
+  "w-full rounded-md border border-border bg-surface px-md py-sm text-body text-foreground " +
+  "outline-none transition-[border-color,box-shadow] duration-[var(--duration-fast)] ease-standard " +
+  "hover:border-foreground/20 focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-primary/12";
 
 export function LoginPage() {
   const { user, login } = useAuth();
@@ -33,27 +34,27 @@ export function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-md bg-canvas-parchment px-lg">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-md bg-violet-50 px-lg">
       <Link
         to="/"
-        className="w-full max-w-[24rem] font-text text-caption text-primary hover:underline"
+        className="w-full max-w-[24rem] text-body-sm text-primary hover:underline"
       >
         ← Return to home
       </Link>
       <form
         onSubmit={onSubmit}
-        className="w-full max-w-[24rem] rounded-lg border border-hairline bg-canvas p-xl"
+        className="w-full max-w-[24rem] rounded-lg border border-border bg-surface p-xl shadow"
       >
         <div className="text-center">
-          <h1 className="font-display text-display-md text-ink">Sign in</h1>
-          <p className="mt-xs font-text text-body text-ink-muted-48">
+          <h1 className="text-h2 text-foreground">Sign in</h1>
+          <p className="mt-xs text-body text-muted-foreground">
             NKP Workshop Platform
           </p>
         </div>
 
         <div className="mt-xl flex flex-col gap-lg">
           <label className="flex flex-col gap-xs">
-            <span className="font-text text-caption-strong text-ink">Username</span>
+            <span className="text-label text-foreground">Username</span>
             <input
               className={fieldClass}
               value={username}
@@ -65,7 +66,7 @@ export function LoginPage() {
           </label>
 
           <label className="flex flex-col gap-xs">
-            <span className="font-text text-caption-strong text-ink">Password</span>
+            <span className="text-label text-foreground">Password</span>
             <input
               type="password"
               className={fieldClass}
@@ -77,7 +78,7 @@ export function LoginPage() {
           </label>
 
           {error && (
-            <p role="alert" className="font-text text-caption text-destructive">
+            <p role="alert" className="text-body-sm text-destructive">
               {error}
             </p>
           )}

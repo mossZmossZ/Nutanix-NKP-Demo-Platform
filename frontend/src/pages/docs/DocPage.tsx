@@ -16,11 +16,11 @@ export function DocPage() {
   if (!entry || !Doc) {
     return (
       <div className="mx-auto max-w-[700px] px-lg py-section">
-        <h1 className="font-display text-display-md text-ink">Doc not found</h1>
-        <p className="mt-md font-text text-body text-ink-muted-80">
+        <h1 className="text-h2 text-foreground">Doc not found</h1>
+        <p className="mt-md text-body text-muted-foreground">
           No document matches "{slug}".
         </p>
-        <Link to="/docs" className="mt-lg inline-block font-text text-body text-primary">
+        <Link to="/docs" className="mt-lg inline-block text-body text-primary">
           ← All docs
         </Link>
       </div>
@@ -30,7 +30,7 @@ export function DocPage() {
   return (
     <article className="mx-auto max-w-[700px] px-lg py-section">
       <MDXProvider components={mdxComponents}>
-        <Suspense fallback={<p className="font-text text-body text-ink-muted-48">Loading…</p>}>
+        <Suspense fallback={<p className="text-body text-muted-foreground">Loading…</p>}>
           <Doc />
         </Suspense>
       </MDXProvider>
