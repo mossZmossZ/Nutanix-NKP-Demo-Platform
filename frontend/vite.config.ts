@@ -21,6 +21,12 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      // MDX docs live at repo-root /docs-content (outside frontend/), so their
+      // compiled `react/jsx-runtime` + `@mdx-js/react` imports can't resolve via
+      // node's upward walk — pin them to frontend's node_modules.
+      react: path.resolve(__dirname, 'node_modules/react'),
+      'react/jsx-runtime': path.resolve(__dirname, 'node_modules/react/jsx-runtime'),
+      '@mdx-js/react': path.resolve(__dirname, 'node_modules/@mdx-js/react'),
     },
   },
   server: {
