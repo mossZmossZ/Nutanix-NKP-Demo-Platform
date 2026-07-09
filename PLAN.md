@@ -32,17 +32,39 @@ Goal: the public face and the MDX pipeline.
 - **Verify:** landing matches DESIGN.md rules (single accent, pill CTAs, tile rhythm); a docs
   MDX file renders with styled typography.
 
-## Phase 3 — Domain model + static assignment
+## Phase 3 — Web design: portals + SaaS-grade redesign
+Goal: the authenticated app looks and feels like a real SaaS product — before any of its
+data is real. Mock/hardcoded content only; no new backend calls. This sets the IA that
+Phase 4's models/APIs will populate.
+- **Landing page:** elevate to a genuinely strong "powerful home page" — sharper hero,
+  richer alternating-tile storytelling, tighter CTAs. Stays Apple-style per `DESIGN.md`
+  (this page is the public marketing face).
+- **Lab Access Portal** (user-side): SaaS dashboard shell (persistent app nav/sidebar) +
+  "My Labs" placeholder card list (lab name, status, "Enter lab" CTA) + Credentials tab
+  placeholder.
+- **Admin Portal**: SaaS dashboard shell (persistent sidebar: Users / Machines /
+  Assignments) + summary/stat tiles. Users section stays wired to the real API (already
+  built in Phase 1); Machines/Assignments sections are placeholder tiles pointing at
+  Phase 4.
+- Global nav / profile dropdown (already landed) — refine to match the new shell.
+- Placeholder data lives in one clearly-marked fixtures location so it's trivial to rip
+  out when Phase 4 wires real data.
+- **Verify:** Landing, Lab Access, and Admin portals all follow `DESIGN.md` tokens (Action
+  Blue only accent, pill CTAs, type ladder) and read as one cohesive SaaS product; Admin →
+  Users still fully functions against the real API throughout.
+
+## Phase 4 — Domain model + static assignment
 Goal: admin can create a machine manually and assign RDP creds to a user (no Terraform yet).
 - `Lab`, `Machine`, `Assignment` models.
 - Admin → Machines: create **static** machine (name, rdpHost, adminUser, adminPassword).
 - Admin → Assignments: assign `(user, lab)` → `rdpHost/rdpUser/rdpPassword` + variables;
   also inline "Assign to user →" from machine detail.
-- User: lab list + Credentials tab showing their assignment.
+- User: lab list + Credentials tab showing their assignment (replaces Phase 3's placeholder
+  cards with real data).
 - **Verify:** admin creates a static machine, assigns it; that user sees exactly those
   credentials and no one else's.
 
-## Phase 4 — Remote desktop (Guacamole)
+## Phase 5 — Remote desktop (Guacamole)
 Goal: user sees a live RDP desktop in the browser.
 - Add `guacd` + Guacamole to prod compose; wire nginx `/guac`.
 - Backend Guacamole adapter: create/update a connection from an assignment, mint token.
@@ -51,7 +73,7 @@ Goal: user sees a live RDP desktop in the browser.
 - **Verify:** against a test RDP host, an assigned user connects to the desktop in-browser;
   an unassigned user cannot.
 
-## Phase 5 — Dynamic provisioning (Terraform + Ansible + BullMQ)
+## Phase 6 — Dynamic provisioning (Terraform + Ansible + BullMQ)
 Goal: the cloud-manage feature with live logs.
 - BullMQ queue + worker process; `Job` model.
 - Provisioning adapter: per-machine workdir, `execa` `terraform apply` → `ansible-playbook`,
@@ -62,7 +84,7 @@ Goal: the cloud-manage feature with live logs.
 - **Verify:** creating a dynamic machine provisions a real/mock Nutanix VM; logs stream live;
   status reaches `online`; outputs populate the detail panel.
 
-## Phase 6 — Prod hardening & ship
+## Phase 7 — Prod hardening & ship
 Goal: full stack runs behind nginx over TLS.
 - `docker-compose.prod.yml` (nginx + fe + be + worker + mongo + redis + guac).
 - nginx TLS + routing; secret handling per `SECURITY.md`; basic dashboards/counts.
@@ -70,6 +92,10 @@ Goal: full stack runs behind nginx over TLS.
   end-to-end over HTTPS on a clean host.
 
 ## Sequencing notes
-- Phases 3→4→5 are the spine; do them in order (assignment before remote before dynamic).
-- Phase 5 is the highest-risk (real infra). Mock the Nutanix provider early if hardware
+- Phase 3 (design) intentionally runs on mock data before Phase 4 (real models/APIs) —
+  UI-first, thin vertical slice. Don't design further ahead than Phase 4 needs (e.g. no
+  Machines list filtering/sorting/pagination — that's speculative surface Phase 4 doesn't
+  call for).
+- Phases 4→5→6 are the spine; do them in order (assignment before remote before dynamic).
+- Phase 6 is the highest-risk (real infra). Mock the Nutanix provider early if hardware
   isn't ready, so the queue/log/UI plumbing is proven independently.

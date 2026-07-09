@@ -12,7 +12,6 @@
   --color-primary-focus: #0071e3;
   --color-primary-on-dark: #2997ff;
   --color-ink: #1d1d1f;
-  --color-body: #1d1d1f;
   --color-body-on-dark: #ffffff;
   --color-body-muted: #cccccc;
   --color-ink-muted-80: #333333;
@@ -85,7 +84,6 @@
   --color-primary-focus: var(--color-primary-focus);
   --color-primary-on-dark: var(--color-primary-on-dark);
   --color-ink: var(--color-ink);
-  --color-body: var(--color-body);
   --color-body-on-dark: var(--color-body-on-dark);
   --color-body-muted: var(--color-body-muted);
   --color-ink-muted-80: var(--color-ink-muted-80);
@@ -244,6 +242,11 @@
   }
   html {
     @apply font-sans;
+    /* Force the scrollbar track to always render, so Radix locking scroll on
+       dropdown/dialog open (overflow: hidden on body) never changes the viewport's
+       clientWidth and shifts a visible seam on the right. scrollbar-gutter: stable
+       alone doesn't cover this — it needs html's own overflow to be non-visible. */
+    overflow-y: scroll;
   }
 }
 
@@ -251,4 +254,6 @@ body {
   margin: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* DESIGN.md "Note on Font Substitutes": Inter ss03 approximates SF Pro's rounded a. */
+  font-feature-settings: "ss03";
 }

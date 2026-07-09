@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/auth/AuthContext";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
@@ -33,15 +33,23 @@ export function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-canvas-parchment px-lg">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-md bg-canvas-parchment px-lg">
+      <Link
+        to="/"
+        className="w-full max-w-[24rem] font-text text-caption text-primary hover:underline"
+      >
+        ← Return to home
+      </Link>
       <form
         onSubmit={onSubmit}
-        className="w-full max-w-sm rounded-lg border border-hairline bg-canvas p-xl"
+        className="w-full max-w-[24rem] rounded-lg border border-hairline bg-canvas p-xl"
       >
-        <h1 className="font-display text-display-md text-ink">Sign in</h1>
-        <p className="mt-xs font-text text-body text-ink-muted-48">
-          NKP Workshop Platform
-        </p>
+        <div className="text-center">
+          <h1 className="font-display text-display-md text-ink">Sign in</h1>
+          <p className="mt-xs font-text text-body text-ink-muted-48">
+            NKP Workshop Platform
+          </p>
+        </div>
 
         <div className="mt-xl flex flex-col gap-lg">
           <label className="flex flex-col gap-xs">

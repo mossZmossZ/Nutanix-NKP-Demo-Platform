@@ -16,10 +16,10 @@ export function ProtectedRoute() {
   return user ? <Outlet /> : <Navigate to="/login" replace />;
 }
 
-/** Requires an admin; non-admins -> home, unauthenticated -> /login. */
+/** Requires an admin; non-admins -> lab access, unauthenticated -> /login. */
 export function AdminRoute() {
   const { user, loading } = useAuth();
   if (loading) return <Loading />;
   if (!user) return <Navigate to="/login" replace />;
-  return user.role === "admin" ? <Outlet /> : <Navigate to="/" replace />;
+  return user.role === "admin" ? <Outlet /> : <Navigate to="/lab-access" replace />;
 }
