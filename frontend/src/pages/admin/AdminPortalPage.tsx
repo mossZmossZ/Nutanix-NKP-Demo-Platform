@@ -1,34 +1,34 @@
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "@/auth/AuthContext";
+import { Link } from "react-router-dom";
+import { AppShell, type NavItem } from "@/layouts/AppShell";
 import { Button } from "@/components/ui/button";
 
+// Machines/Assignments routes arrive in Phase 4; shown here as disabled previews
+// so the admin sidebar communicates the full IA now.
+const nav: NavItem[] = [
+  { label: "Users", to: "/admin/users" },
+  { label: "Machines", to: "/admin/machines", disabled: true },
+  { label: "Assignments", to: "/admin/assignments", disabled: true },
+];
+
 export function AdminPortalPage() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-
-  async function onLogout() {
-    await logout();
-    navigate("/", { replace: true });
-  }
-
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-canvas-parchment px-lg text-center">
-      <Link to="/" className="font-text text-caption text-primary hover:underline">
-        ← Back to home
-      </Link>
-      <h1 className="mt-md font-display text-display-md text-ink">Admin Portal</h1>
-      <p className="mt-xs font-text text-body text-ink-muted-48">
-        Signed in as {user?.username}
-      </p>
-
-      <div className="mt-xl flex items-center gap-md">
-        <Button asChild variant="primary">
-          <Link to="/admin/users">Manage users</Link>
-        </Button>
-        <Button variant="secondary" onClick={onLogout}>
-          Sign out
-        </Button>
+    <AppShell nav={nav} title="Admin Portal">
+      <div className="mx-auto max-w-3xl">
+        <div className="flex flex-col items-center rounded-lg border border-border bg-surface px-xl py-xxl text-center shadow-sm">
+          <h2 className="text-h3 text-foreground">No machines provisioned yet</h2>
+          <p className="mt-xs max-w-md text-body text-muted-foreground">
+            Provision a machine to assign it to a workshop participant. You can also
+            manage user accounts and roles from here.
+          </p>
+          <div className="mt-lg flex items-center gap-sm">
+            {/* Provisioning lands in a later phase — non-wired stub for now. */}
+            <Button variant="primary">Create machine</Button>
+            <Button asChild variant="secondary">
+              <Link to="/admin/users">Manage users</Link>
+            </Button>
+          </div>
+        </div>
       </div>
-    </main>
+    </AppShell>
   );
 }
