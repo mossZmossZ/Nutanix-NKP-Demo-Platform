@@ -9,9 +9,14 @@ export function Footer() {
           <Link to="/docs" className="text-primary">Docs</Link>
           <Link to="/login" className="text-primary">Sign in</Link>
         </div>
-        <p className="text-body-sm text-muted-foreground">
-          Nutanix NKP Workshop Platform. For authorized workshop use only.
-        </p>
+        <div className="flex flex-col gap-xs text-body-sm text-muted-foreground">
+          <p>
+            Nutanix NKP Workshop Platform. For authorized workshop use only.
+          </p>
+          <p>
+            © {new Date().getFullYear()} Nattavee Narischat. All rights reserved.
+          </p>
+        </div>
       </div>
     </footer>
   )

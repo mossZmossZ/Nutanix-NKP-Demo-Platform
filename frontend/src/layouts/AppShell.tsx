@@ -10,7 +10,10 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
 
-export type NavItem = { label: string; to: string; icon?: ReactNode }
+// `disabled` renders a non-navigable, greyed-out preview item (e.g. Admin's
+// Machines/Assignments, whose routes land in a later phase). Deviation from the
+// Task 5 integration contract, authorized for Task 6 to show the full sidebar IA.
+export type NavItem = { label: string; to: string; icon?: ReactNode; disabled?: boolean }
 
 // design.md §4 App shell (dashboard surfaces): persistent left sidebar +
 // top bar, shared by Lab Access and Admin. Pages self-wrap via `children`
@@ -24,7 +27,9 @@ export function AppShell({ nav, title, children }: { nav: NavItem[]; title: stri
   // Longest matching `to` wins, so a nested route (e.g. /admin/users) doesn't
   // also light up a parent entry (e.g. /admin).
   const activeTo = useMemo(() => {
-    const matches = nav.filter((item) => pathname === item.to || pathname.startsWith(`${item.to}/`))
+    const matches = nav.filter(
+      (item) => !item.disabled && (pathname === item.to || pathname.startsWith(`${item.to}/`)),
+    )
     if (matches.length === 0) return null
     return matches.reduce((best, item) => (item.to.length > best.to.length ? item : best)).to
   }, [nav, pathname])
@@ -38,10 +43,30 @@ export function AppShell({ nav, title, children }: { nav: NavItem[]; title: stri
     <div className="flex min-h-screen">
       <aside className="flex w-64 shrink-0 flex-col border-r border-border bg-surface">
         <div className="flex h-16 shrink-0 items-center border-b border-border px-lg">
-          <span className="text-h4 text-foreground">NKP Workshop</span>
+          <Link
+            to="/"
+            className="text-h4 text-foreground transition-colors duration-[var(--duration-base)] ease-standard hover:text-violet-600"
+          >
+            NKP Workshop
+          </Link>
         </div>
         <nav className="flex flex-col gap-xxs p-sm">
           {nav.map((item) => {
+            if (item.disabled) {
+              return (
+                <span
+                  key={item.to}
+                  aria-disabled="true"
+                  className="flex cursor-not-allowed items-center gap-xs rounded-md border-l-[3px] border-transparent px-sm py-xs text-button text-muted-foreground/50"
+                >
+                  {item.icon}
+                  {item.label}
+                  <span className="ml-auto rounded-sm border border-border px-xxs text-label text-muted-foreground">
+                    Soon
+                  </span>
+                </span>
+              )
+            }
             const active = item.to === activeTo
             return (
               <Link

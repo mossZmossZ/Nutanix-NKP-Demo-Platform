@@ -1,5 +1,5 @@
 import * as React from "react"
-import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui"
+import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu"
 
 import { cn } from "@/lib/utils"
 
@@ -27,7 +27,7 @@ function DropdownMenuContent({
         data-slot="dropdown-menu-content"
         sideOffset={sideOffset}
         className={cn(
-          "z-50 min-w-[176px] origin-(--radix-dropdown-menu-content-transform-origin) rounded-md border border-border bg-popover p-xs text-popover-foreground shadow duration-[var(--duration-base)] ease-standard data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+          "z-50 min-w-[176px] origin-[var(--radix-dropdown-menu-content-transform-origin)] rounded-md border border-border bg-popover p-xs text-popover-foreground shadow duration-[var(--duration-base)] ease-standard data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
           className
         )}
         {...props}
