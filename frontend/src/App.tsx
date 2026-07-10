@@ -1,34 +1,39 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AdminRoute, ProtectedRoute } from "@/components/RouteGuards";
 import { PublicLayout } from "@/layouts/PublicLayout";
-import { LandingPage } from "@/pages/LandingPage";
-import { DocsIndexPage } from "@/pages/docs/DocsIndexPage";
-import { DocPage } from "@/pages/docs/DocPage";
-import { LabAccessPage } from "@/pages/LabAccessPage";
-import { LoginPage } from "@/pages/LoginPage";
-import { UsersPage } from "@/pages/admin/UsersPage";
-import { AdminPortalPage } from "@/pages/admin/AdminPortalPage";
+import { AppFallback, PageFallback } from "@/components/RouteFallback";
+
+// design.md §7 — route-level code splitting: the initial bundle carries only the
+// shell + current route; each page loads its own chunk behind a branded skeleton.
+const LandingPage = lazy(() => import("@/pages/LandingPage").then((m) => ({ default: m.LandingPage })));
+const DocsIndexPage = lazy(() => import("@/pages/docs/DocsIndexPage").then((m) => ({ default: m.DocsIndexPage })));
+const DocPage = lazy(() => import("@/pages/docs/DocPage").then((m) => ({ default: m.DocPage })));
+const LoginPage = lazy(() => import("@/pages/LoginPage").then((m) => ({ default: m.LoginPage })));
+const LabAccessPage = lazy(() => import("@/pages/LabAccessPage").then((m) => ({ default: m.LabAccessPage })));
+const UsersPage = lazy(() => import("@/pages/admin/UsersPage").then((m) => ({ default: m.UsersPage })));
+const AdminPortalPage = lazy(() => import("@/pages/admin/AdminPortalPage").then((m) => ({ default: m.AdminPortalPage })));
 
 function App() {
   return (
     <Routes>
       {/* Public marketing + docs share the PublicLayout chrome. */}
       <Route element={<PublicLayout />}>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/docs" element={<DocsIndexPage />} />
-        <Route path="/docs/:slug" element={<DocPage />} />
+        <Route path="/" element={<Suspense fallback={<PageFallback />}><LandingPage /></Suspense>} />
+        <Route path="/docs" element={<Suspense fallback={<PageFallback />}><DocsIndexPage /></Suspense>} />
+        <Route path="/docs/:slug" element={<Suspense fallback={<PageFallback />}><DocPage /></Suspense>} />
       </Route>
 
-      <Route path="/login" element={<LoginPage />} />
+      <Route path="/login" element={<Suspense fallback={<PageFallback />}><LoginPage /></Suspense>} />
 
-      {/* Authenticated app keeps its own chrome (AppLayout arrives in Phase 3). */}
+      {/* Authenticated app surfaces self-wrap the AppShell (children pattern). */}
       <Route element={<ProtectedRoute />}>
-        <Route path="/lab-access" element={<LabAccessPage />} />
+        <Route path="/lab-access" element={<Suspense fallback={<AppFallback />}><LabAccessPage /></Suspense>} />
       </Route>
 
       <Route element={<AdminRoute />}>
-        <Route path="/admin" element={<AdminPortalPage />} />
-        <Route path="/admin/users" element={<UsersPage />} />
+        <Route path="/admin" element={<Suspense fallback={<AppFallback />}><AdminPortalPage /></Suspense>} />
+        <Route path="/admin/users" element={<Suspense fallback={<AppFallback />}><UsersPage /></Suspense>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

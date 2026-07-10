@@ -44,15 +44,19 @@ sync with reality (it's the "current state" file).
 - [x] Design system consolidated: root `design.md` (single source of truth) + `design/` page refs
 - [x] Role-based landing stubs: `LabAccessPage`, `AdminPortalPage`, profile dropdown nav
       (replaces old single `HomePage`) — uncommitted, needs a baseline commit
-- [ ] **Foundation pass** — map `design.md` tokens into Tailwind `@theme`; re-theme shadcn
-      components (buttons, cards, inputs, badges) + the dashboard shell (sidebar/top bar) from
-      tokens. No hardcoded hex anywhere. Includes:
-      - Motion tokens (durations/easings as CSS vars) + a `prefers-reduced-motion` reset;
-        base transitions on buttons/cards/nav/dropdowns/modals/toasts per `design.md §6`.
-      - Lazy-load infra: `React.lazy` + `Suspense` per top-level route; branded skeleton
-        fallbacks (shell stays, content region swaps); reusable `Skeleton` component (`design.md §7`).
-- [ ] **Login** — redesign to `design.md` · _review → approve_
-- [ ] **Home (landing)** — stronger hero + alternating-tile storytelling · _review → approve_
+> **Direction (locked 2026-07-10):** ALL app surfaces are **light** (`canvas`/`surface`,
+> **violet-only** — no gradient). The **homepage (`LandingPage.tsx`) is FROZEN** — it's an
+> approved dark/gradient marketing exception, used only as a *quality* reference; do not edit
+> it or the shared shell in a way that changes it. Cadence: foundation → one surface at a time,
+> maintainer review between each.
+
+- [x] **Foundation pass** — tokens→`@theme` + motion tokens + `prefers-reduced-motion` were
+      already done in `index.css`. **Added 2026-07-10:** `Skeleton`, `Card`, `Input`, `Badge`
+      primitives (token-themed, `design.md §4/§7`); route-level `React.lazy` + `Suspense` in
+      `App.tsx` with branded fallbacks (`PageFallback` + shell-shaped `AppFallback`). typecheck
+      + lint + build green, per-route chunk splitting confirmed. _Awaiting review._
+- [ ] **Login** — redesign to `design.md` (light, violet-only) · _review → approve_  ◀◀◀ NEXT
+- [x] **Home (landing)** — FROZEN/approved; reference only, do not touch (skipped by direction)
 - [ ] **Lab Access Portal** (user) — dashboard shell + "My Labs" placeholder cards +
       Credentials tab placeholder · _review → approve_
 - [ ] **Admin Portal** — dashboard shell (sidebar: Users/Machines/Assignments) + summary
