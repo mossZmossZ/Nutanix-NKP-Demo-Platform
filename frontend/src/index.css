@@ -220,3 +220,28 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* Phase 4c guide reader — rehype-highlight token colors. design.md is
+   violet-only; syntax highlighting stays within primary/foreground/
+   muted-foreground so it never reads as a second accent. */
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-title.function_ {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+.hljs-string,
+.hljs-attr,
+.hljs-attribute {
+  color: var(--color-foreground);
+}
+.hljs-comment {
+  color: var(--color-muted-foreground);
+  font-style: italic;
+}
+.hljs-number,
+.hljs-symbol {
+  color: var(--color-foreground);
+  font-weight: 600;
+}
