@@ -1,12 +1,16 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
 import { useAuth } from "@/auth/AuthContext";
+import { AppShell } from "@/layouts/AppShell";
+import { adminNav } from "./adminNav";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
 import { api, ApiError, type Role, type User } from "@/lib/api";
 
-const inputClass =
-  "rounded-md border border-hairline bg-canvas px-sm py-xs font-text text-body text-ink " +
-  "outline-none focus-visible:ring-2 focus-visible:ring-primary-focus";
+const selectClass =
+  "h-10 rounded-md border border-input bg-surface px-sm py-xs text-body text-foreground " +
+  "outline-none transition-[color,border-color,box-shadow] duration-[var(--duration-fast)] ease-standard " +
+  "hover:border-ink-500/40 focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-primary/12";
 
 export function UsersPage() {
   const { user: me } = useAuth();
@@ -14,6 +18,7 @@ export function UsersPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Create form
+  const [showCreate, setShowCreate] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<Role>("user");
@@ -72,112 +77,112 @@ export function UsersPage() {
   }
 
   return (
-    <main className="min-h-screen bg-canvas-parchment px-lg py-xl">
-      <div className="mx-auto max-w-3xl">
-        <Link to="/admin" className="font-text text-caption text-primary hover:underline">
-          ← Back
-        </Link>
-        <h1 className="mt-sm font-display text-display-md text-ink">Users</h1>
-
-        {error && (
-          <p role="alert" className="mt-md font-text text-caption text-destructive">
-            {error}
-          </p>
-        )}
-
-        {/* Create */}
-        <form
-          onSubmit={onCreate}
-          className="mt-lg flex flex-wrap items-end gap-md rounded-lg border border-hairline bg-canvas p-lg"
-        >
-          <label className="flex flex-col gap-xs">
-            <span className="font-text text-caption-strong text-ink">Username</span>
-            <input className={inputClass} value={username} onChange={(e) => setUsername(e.target.value)} required />
-          </label>
-          <label className="flex flex-col gap-xs">
-            <span className="font-text text-caption-strong text-ink">Password</span>
-            <input
-              type="password"
-              className={inputClass}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              minLength={8}
-              required
-            />
-          </label>
-          <label className="flex flex-col gap-xs">
-            <span className="font-text text-caption-strong text-ink">Role</span>
-            <select className={inputClass} value={role} onChange={(e) => setRole(e.target.value as Role)}>
-              <option value="user">user</option>
-              <option value="admin">admin</option>
-            </select>
-          </label>
-          <Button type="submit" variant="primary">
-            Add user
-          </Button>
-        </form>
-
-        {/* List */}
-        <div className="mt-lg overflow-hidden rounded-lg border border-hairline bg-canvas">
-          <table className="w-full border-collapse text-left">
-            <thead>
-              <tr className="border-b border-hairline">
-                <th className="px-lg py-sm font-text text-caption-strong text-ink-muted-48">Username</th>
-                <th className="px-lg py-sm font-text text-caption-strong text-ink-muted-48">Role</th>
-                <th className="px-lg py-sm font-text text-caption-strong text-ink-muted-48">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u) => (
-                <tr key={u.id} className="border-b border-divider-soft last:border-b-0">
-                  <td className="px-lg py-sm font-text text-body text-ink">{u.username}</td>
-                  <td className="px-lg py-sm">
-                    <select
-                      className={inputClass}
-                      value={u.role}
-                      onChange={(e) => onChangeRole(u.id, e.target.value as Role)}
-                    >
-                      <option value="user">user</option>
-                      <option value="admin">admin</option>
-                    </select>
-                  </td>
-                  <td className="px-lg py-sm">
-                    {editingId === u.id ? (
-                      <span className="flex items-center gap-xs">
-                        <input
-                          type="password"
-                          className={inputClass}
-                          placeholder="New password"
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
-                          minLength={8}
-                        />
-                        <Button variant="primary" onClick={() => onSavePassword(u.id)}>
-                          Save
-                        </Button>
-                        <Button variant="secondary" onClick={() => setEditingId(null)}>
-                          Cancel
-                        </Button>
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-xs">
-                        <Button variant="secondary" onClick={() => { setEditingId(u.id); setNewPassword(""); }}>
-                          Reset password
-                        </Button>
-                        {u.id !== me?.id && (
-                          <Button variant="secondary" onClick={() => onDelete(u.id)}>
-                            Delete
-                          </Button>
-                        )}
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+    <AppShell nav={adminNav} title="Users">
+      <div className="flex items-center justify-between">
+        <h2 className="text-h2 text-foreground">Users</h2>
+        <Button type="button" variant="primary" onClick={() => setShowCreate((v) => !v)}>
+          + New user
+        </Button>
       </div>
-    </main>
+
+      {error && (
+        <p role="alert" className="mt-md text-body-sm text-destructive">
+          {error}
+        </p>
+      )}
+
+      {/* Create */}
+      {showCreate && (
+        <Card className="mt-lg p-lg">
+          <form onSubmit={onCreate} className="flex flex-wrap items-end gap-md">
+            <label className="flex flex-col gap-xs">
+              <span className="text-label text-muted-foreground">Username</span>
+              <Input value={username} onChange={(e) => setUsername(e.target.value)} required />
+            </label>
+            <label className="flex flex-col gap-xs">
+              <span className="text-label text-muted-foreground">Password</span>
+              <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                minLength={8}
+                required
+              />
+            </label>
+            <label className="flex flex-col gap-xs">
+              <span className="text-label text-muted-foreground">Role</span>
+              <select className={selectClass} value={role} onChange={(e) => setRole(e.target.value as Role)}>
+                <option value="user">user</option>
+                <option value="admin">admin</option>
+              </select>
+            </label>
+            <Button type="submit" variant="primary">
+              Add user
+            </Button>
+          </form>
+        </Card>
+      )}
+
+      {/* List */}
+      <div className="mt-lg overflow-hidden rounded-md border border-border">
+        <table className="w-full border-collapse text-left">
+          <thead>
+            <tr className="border-b border-border">
+              <th className="px-lg py-sm text-label text-muted-foreground">Username</th>
+              <th className="px-lg py-sm text-label text-muted-foreground">Role</th>
+              <th className="px-lg py-sm text-label text-muted-foreground">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((u) => (
+              <tr key={u.id} className="border-b border-border last:border-b-0 hover:bg-foreground/[0.03]">
+                <td className="px-lg py-sm text-body-sm text-foreground">{u.username}</td>
+                <td className="px-lg py-sm">
+                  <select
+                    className={selectClass}
+                    value={u.role}
+                    onChange={(e) => onChangeRole(u.id, e.target.value as Role)}
+                  >
+                    <option value="user">user</option>
+                    <option value="admin">admin</option>
+                  </select>
+                </td>
+                <td className="px-lg py-sm">
+                  {editingId === u.id ? (
+                    <span className="flex items-center gap-xs">
+                      <Input
+                        type="password"
+                        placeholder="New password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        minLength={8}
+                        className="w-auto"
+                      />
+                      <Button variant="primary" onClick={() => onSavePassword(u.id)}>
+                        Save
+                      </Button>
+                      <Button variant="ghost" onClick={() => setEditingId(null)}>
+                        Cancel
+                      </Button>
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-xs">
+                      <Button variant="ghost" onClick={() => { setEditingId(u.id); setNewPassword(""); }}>
+                        Reset password
+                      </Button>
+                      {u.id !== me?.id && (
+                        <Button variant="ghost" onClick={() => onDelete(u.id)}>
+                          Delete
+                        </Button>
+                      )}
+                    </span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </AppShell>
   );
 }
