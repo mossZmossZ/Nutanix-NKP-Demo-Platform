@@ -58,10 +58,10 @@ sync with reality (it's the "current state" file).
 - [x] **Login** — redesigned to `design.md` (light, violet-only): centered `<Card>` +
       `<Input>` primitives + violet brand lockup. Committed `0183785`.
 - [x] **Home (landing)** — FROZEN/approved; reference only, do not touch (skipped by direction)
-- [ ] **Lab Access Portal** (user) — dashboard = hero + "Available labs" card grid (mock,
-      status Badge, "Open lab" CTA) + empty-state fallback. NB: the Remote/Credentials tabs
-      live on the in-lab page (docs + RDP), which is Phase 5 — **not** this dashboard.
-      · _awaiting review_
+- [x] **Lab Access Portal** (user) — precise-minimal dashboard = hero + "Available labs" card
+      grid (mock, mono metadata row, status Badge, "Open lab" CTA) + empty-state fallback.
+      Committed `7e3eb68`. NB: the Remote/Credentials tabs live on the **in-lab page**
+      (docs + RDP), which is **Phase 5** (needs Guacamole) — **not** this dashboard.
 - [ ] **Admin Portal** — dashboard shell (sidebar: Users/Machines/Assignments) + summary
       tiles; Users wired to the real API, Machines/Assignments placeholders · _review → approve_  ◀◀◀ NEXT
 - [ ] **Docs + global shell** — MDX typography + nav/profile dropdown refined to the shell · _review → approve_
