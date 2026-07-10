@@ -129,7 +129,7 @@ browser yet. This spec adds one new guarded route for that; everything else is f
 | No labs assigned (`/lab-access`) | Existing empty-state pattern, no cards |
 | Lab slug not assigned to caller (`/lab-access/:slug`) | Inline "not assigned" panel, no crash |
 | Guide page fetch fails | Inline retry, scoped to guide pane only |
-| Mark-complete request fails | Toggle reverts, inline error near the button |
+| Mark-complete request fails | Inline error near the button; the checkbox only reflects `completedPages` after a confirmed response, so there's no optimistic state to revert |
 | Guide image missing/unsupported type | 404 from the image route; browser shows the `<img>`'s broken-image state (no special handling needed — same as any missing image on the web) |
 
 ## Testing plan

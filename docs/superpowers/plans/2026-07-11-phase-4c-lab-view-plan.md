@@ -446,18 +446,26 @@ function isAbsoluteUrl(src: string): boolean {
 // resolve relative image paths through the guarded images route.
 export function createMarkdownComponents(slug: string): Components {
   return {
-    h1: (props) => <h1 className="mt-section first:mt-0 mb-lg text-h1 text-foreground" {...props} />,
-    h2: (props) => <h2 className="mt-xl mb-md text-h2 text-foreground" {...props} />,
-    h3: (props) => <h3 className="mt-lg mb-sm text-h3 text-foreground" {...props} />,
-    p: (props) => <p className="my-md text-body text-foreground" {...props} />,
-    a: (props) => <a className="text-primary underline-offset-2 hover:underline" {...props} />,
-    ul: (props) => <ul className="my-md list-disc pl-lg text-body text-foreground [&_li]:mt-xs" {...props} />,
-    ol: (props) => <ol className="my-md list-decimal pl-lg text-body text-foreground [&_li]:mt-xs" {...props} />,
-    strong: (props) => <strong className="text-body font-semibold text-foreground" {...props} />,
-    img: ({ src, alt, ...props }) => {
+    // react-markdown injects a `node` (hast node) prop into every override,
+    // unlike the build-time MDX components this map is adapted from — drop it
+    // before spreading the rest onto a real DOM element, or React warns
+    // "does not recognize the `node` prop" on every guide render.
+    h1: ({ node, ...props }) => <h1 className="mt-section first:mt-0 mb-lg text-h1 text-foreground" {...props} />,
+    h2: ({ node, ...props }) => <h2 className="mt-xl mb-md text-h2 text-foreground" {...props} />,
+    h3: ({ node, ...props }) => <h3 className="mt-lg mb-sm text-h3 text-foreground" {...props} />,
+    p: ({ node, ...props }) => <p className="my-md text-body text-foreground" {...props} />,
+    a: ({ node, ...props }) => <a className="text-primary underline-offset-2 hover:underline" {...props} />,
+    ul: ({ node, ...props }) => <ul className="my-md list-disc pl-lg text-body text-foreground [&_li]:mt-xs" {...props} />,
+    ol: ({ node, ...props }) => <ol className="my-md list-decimal pl-lg text-body text-foreground [&_li]:mt-xs" {...props} />,
+    strong: ({ node, ...props }) => <strong className="text-body font-semibold text-foreground" {...props} />,
+    img: ({ node, src, alt, ...props }) => {
+      // Authors write `![alt](images/foo.png)` (see Task 10's seed step), so
+      // `src` already carries the `images/` segment — don't add it again, or
+      // the URL doubles to `.../images/images/foo.png` and 404s against the
+      // single-segment `:file` param `readImage` expects.
       const resolvedSrc =
         typeof src === "string" && !isAbsoluteUrl(src)
-          ? `/api/me/labs/${slug}/images/${src.replace(/^\.\//, "")}`
+          ? `/api/me/labs/${slug}/${src.replace(/^\.\//, "")}`
           : src
       return (
         <img
@@ -468,13 +476,13 @@ export function createMarkdownComponents(slug: string): Components {
         />
       )
     },
-    code: ({ className, ...props }) => (
+    code: ({ node, className, ...props }) => (
       <code
         className={`rounded-sm bg-violet-50 px-xxs py-[2px] font-mono text-body-sm text-foreground ${className ?? ""}`}
         {...props}
       />
     ),
-    pre: ({ children, ...props }) => (
+    pre: ({ node, children, ...props }) => (
       <pre
         className="group relative my-lg overflow-x-auto rounded-md border border-border bg-canvas p-lg font-mono text-body-sm text-foreground [&>code]:bg-transparent [&>code]:p-0 [&>code]:rounded-none [&>code]:text-inherit"
         {...props}
