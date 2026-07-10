@@ -67,7 +67,12 @@ export function UsersPage() {
 
   async function onCreate(e: FormEvent) {
     e.preventDefault();
-    
+
+    // Close the dialog before showing SweetAlert: Radix's open Dialog marks
+    // everything outside it inert, which blocks clicks on a Swal popup mounted
+    // while the Dialog is still open.
+    setCreateOpen(false);
+
     const result = await Swal.fire({
       title: 'Create New User?',
       html: `You are about to create a new user:<br/><strong>${username}</strong> with role <strong>${role}</strong>`,
@@ -79,18 +84,26 @@ export function UsersPage() {
       cancelButtonText: 'Cancel'
     });
 
-    if (!result.isConfirmed) return;
+    if (!result.isConfirmed) {
+      setCreateOpen(true);
+      return;
+    }
 
     run(async () => {
-      await api("/admin/users", {
-        method: "POST",
-        body: JSON.stringify({ username, password, role }),
-      });
+      try {
+        await api("/admin/users", {
+          method: "POST",
+          body: JSON.stringify({ username, password, role }),
+        });
+      } catch (err) {
+        setCreateOpen(true);
+        throw err;
+      }
+
       setUsername("");
       setPassword("");
       setRole("user");
-      setCreateOpen(false);
-      
+
       await Swal.fire({
         title: 'Success!',
         text: 'User has been created successfully.',
@@ -131,6 +144,22 @@ export function UsersPage() {
   }
 
   async function onSavePassword(id: string, username: string) {
+    const pwd = newPassword;
+    const showPwd = showNewPassword;
+
+    // Same fix as onCreate: close the Dialog first so the Radix inert
+    // trap doesn't block clicks on the SweetAlert popup.
+    setResetUser(null);
+    setNewPassword("");
+    setShowNewPassword(false);
+
+    function reopen() {
+      const u = users.find((x) => x.id === id);
+      if (u) setResetUser(u);
+      setNewPassword(pwd);
+      setShowNewPassword(showPwd);
+    }
+
     const result = await Swal.fire({
       title: 'Reset Password?',
       html: `Reset password for <strong>${username}</strong>?`,
@@ -142,13 +171,19 @@ export function UsersPage() {
       cancelButtonText: 'Cancel'
     });
 
-    if (!result.isConfirmed) return;
+    if (!result.isConfirmed) {
+      reopen();
+      return;
+    }
 
     run(async () => {
-      await api(`/admin/users/${id}`, { method: "PATCH", body: JSON.stringify({ password: newPassword }) });
-      setResetUser(null);
-      setNewPassword("");
-      
+      try {
+        await api(`/admin/users/${id}`, { method: "PATCH", body: JSON.stringify({ password: pwd }) });
+      } catch (err) {
+        reopen();
+        throw err;
+      }
+
       await Swal.fire({
         title: 'Success!',
         text: 'Password has been reset successfully.',

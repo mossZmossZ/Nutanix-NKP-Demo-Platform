@@ -9,6 +9,6 @@ export const adminNav: NavItem[] = [
   { label: "Labs", to: "/admin/labs", icon: <BookOpen /> },
   { label: "Machines", to: "/admin/machines", icon: <Server /> },
   { label: "Machine Pool", to: "/admin/machine-pool", icon: <Boxes /> },
-  { label: "Lab Credentials", to: "/admin/lab-credentials", icon: <KeyRound /> },
+  { label: "Lab Machines", to: "/admin/lab-credentials", icon: <KeyRound /> },
   { label: "Settings", to: "/admin/settings", icon: <Settings /> },
 ];
