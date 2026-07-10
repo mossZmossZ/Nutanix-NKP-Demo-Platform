@@ -1,6 +1,6 @@
 import { useMemo, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { ChevronDown, Hexagon } from 'lucide-react'
+import { ChevronDown, Hexagon, Home, FlaskConical, ShieldCheck, FileText, LogOut } from 'lucide-react'
 import { useAuth } from '@/auth/AuthContext'
 import {
   DropdownMenu,
@@ -34,9 +34,14 @@ export function AppShell({ nav, title, children }: { nav: NavItem[]; title: stri
     return matches.reduce((best, item) => (item.to.length > best.to.length ? item : best)).to
   }, [nav, pathname])
 
-  async function onLogout() {
+  const isAdmin = user?.role === 'admin'
+  const isOnAdminPage = pathname.startsWith('/admin')
+  const isOnLabAccessPage = pathname.startsWith('/lab') // Assuming lab access pages start with /lab
+  const isOnHomepage = pathname === '/'
+
+  async function handleLogout() {
     await logout()
-    navigate('/', { replace: true })
+    navigate('/login', { replace: true })
   }
 
   return (
@@ -107,10 +112,108 @@ export function AppShell({ nav, title, children }: { nav: NavItem[]; title: stri
                 <span className="max-w-[120px] truncate">{user.username}</span>
                 <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="w-48">
                 <div className="px-sm py-xs text-body-sm text-muted-foreground">{user.username}</div>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={onLogout}>Sign out</DropdownMenuItem>
+                
+                {/* Admin on Admin UI: Homepage, Lab Access, Logout */}
+                {isAdmin && isOnAdminPage && (
+                  <>
+                    <DropdownMenuItem onSelect={() => navigate('/')}>
+                      <Home className="mr-2 size-4" />
+                      Homepage
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => navigate('/lab')}>
+                      <FlaskConical className="mr-2 size-4" />
+                      Lab Access
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onSelect={handleLogout}>
+                      <LogOut className="mr-2 size-4" />
+                      Logout
+                    </DropdownMenuItem>
+                  </>
+                )}
+
+                {/* User on Lab Access: Homepage, Logout */}
+                {!isAdmin && isOnLabAccessPage && (
+                  <>
+                    <DropdownMenuItem onSelect={() => navigate('/')}>
+                      <Home className="mr-2 size-4" />
+                      Homepage
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onSelect={handleLogout}>
+                      <LogOut className="mr-2 size-4" />
+                      Logout
+                    </DropdownMenuItem>
+                  </>
+                )}
+
+                {/* Admin on Lab Access: Homepage, Admin Portal, Logout */}
+                {isAdmin && isOnLabAccessPage && (
+                  <>
+                    <DropdownMenuItem onSelect={() => navigate('/')}>
+                      <Home className="mr-2 size-4" />
+                      Homepage
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => navigate('/admin')}>
+                      <ShieldCheck className="mr-2 size-4" />
+                      Admin Portal
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onSelect={handleLogout}>
+                      <LogOut className="mr-2 size-4" />
+                      Logout
+                    </DropdownMenuItem>
+                  </>
+                )}
+
+                {/* Admin on Homepage: Lab Access, Admin Portal, Logout */}
+                {isAdmin && isOnHomepage && (
+                  <>
+                    <DropdownMenuItem onSelect={() => navigate('/lab')}>
+                      <FlaskConical className="mr-2 size-4" />
+                      Lab Access
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => navigate('/admin')}>
+                      <ShieldCheck className="mr-2 size-4" />
+                      Admin Portal
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onSelect={handleLogout}>
+                      <LogOut className="mr-2 size-4" />
+                      Logout
+                    </DropdownMenuItem>
+                  </>
+                )}
+
+                {/* User on Homepage: Lab Access, Documentation, Logout */}
+                {!isAdmin && isOnHomepage && (
+                  <>
+                    <DropdownMenuItem onSelect={() => navigate('/lab')}>
+                      <FlaskConical className="mr-2 size-4" />
+                      Lab Access
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => navigate('/docs')}>
+                      <FileText className="mr-2 size-4" />
+                      Documentation
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onSelect={handleLogout}>
+                      <LogOut className="mr-2 size-4" />
+                      Logout
+                    </DropdownMenuItem>
+                  </>
+                )}
+
+                {/* Fallback for other pages: just show logout */}
+                {!isOnAdminPage && !isOnLabAccessPage && !isOnHomepage && (
+                  <DropdownMenuItem onSelect={handleLogout}>
+                    <LogOut className="mr-2 size-4" />
+                    Logout
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           ) : null}

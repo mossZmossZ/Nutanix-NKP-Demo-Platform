@@ -169,63 +169,177 @@ export function MachinesPage() {
 
   return (
     <AppShell nav={adminNav} title="Machines">
-      <div className="flex flex-col gap-xl">
-        <div className="flex items-center justify-between gap-sm">
-          <h2 className="text-h2 text-foreground">Machines</h2>
-          <Button variant="primary" onClick={openProvision}>
-            Provision machine
+      <div className="flex flex-col gap-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-bold text-foreground">Infrastructure Management</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Provision, monitor, and manage workshop machines
+            </p>
+          </div>
+          <Button variant="primary" onClick={openProvision} className="gap-2">
+            <svg className="size-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Provision Machine
           </Button>
         </div>
 
-        <div className="grid gap-lg sm:grid-cols-2 lg:grid-cols-3">
+        {/* Stats Overview */}
+        <div className="grid gap-4 md:grid-cols-4">
+          <div className="rounded-lg border border-border/40 bg-card p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">Total Machines</p>
+                <p className="mt-1 font-mono text-2xl font-bold tabular-nums text-foreground">{machines.length}</p>
+              </div>
+              <div className="flex size-10 items-center justify-center rounded-lg bg-violet-100 text-violet-600">
+                <Server className="size-5" />
+              </div>
+            </div>
+          </div>
+          <div className="rounded-lg border border-border/40 bg-card p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">Ready</p>
+                <p className="mt-1 font-mono text-2xl font-bold tabular-nums text-emerald-600">
+                  {machines.filter(m => m.status === 'ready').length}
+                </p>
+              </div>
+              <div className="flex size-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600">
+                <svg className="size-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+          <div className="rounded-lg border border-border/40 bg-card p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">Provisioning</p>
+                <p className="mt-1 font-mono text-2xl font-bold tabular-nums text-amber-600">
+                  {machines.filter(m => m.status === 'provisioning').length}
+                </p>
+              </div>
+              <div className="flex size-10 items-center justify-center rounded-lg bg-amber-100 text-amber-600">
+                <svg className="size-5 animate-spin" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </div>
+            </div>
+          </div>
+          <div className="rounded-lg border border-border/40 bg-card p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">Issues</p>
+                <p className="mt-1 font-mono text-2xl font-bold tabular-nums text-rose-600">
+                  {machines.filter(m => m.status === 'error' || m.status === 'offline').length}
+                </p>
+              </div>
+              <div className="flex size-10 items-center justify-center rounded-lg bg-rose-100 text-rose-600">
+                <svg className="size-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Machines Grid */}
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {machines.map((machine) => (
             <Card
               key={machine.id}
-              className="shadow-sm transition-[box-shadow,transform] duration-[var(--duration-fast)] ease-standard hover:-translate-y-px hover:shadow-md"
+              className="group relative overflow-hidden border-border/40 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg"
             >
-              <CardHeader>
-                <div className="flex items-start justify-between gap-sm">
-                  <div className="flex items-center gap-xs">
-                    <Server className="size-4 shrink-0 text-muted-foreground" />
-                    <CardTitle>{machine.name}</CardTitle>
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <div className={`flex size-10 items-center justify-center rounded-lg ${
+                      machine.status === 'ready' ? 'bg-emerald-100 text-emerald-600' :
+                      machine.status === 'provisioning' ? 'bg-amber-100 text-amber-600' :
+                      machine.status === 'error' ? 'bg-rose-100 text-rose-600' :
+                      'bg-gray-100 text-gray-600'
+                    }`}>
+                      <Server className="size-5" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-base">{machine.name}</CardTitle>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{machine.id}</p>
+                    </div>
                   </div>
                   <Badge
                     variant={statusVariant[machine.status]}
                     className={machine.status === "provisioning" ? "motion-safe:animate-pulse" : undefined}
                   >
+                    <span className={`size-1.5 rounded-full ${
+                      machine.status === 'ready' ? 'bg-emerald-500' :
+                      machine.status === 'provisioning' ? 'bg-amber-500' :
+                      machine.status === 'error' ? 'bg-rose-500' :
+                      'bg-gray-500'
+                    }`} />
                     {statusLabel[machine.status]}
                   </Badge>
                 </div>
               </CardHeader>
-              <CardContent className="flex flex-col gap-xs text-body-sm text-muted-foreground">
-                <span className="flex items-center gap-xxs">
-                  <GitBranch className="size-3.5 text-muted-foreground" />
-                  <span className="font-mono tabular-nums">{machine.version}</span>
-                  <span className="text-border">&middot;</span>
-                  <span className="font-mono tabular-nums">{machine.nodes} nodes</span>
-                </span>
-                <span className="flex items-center gap-xxs">
-                  <Cpu className="size-3.5 text-muted-foreground" />
-                  <span className="font-mono tabular-nums">{machine.vcpu} vCPU</span>
-                  <span className="text-border">&middot;</span>
-                  <MemoryStick className="size-3.5 text-muted-foreground" />
-                  <span className="font-mono tabular-nums">{machine.memory}</span>
-                </span>
-                <span className="flex items-center gap-xxs">
-                  <User className="size-3.5 text-muted-foreground" />
-                  {machine.owner}
-                </span>
-                <span className="flex items-center gap-xxs">
-                  <Clock className="size-3.5 text-muted-foreground" />
-                  <span className="font-mono tabular-nums">{machine.uptime}</span>
-                </span>
+              <CardContent className="space-y-3 pb-3 text-sm">
+                <div className="grid grid-cols-2 gap-3 rounded-lg bg-muted/30 p-3">
+                  <div className="flex items-center gap-2">
+                    <GitBranch className="size-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Version</p>
+                      <p className="font-mono text-xs font-medium tabular-nums text-foreground">{machine.version}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="size-4 text-muted-foreground" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14" />
+                    </svg>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Nodes</p>
+                      <p className="font-mono text-xs font-medium tabular-nums text-foreground">{machine.nodes}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Cpu className="size-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">vCPU</p>
+                      <p className="font-mono text-xs font-medium tabular-nums text-foreground">{machine.vcpu}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MemoryStick className="size-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Memory</p>
+                      <p className="font-mono text-xs font-medium tabular-nums text-foreground">{machine.memory}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between rounded-lg bg-muted/30 p-3">
+                  <div className="flex items-center gap-2">
+                    <User className="size-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Owner</p>
+                      <p className="text-xs font-medium text-foreground">{machine.owner}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock className="size-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Uptime</p>
+                      <p className="font-mono text-xs font-medium tabular-nums text-foreground">{machine.uptime}</p>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
-              <CardFooter className="justify-end">
-                <Button variant="secondary" onClick={() => openLogs(machine)}>
+              <CardFooter className="justify-end border-t border-border/40 bg-muted/20 pt-3">
+                <Button variant="secondary" onClick={() => openLogs(machine)} className="gap-2">
                   <ScrollText className="size-4" />
-                  View logs
+                  View Logs
                 </Button>
               </CardFooter>
+              <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-violet-500 to-purple-500 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
             </Card>
           ))}
         </div>
