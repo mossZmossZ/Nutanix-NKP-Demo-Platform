@@ -55,12 +55,15 @@ sync with reality (it's the "current state" file).
       primitives (token-themed, `design.md §4/§7`); route-level `React.lazy` + `Suspense` in
       `App.tsx` with branded fallbacks (`PageFallback` + shell-shaped `AppFallback`). typecheck
       + lint + build green, per-route chunk splitting confirmed. _Awaiting review._
-- [ ] **Login** — redesign to `design.md` (light, violet-only) · _review → approve_  ◀◀◀ NEXT
+- [x] **Login** — redesigned to `design.md` (light, violet-only): centered `<Card>` +
+      `<Input>` primitives + violet brand lockup. Committed `0183785`.
 - [x] **Home (landing)** — FROZEN/approved; reference only, do not touch (skipped by direction)
-- [ ] **Lab Access Portal** (user) — dashboard shell + "My Labs" placeholder cards +
-      Credentials tab placeholder · _review → approve_
+- [ ] **Lab Access Portal** (user) — dashboard = hero + "Available labs" card grid (mock,
+      status Badge, "Open lab" CTA) + empty-state fallback. NB: the Remote/Credentials tabs
+      live on the in-lab page (docs + RDP), which is Phase 5 — **not** this dashboard.
+      · _awaiting review_
 - [ ] **Admin Portal** — dashboard shell (sidebar: Users/Machines/Assignments) + summary
-      tiles; Users wired to the real API, Machines/Assignments placeholders · _review → approve_
+      tiles; Users wired to the real API, Machines/Assignments placeholders · _review → approve_  ◀◀◀ NEXT
 - [ ] **Docs + global shell** — MDX typography + nav/profile dropdown refined to the shell · _review → approve_
 - [ ] Mock/placeholder data isolated in one fixtures location (easy to remove in Phase 4)
 - [ ] ✅ **Cohesion sign-off** — all surfaces follow `design.md`, read as one cohesive SaaS
