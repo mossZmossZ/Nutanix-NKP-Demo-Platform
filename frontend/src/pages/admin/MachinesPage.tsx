@@ -1,10 +1,19 @@
-import { useState } from "react";
+import { useId, useState, type FormEvent } from "react";
 import { AppShell } from "@/layouts/AppShell";
 import { adminNav } from "./adminNav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { GitBranch, Server, Cpu, MemoryStick, User, Clock, ScrollText, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { GitBranch, Server, Cpu, MemoryStick, User, Clock, ScrollText } from "lucide-react";
 
 type MachineStatus = "ready" | "provisioning" | "offline" | "error";
 
@@ -20,7 +29,7 @@ type Machine = {
   uptime: string;
 };
 
-const machines: Machine[] = [
+const initialMachines: Machine[] = [
   {
     id: "nkp-node-01",
     name: "nkp-node-01",
@@ -105,17 +114,57 @@ const mockLog: { text: string; className?: string }[] = [
   { text: "Apply complete. Machine is ready.", className: "text-success" },
 ];
 
+const emptyForm = {
+  name: "",
+  version: "v1.29",
+  nodes: "3",
+  vcpu: "8",
+  memory: "32 GiB",
+};
+
 export function MachinesPage() {
+  const [machines, setMachines] = useState<Machine[]>(initialMachines);
   const [logOpen, setLogOpen] = useState(false);
   const [selected, setSelected] = useState<Machine | null>(null);
+  const [provisionOpen, setProvisionOpen] = useState(false);
+  const [form, setForm] = useState(emptyForm);
+  const formId = useId();
 
   function openLogs(machine: Machine) {
     setSelected(machine);
     setLogOpen(true);
   }
 
-  function closeLogs() {
-    setLogOpen(false);
+  function openProvision() {
+    setForm(emptyForm);
+    setProvisionOpen(true);
+  }
+
+  function handleProvision(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const name = form.name.trim();
+    const nodes = Number(form.nodes);
+    const vcpu = Number(form.vcpu);
+    const memory = form.memory.trim();
+    if (!name || !form.version.trim() || !memory || !Number.isFinite(nodes) || nodes <= 0 || !Number.isFinite(vcpu) || vcpu <= 0) {
+      return;
+    }
+
+    const machine: Machine = {
+      id: name,
+      name,
+      status: "provisioning",
+      version: form.version.trim(),
+      nodes,
+      vcpu,
+      memory,
+      owner: "unassigned",
+      uptime: "0d 0h",
+    };
+
+    setMachines((prev) => [...prev, machine]);
+    setForm(emptyForm);
+    setProvisionOpen(false);
   }
 
   return (
@@ -123,7 +172,9 @@ export function MachinesPage() {
       <div className="flex flex-col gap-xl">
         <div className="flex items-center justify-between gap-sm">
           <h2 className="text-h2 text-foreground">Machines</h2>
-          <Button variant="primary">Provision machine</Button>
+          <Button variant="primary" onClick={openProvision}>
+            Provision machine
+          </Button>
         </div>
 
         <div className="grid gap-lg sm:grid-cols-2 lg:grid-cols-3">
@@ -138,7 +189,12 @@ export function MachinesPage() {
                     <Server className="size-4 shrink-0 text-muted-foreground" />
                     <CardTitle>{machine.name}</CardTitle>
                   </div>
-                  <Badge variant={statusVariant[machine.status]}>{statusLabel[machine.status]}</Badge>
+                  <Badge
+                    variant={statusVariant[machine.status]}
+                    className={machine.status === "provisioning" ? "motion-safe:animate-pulse" : undefined}
+                  >
+                    {statusLabel[machine.status]}
+                  </Badge>
                 </div>
               </CardHeader>
               <CardContent className="flex flex-col gap-xs text-body-sm text-muted-foreground">
@@ -175,41 +231,122 @@ export function MachinesPage() {
         </div>
       </div>
 
-      {/* Log drawer */}
-      <div
-        aria-hidden={!logOpen}
-        onClick={closeLogs}
-        className={`fixed inset-0 z-40 bg-ink-900/40 transition-opacity duration-[var(--duration-slow)] ease-standard ${
-          logOpen ? "opacity-100" : "pointer-events-none opacity-0"
-        }`}
-      />
-      <div
-        role="dialog"
-        aria-hidden={!logOpen}
-        className={`fixed inset-y-0 right-0 z-50 flex w-[440px] max-w-full flex-col border-l border-border bg-surface shadow-lg transition-transform duration-[var(--duration-slow)] ease-standard ${
-          logOpen ? "translate-x-0" : "translate-x-full"
-        }`}
-      >
-        <div className="flex h-16 shrink-0 items-center justify-between border-b border-border px-lg">
-          <div className="flex items-center gap-xs">
-            <Server className="size-4 shrink-0 text-muted-foreground" />
-            <span className="text-h4 text-foreground">{selected?.name ?? ""}</span>
-            {selected ? <Badge variant={statusVariant[selected.status]}>{statusLabel[selected.status]}</Badge> : null}
+      {/* View logs modal */}
+      <Dialog open={logOpen} onOpenChange={setLogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-xs">
+              <Server className="size-4 shrink-0 text-muted-foreground" />
+              {selected?.name ?? ""}
+              {selected ? (
+                <Badge
+                  variant={statusVariant[selected.status]}
+                  className={selected.status === "provisioning" ? "motion-safe:animate-pulse" : undefined}
+                >
+                  {statusLabel[selected.status]}
+                </Badge>
+              ) : null}
+            </DialogTitle>
+            {selected ? (
+              <DialogDescription className="font-mono tabular-nums">
+                {selected.version} &middot; {selected.nodes} nodes &middot; {selected.owner}
+              </DialogDescription>
+            ) : null}
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto rounded-md border border-border bg-canvas p-md">
+            <div className="flex flex-col gap-xxs font-mono text-body-sm text-muted-foreground">
+              {mockLog.map((line, i) => (
+                <span key={i} className={line.className}>
+                  {line.text}
+                </span>
+              ))}
+            </div>
           </div>
-          <Button variant="ghost" onClick={closeLogs} aria-label="Close logs">
-            <X className="size-4" />
-          </Button>
-        </div>
-        <div className="flex-1 overflow-y-auto px-lg py-md">
-          <div className="flex flex-col gap-xxs font-mono text-body-sm text-muted-foreground">
-            {mockLog.map((line, i) => (
-              <span key={i} className={line.className}>
-                {line.text}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Provision machine modal */}
+      <Dialog open={provisionOpen} onOpenChange={setProvisionOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Provision machine</DialogTitle>
+            <DialogDescription>Create a new machine from a mock Terraform + Ansible run.</DialogDescription>
+          </DialogHeader>
+          <form id={formId} onSubmit={handleProvision} className="flex flex-col gap-md">
+            <div className="flex flex-col gap-xxs">
+              <label htmlFor={`${formId}-name`} className="text-label text-muted-foreground">
+                Name
+              </label>
+              <Input
+                id={`${formId}-name`}
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder="nkp-node-05"
+                required
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-md">
+              <div className="flex flex-col gap-xxs">
+                <label htmlFor={`${formId}-version`} className="text-label text-muted-foreground">
+                  K8s version
+                </label>
+                <Input
+                  id={`${formId}-version`}
+                  value={form.version}
+                  onChange={(e) => setForm((f) => ({ ...f, version: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="flex flex-col gap-xxs">
+                <label htmlFor={`${formId}-nodes`} className="text-label text-muted-foreground">
+                  Node count
+                </label>
+                <Input
+                  id={`${formId}-nodes`}
+                  type="number"
+                  min={1}
+                  value={form.nodes}
+                  onChange={(e) => setForm((f) => ({ ...f, nodes: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="flex flex-col gap-xxs">
+                <label htmlFor={`${formId}-vcpu`} className="text-label text-muted-foreground">
+                  vCPU
+                </label>
+                <Input
+                  id={`${formId}-vcpu`}
+                  type="number"
+                  min={1}
+                  value={form.vcpu}
+                  onChange={(e) => setForm((f) => ({ ...f, vcpu: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="flex flex-col gap-xxs">
+                <label htmlFor={`${formId}-memory`} className="text-label text-muted-foreground">
+                  Memory
+                </label>
+                <Input
+                  id={`${formId}-memory`}
+                  value={form.memory}
+                  onChange={(e) => setForm((f) => ({ ...f, memory: e.target.value }))}
+                  placeholder="32 GiB"
+                  required
+                />
+              </div>
+            </div>
+          </form>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => setProvisionOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" form={formId}>
+              Provision
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }

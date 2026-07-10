@@ -22,19 +22,12 @@ const stats: {
   value: string;
   icon: typeof Users;
   sub: string;
-  subClassName?: string;
+  live?: boolean;
 }[] = [
   { id: "users", label: "Users", value: "18", icon: Users, sub: "+2 this week" },
   { id: "machines", label: "Machines", value: "6", icon: Server, sub: "5 healthy" },
   { id: "active-labs", label: "Active labs", value: "4", icon: FlaskConical, sub: "across 3 workshops" },
-  {
-    id: "live-sessions",
-    label: "Live sessions",
-    value: "3",
-    icon: Radio,
-    sub: "connected now",
-    subClassName: "text-success",
-  },
+  { id: "live-sessions", label: "Live sessions", value: "3", icon: Radio, sub: "Connected now", live: true },
 ];
 
 const machineStatus = [
@@ -65,14 +58,29 @@ export function AdminPortalPage() {
 
         <div className="grid gap-lg sm:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat) => (
-            <Card key={stat.id} className="shadow-sm">
-              <CardContent className="flex flex-col gap-xs p-lg">
-                <div className="flex items-center gap-xs">
-                  <stat.icon className="size-4 text-muted-foreground" />
+            <Card
+              key={stat.id}
+              className="shadow-sm transition-[box-shadow,transform] duration-[var(--duration-fast)] ease-standard hover:-translate-y-px hover:shadow-md"
+            >
+              <CardContent className="flex flex-col gap-sm p-lg">
+                <div className="flex items-center justify-between gap-xs">
                   <span className="text-label uppercase tracking-wide text-muted-foreground">{stat.label}</span>
+                  <span className="grid size-8 shrink-0 place-items-center rounded-md bg-violet-100 text-violet-600">
+                    <stat.icon className="size-4" />
+                  </span>
                 </div>
-                <span className="font-mono text-h2 tabular-nums text-foreground">{stat.value}</span>
-                <span className={`text-body-sm text-muted-foreground ${stat.subClassName ?? ""}`}>{stat.sub}</span>
+                <span className="font-mono text-h1 tabular-nums text-foreground">{stat.value}</span>
+                {stat.live ? (
+                  <span className="flex items-center gap-xs text-body-sm text-success">
+                    <span className="relative flex size-2">
+                      <span className="absolute inline-flex size-full animate-ping rounded-full bg-success/60" />
+                      <span className="relative inline-flex size-2 rounded-full bg-success" />
+                    </span>
+                    {stat.sub}
+                  </span>
+                ) : (
+                  <span className="text-body-sm text-muted-foreground">{stat.sub}</span>
+                )}
               </CardContent>
             </Card>
           ))}
