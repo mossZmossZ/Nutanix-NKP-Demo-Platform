@@ -1,16 +1,13 @@
 import { Schema, model, type InferSchemaType } from "mongoose";
 
-// rdpPassword is stored ENCRYPTED at rest. This model never encrypts/decrypts itself —
-// the service/route layer must call encryptSecret()/decryptSecret() (src/lib/crypto.ts)
-// explicitly before writing/after reading. Treat the field as an opaque ciphertext string.
+// RDP creds live on the bound Machine (src/models/Machine.ts), not here. An assignment
+// binds a user+lab to exactly one pool machine; the machine's own status flips
+// free <-> assigned as assignments are created/revoked.
 const assignmentSchema = new Schema(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     labId: { type: Schema.Types.ObjectId, ref: "Lab", required: true },
-    rdpHost: { type: String, required: true },
-    rdpPort: { type: Number, default: 3389 },
-    rdpUser: { type: String, required: true },
-    rdpPassword: { type: String, required: true },
+    machineId: { type: Schema.Types.ObjectId, ref: "Machine", required: true, unique: true },
     completedPages: { type: [String], default: [] },
   },
   { timestamps: true },

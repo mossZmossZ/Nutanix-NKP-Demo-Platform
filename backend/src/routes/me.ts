@@ -43,21 +43,29 @@ meRouter.get("/labs/:slug", async (req: AuthedRequest, res) => {
     res.status(404).json({ error: "lab not found" });
     return;
   }
-  const assignment = await AssignmentModel.findOne({ userId: req.user!.id, labId: lab._id });
+  const assignment = await AssignmentModel.findOne({ userId: req.user!.id, labId: lab._id }).populate(
+    "machineId",
+  );
   if (!assignment) {
     res.status(404).json({ error: "lab not found" });
     return;
   }
+  const machine = assignment.machineId as unknown as {
+    rdpHost: string;
+    rdpPort: number;
+    rdpUser: string;
+    rdpPassword: string;
+  };
   res.json({
     id: assignment.id,
     lab: labSummary(lab),
     pages: listPages(lab.slug),
     completedPages: assignment.completedPages,
     connection: {
-      rdpHost: assignment.rdpHost,
-      rdpPort: assignment.rdpPort,
-      rdpUser: assignment.rdpUser,
-      rdpPassword: decryptSecret(assignment.rdpPassword),
+      rdpHost: machine.rdpHost,
+      rdpPort: machine.rdpPort,
+      rdpUser: machine.rdpUser,
+      rdpPassword: decryptSecret(machine.rdpPassword),
     },
   });
 });

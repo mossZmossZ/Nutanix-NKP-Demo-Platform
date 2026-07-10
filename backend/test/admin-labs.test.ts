@@ -110,12 +110,16 @@ describe("admin labs routes", () => {
 
   it("DELETE /:slug blocked by existing assignment -> 409, then allowed once unassigned", async () => {
     const target = await createUser(adminAgent, "labs-del-user", "delpassword1", "user");
-    const assignRes = await adminAgent.post("/api/admin/assignments").send({
-      userId: target.id,
-      labId: (await adminAgent.get("/api/admin/labs/intro-nkp")).body._id,
+    const machineRes = await adminAgent.post("/api/admin/machines").send({
       rdpHost: "10.0.0.9",
       rdpUser: "trainee",
       rdpPassword: "s3cret-pass",
+    });
+    expect(machineRes.status).toBe(201);
+    const assignRes = await adminAgent.post("/api/admin/assignments").send({
+      userId: target.id,
+      labId: (await adminAgent.get("/api/admin/labs/intro-nkp")).body._id,
+      machineId: machineRes.body.id,
     });
     expect(assignRes.status).toBe(201);
 

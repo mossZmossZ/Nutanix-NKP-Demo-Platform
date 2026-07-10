@@ -1,13 +1,24 @@
 import type { Express } from "express";
 import type { Agent } from "supertest";
 import { setup, teardown, loginAs, createUser, ADMIN } from "./helpers/harness";
-import { AssignmentModel } from "../src/models/Assignment";
+import { MachineModel } from "../src/models/Machine";
 
 let app: Express;
 let adminAgent: Agent;
 let userAgent: Agent;
 let traineeId: string;
 let labId: string;
+
+async function createMachine(agent: Agent, overrides: Record<string, unknown> = {}) {
+  const res = await agent.post("/api/admin/machines").send({
+    rdpHost: "10.0.0.10",
+    rdpUser: "trainee",
+    rdpPassword: "super-secret-rdp-pass",
+    ...overrides,
+  });
+  if (res.status !== 201) throw new Error(`createMachine failed: ${res.status} ${res.text}`);
+  return res.body as { id: string; status: string };
+}
 
 beforeAll(async () => {
   app = await setup();
@@ -29,27 +40,27 @@ afterAll(async () => {
 });
 
 describe("admin assignments routes", () => {
-  it("POST / stores an encrypted password, GET / returns it decrypted", async () => {
-    const plain = "super-secret-rdp-pass";
+  it("POST / binds a free machine, GET / returns its decrypted creds; machine flips to assigned", async () => {
+    const machine = await createMachine(adminAgent);
+
     const createRes = await adminAgent.post("/api/admin/assignments").send({
       userId: traineeId,
       labId,
-      rdpHost: "10.0.0.10",
-      rdpUser: "trainee",
-      rdpPassword: plain,
+      machineId: machine.id,
     });
     expect(createRes.status).toBe(201);
-    expect(createRes.body.rdpPassword).toBe(plain);
+    expect(createRes.body.rdpPassword).toBe("super-secret-rdp-pass");
     expect(createRes.body.user).toEqual({ id: traineeId, username: "trainee-1" });
     expect(createRes.body.lab).toMatchObject({ slug: "assign-lab", title: "Assign Lab" });
+    expect(createRes.body.machine).toMatchObject({ id: machine.id, status: "assigned" });
 
-    const raw = await AssignmentModel.findById(createRes.body.id);
-    expect(raw?.rdpPassword).not.toBe(plain);
+    const raw = await MachineModel.findById(machine.id);
+    expect(raw?.status).toBe("assigned");
 
     const listRes = await adminAgent.get("/api/admin/assignments");
     expect(listRes.status).toBe(200);
     const found = listRes.body.find((a: { id: string }) => a.id === createRes.body.id);
-    expect(found.rdpPassword).toBe(plain);
+    expect(found.rdpPassword).toBe("super-secret-rdp-pass");
   });
 
   it("POST / missing required fields -> 400", async () => {
@@ -58,69 +69,85 @@ describe("admin assignments routes", () => {
   });
 
   it("POST / unknown user -> 400", async () => {
+    const machine = await createMachine(adminAgent, { rdpHost: "10.0.0.20" });
     const res = await adminAgent.post("/api/admin/assignments").send({
       userId: "0123456789abcdef01234567",
       labId,
-      rdpHost: "10.0.0.11",
-      rdpUser: "trainee",
-      rdpPassword: "pw",
+      machineId: machine.id,
     });
     expect(res.status).toBe(400);
   });
 
   it("POST / unknown lab -> 404", async () => {
+    const machine = await createMachine(adminAgent, { rdpHost: "10.0.0.21" });
     const res = await adminAgent.post("/api/admin/assignments").send({
       userId: traineeId,
       labId: "0123456789abcdef01234567",
-      rdpHost: "10.0.0.11",
-      rdpUser: "trainee",
-      rdpPassword: "pw",
+      machineId: machine.id,
     });
     expect(res.status).toBe(404);
   });
 
-  it("POST / duplicate {userId,labId} -> 409", async () => {
+  it("POST / unknown machine -> 404", async () => {
+    const labRes = await adminAgent
+      .post("/api/admin/labs")
+      .send({ slug: "assign-lab-unknown-machine", title: "Unknown Machine Lab" });
+    const res = await adminAgent.post("/api/admin/assignments").send({
+      userId: traineeId,
+      labId: labRes.body._id,
+      machineId: "0123456789abcdef01234567",
+    });
+    expect(res.status).toBe(404);
+  });
+
+  it("POST / duplicate {userId,labId} -> 409, and does not leave the new machine stuck assigned", async () => {
+    const secondMachine = await createMachine(adminAgent, { rdpHost: "10.0.0.22" });
+
     const res = await adminAgent.post("/api/admin/assignments").send({
       userId: traineeId,
       labId,
-      rdpHost: "10.0.0.12",
-      rdpUser: "trainee",
-      rdpPassword: "pw2",
+      machineId: secondMachine.id,
     });
     expect(res.status).toBe(409);
+
+    const raw = await MachineModel.findById(secondMachine.id);
+    expect(raw?.status).toBe("free");
   });
 
-  it("PATCH /:id re-encrypts a new password", async () => {
+  it("POST / assigning an already-assigned machine -> 409 machine not available", async () => {
+    // traineeId is already bound (via `labId`) to a machine from the first test.
+    // Reuse that same machine but for a different (userId, labId) pair so the
+    // dup-check doesn't fire first — this must hit the machine-claim path.
+    const assignedList = await adminAgent.get("/api/admin/assignments");
+    const existing = assignedList.body.find((a: { user: { id: string } }) => a.user.id === traineeId);
+    const takenMachineId = existing.machine.id;
+
+    const otherLabRes = await adminAgent
+      .post("/api/admin/labs")
+      .send({ slug: "assign-lab-2", title: "Assign Lab 2" });
+
+    const res = await adminAgent.post("/api/admin/assignments").send({
+      userId: traineeId,
+      labId: otherLabRes.body._id,
+      machineId: takenMachineId,
+    });
+    expect(res.status).toBe(409);
+    expect(res.body.error).toBe("machine not available");
+  });
+
+  it("DELETE /:id removes the assignment and returns the machine to the pool", async () => {
     const list = await adminAgent.get("/api/admin/assignments");
     const target = list.body.find((a: { user: { id: string } }) => a.user.id === traineeId);
-
-    const newPlain = "rotated-secret-pass";
-    const res = await adminAgent
-      .patch(`/api/admin/assignments/${target.id}`)
-      .send({ rdpPassword: newPlain });
-    expect(res.status).toBe(200);
-    expect(res.body.rdpPassword).toBe(newPlain);
-
-    const raw = await AssignmentModel.findById(target.id);
-    expect(raw?.rdpPassword).not.toBe(newPlain);
-  });
-
-  it("PATCH /:id 404s for unknown id", async () => {
-    const res = await adminAgent
-      .patch("/api/admin/assignments/0123456789abcdef01234567")
-      .send({ rdpHost: "10.0.0.13" });
-    expect(res.status).toBe(404);
-  });
-
-  it("DELETE /:id removes the assignment", async () => {
-    const list = await adminAgent.get("/api/admin/assignments");
-    const target = list.body.find((a: { user: { id: string } }) => a.user.id === traineeId);
+    const machineId = target.machine.id;
 
     const res = await adminAgent.delete(`/api/admin/assignments/${target.id}`);
     expect(res.status).toBe(204);
 
     const after = await adminAgent.get("/api/admin/assignments");
     expect(after.body.find((a: { id: string }) => a.id === target.id)).toBeUndefined();
+
+    const machine = await MachineModel.findById(machineId);
+    expect(machine?.status).toBe("free");
   });
 
   it("DELETE /:id 404s for unknown id", async () => {
@@ -135,15 +162,9 @@ describe("admin assignments routes", () => {
         await userAgent.post("/api/admin/assignments").send({
           userId: traineeId,
           labId,
-          rdpHost: "x",
-          rdpUser: "x",
-          rdpPassword: "x",
+          machineId: "0123456789abcdef01234567",
         })
       ).status,
-    ).toBe(403);
-    expect(
-      (await userAgent.patch("/api/admin/assignments/0123456789abcdef01234567").send({ rdpHost: "x" }))
-        .status,
     ).toBe(403);
     expect((await userAgent.delete("/api/admin/assignments/0123456789abcdef01234567")).status).toBe(
       403,

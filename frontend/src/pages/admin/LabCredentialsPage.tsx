@@ -1,9 +1,8 @@
-import { Fragment, useState, type FormEvent } from "react";
+import { Fragment, useEffect, useState, type FormEvent } from "react";
 import { AppShell } from "@/layouts/AppShell";
 import { adminNav } from "./adminNav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -12,87 +11,44 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Copy, Eye, EyeOff, KeyRound, Clock } from "lucide-react";
+import { Copy, Eye, EyeOff, KeyRound, ServerCog } from "lucide-react";
+import { api, ApiError } from "@/lib/api";
 
-type AssignmentStatus = "active" | "pending" | "revoked";
+const selectClass =
+  "h-10 rounded-md border border-input bg-surface px-sm py-xs text-body text-foreground " +
+  "outline-none transition-[color,border-color,box-shadow] duration-[var(--duration-fast)] ease-standard " +
+  "hover:border-ink-500/40 focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-primary/12 " +
+  "disabled:cursor-not-allowed disabled:opacity-50";
+
+type AdminUser = { id: string; username: string };
+type Lab = { _id: string; slug: string; title: string };
+type Machine = {
+  id: string;
+  name?: string;
+  rdpHost: string;
+  rdpPort: number;
+  rdpUser: string;
+  status: string;
+};
 
 type Assignment = {
   id: string;
-  user: string;
-  lab: string;
-  machine: string;
+  user: { id: string; username: string };
+  lab: { id: string; slug: string; title: string };
+  machine: { id: string; name?: string; status: string };
   rdpHost: string;
-  username: string;
-  password: string;
-  status: AssignmentStatus;
-};
-
-const initialAssignments: Assignment[] = [
-  {
-    id: "asn-01",
-    user: "alice",
-    lab: "NKP Cluster Bootstrap",
-    machine: "nkp-node-01",
-    rdpHost: "10.42.0.5:3389",
-    username: "labuser",
-    password: "Xk9$vLp2Qz",
-    status: "active",
-  },
-  {
-    id: "asn-02",
-    user: "bshaw",
-    lab: "Cluster API Upgrade",
-    machine: "nkp-node-02",
-    rdpHost: "10.42.0.7:3389",
-    username: "labuser",
-    password: "Tr4!nWqm8s",
-    status: "active",
-  },
-  {
-    id: "asn-03",
-    user: "unassigned",
-    lab: "NKP Cluster Bootstrap",
-    machine: "nkp-node-03",
-    rdpHost: "10.42.0.9:3389",
-    username: "labuser",
-    password: "N/A",
-    status: "pending",
-  },
-  {
-    id: "asn-04",
-    user: "carter",
-    lab: "Storage Failover Drill",
-    machine: "nkp-node-04",
-    rdpHost: "10.42.0.11:3389",
-    username: "labuser",
-    password: "Hb7#eYcT31",
-    status: "revoked",
-  },
-];
-
-const statusLabel: Record<AssignmentStatus, string> = {
-  active: "Active",
-  pending: "Pending",
-  revoked: "Revoked",
-};
-
-const statusVariant: Record<AssignmentStatus, "success" | "warning" | "danger"> = {
-  active: "success",
-  pending: "warning",
-  revoked: "danger",
-};
-
-// design.md §6 — status dot: opacity/transform-only, reduced-motion-safe via
-// the global `animate-pulse` utility (Tailwind already gates it sensibly);
-// revoked is static (no animation = no state to draw attention to).
-const statusDotClass: Record<AssignmentStatus, string> = {
-  active: "bg-success animate-pulse",
-  pending: "bg-warning animate-pulse [animation-duration:2s]",
-  revoked: "bg-danger",
+  rdpPort: number;
+  rdpUser: string;
+  rdpPassword: string;
+  completedPages: number;
 };
 
 export function LabCredentialsPage() {
-  const [assignments, setAssignments] = useState<Assignment[]>(initialAssignments);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [labs, setLabs] = useState<Lab[]>([]);
+  const [machines, setMachines] = useState<Machine[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // Assign dialog
@@ -100,19 +56,40 @@ export function LabCredentialsPage() {
   const [formUser, setFormUser] = useState("");
   const [formLab, setFormLab] = useState("");
   const [formMachine, setFormMachine] = useState("");
-  const [formHost, setFormHost] = useState("");
-  const [formUsername, setFormUsername] = useState("labuser");
-  const [formPassword, setFormPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [assignError, setAssignError] = useState<string | null>(null);
+
+  // Revoke confirm dialog
+  const [revokeTarget, setRevokeTarget] = useState<Assignment | null>(null);
+  const [revokeError, setRevokeError] = useState<string | null>(null);
+
+  const freeMachines = machines.filter((m) => m.status === "free");
+
+  async function load() {
+    try {
+      const [a, u, l, m] = await Promise.all([
+        api<Assignment[]>("/admin/assignments"),
+        api<AdminUser[]>("/admin/users"),
+        api<Lab[]>("/admin/labs"),
+        api<Machine[]>("/admin/machines"),
+      ]);
+      setAssignments(a);
+      setUsers(u);
+      setLabs(l);
+      setMachines(m);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to load lab credentials");
+    }
+  }
+
+  useEffect(() => {
+    load();
+  }, []);
 
   function resetForm() {
     setFormUser("");
     setFormLab("");
     setFormMachine("");
-    setFormHost("");
-    setFormUsername("labuser");
-    setFormPassword("");
-    setShowPassword(false);
+    setAssignError(null);
   }
 
   function closeAssign(open: boolean) {
@@ -120,23 +97,34 @@ export function LabCredentialsPage() {
     if (!open) resetForm();
   }
 
-  function onAssign(e: FormEvent) {
+  async function onAssign(e: FormEvent) {
     e.preventDefault();
-    if (!formUser || !formLab || !formMachine || !formHost || !formUsername || !formPassword) return;
+    if (!formUser || !formLab || !formMachine) return;
 
-    const newAssignment: Assignment = {
-      id: `asn-${Date.now()}`,
-      user: formUser,
-      lab: formLab,
-      machine: formMachine,
-      rdpHost: formHost,
-      username: formUsername,
-      password: formPassword,
-      status: "pending",
-    };
-    setAssignments((prev) => [...prev, newAssignment]);
-    resetForm();
-    setAssignOpen(false);
+    setAssignError(null);
+    try {
+      await api("/admin/assignments", {
+        method: "POST",
+        body: JSON.stringify({ userId: formUser, labId: formLab, machineId: formMachine }),
+      });
+      await load();
+      resetForm();
+      setAssignOpen(false);
+    } catch (err) {
+      setAssignError(err instanceof ApiError ? err.message : "Failed to assign credentials");
+    }
+  }
+
+  async function onRevoke() {
+    if (!revokeTarget) return;
+    setRevokeError(null);
+    try {
+      await api(`/admin/assignments/${revokeTarget.id}`, { method: "DELETE" });
+      setRevokeTarget(null);
+      await load();
+    } catch (err) {
+      setRevokeError(err instanceof ApiError ? err.message : "Failed to revoke assignment");
+    }
   }
 
   function copy(value: string) {
@@ -161,7 +149,7 @@ export function LabCredentialsPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2">
           <div className="rounded-lg border border-border/40 bg-card p-4 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-lg bg-violet-100 text-violet-600">
@@ -176,47 +164,26 @@ export function LabCredentialsPage() {
           <div className="rounded-lg border border-border/40 bg-card p-4 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600">
-                <svg className="size-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <ServerCog className="size-5" />
               </div>
               <div>
-                <p className="text-xs font-medium text-muted-foreground">Active</p>
-                <p className="font-mono text-2xl font-bold tabular-nums text-foreground">
-                  {assignments.filter(a => a.status === 'active').length}
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="rounded-lg border border-border/40 bg-card p-4 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-lg bg-amber-100 text-amber-600">
-                <Clock className="size-5" />
-              </div>
-              <div>
-                <p className="text-xs font-medium text-muted-foreground">Pending</p>
-                <p className="font-mono text-2xl font-bold tabular-nums text-foreground">
-                  {assignments.filter(a => a.status === 'pending').length}
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="rounded-lg border border-border/40 bg-card p-4 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-lg bg-rose-100 text-rose-600">
-                <svg className="size-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-muted-foreground">Revoked</p>
-                <p className="font-mono text-2xl font-bold tabular-nums text-foreground">
-                  {assignments.filter(a => a.status === 'revoked').length}
-                </p>
+                <p className="text-xs font-medium text-muted-foreground">Free Machines Available</p>
+                <p className="font-mono text-2xl font-bold tabular-nums text-foreground">{freeMachines.length}</p>
               </div>
             </div>
           </div>
         </div>
+
+        {error && (
+          <div role="alert" className="rounded-lg border border-destructive/20 bg-destructive/10 p-4">
+            <div className="flex items-center gap-2">
+              <svg className="size-5 text-destructive" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+              <p className="text-sm font-medium text-destructive">{error}</p>
+            </div>
+          </div>
+        )}
 
         {/* Table */}
         <div className="overflow-hidden rounded-lg border border-border/40 bg-card shadow-sm">
@@ -229,25 +196,29 @@ export function LabCredentialsPage() {
                 <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">RDP Host</th>
                 <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Credentials</th>
                 <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</th>
+                <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">
               {assignments.map((a) => {
                 const expanded = expandedId === a.id;
+                const host = `${a.rdpHost}:${a.rdpPort}`;
                 return (
                   <Fragment key={a.id}>
                     <tr className="transition-colors hover:bg-muted/30">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <div className="flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-purple-600 text-xs font-semibold text-white uppercase">
-                            {a.user.charAt(0)}
+                            {a.user.username.charAt(0)}
                           </div>
-                          <span className="font-medium text-foreground">{a.user}</span>
+                          <span className="font-medium text-foreground">{a.user.username}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-muted-foreground">{a.lab}</td>
-                      <td className="px-6 py-4 text-sm text-muted-foreground">{a.machine}</td>
-                      <td className="px-6 py-4 font-mono text-sm tabular-nums text-foreground">{a.rdpHost}</td>
+                      <td className="px-6 py-4 text-sm text-muted-foreground">{a.lab.title}</td>
+                      <td className="px-6 py-4 text-sm text-muted-foreground">
+                        {a.machine.name ?? a.machine.id.slice(0, 8)}
+                      </td>
+                      <td className="px-6 py-4 font-mono text-sm tabular-nums text-foreground">{host}</td>
                       <td className="px-6 py-4">
                         <Button
                           type="button"
@@ -270,21 +241,31 @@ export function LabCredentialsPage() {
                         </Button>
                       </td>
                       <td className="px-6 py-4">
-                        <Badge variant={statusVariant[a.status]}>
-                          <span className={`size-1.5 rounded-full ${statusDotClass[a.status]}`} aria-hidden="true" />
-                          {statusLabel[a.status]}
+                        <Badge variant="success">
+                          <span className="size-1.5 rounded-full bg-success" aria-hidden="true" />
+                          Active
                         </Badge>
+                      </td>
+                      <td className="px-6 py-4">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => setRevokeTarget(a)}
+                          className="text-xs text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                        >
+                          Revoke
+                        </Button>
                       </td>
                     </tr>
                     {expanded && (
                       <tr className="bg-muted/20">
-                        <td colSpan={6} className="px-6 py-4">
+                        <td colSpan={7} className="px-6 py-4">
                           <div className="space-y-3 rounded-lg border border-border/40 bg-card p-4">
                             <div className="text-sm font-semibold text-foreground">Connection Details</div>
                             <div className="grid gap-3 md:grid-cols-3">
-                              <CredentialRow label="RDP Host" value={a.rdpHost} onCopy={() => copy(a.rdpHost)} />
-                              <CredentialRow label="Username" value={a.username} onCopy={() => copy(a.username)} />
-                              <CredentialRow label="Password" value={a.password} onCopy={() => copy(a.password)} />
+                              <CredentialRow label="RDP Host" value={host} onCopy={() => copy(host)} />
+                              <CredentialRow label="Username" value={a.rdpUser} onCopy={() => copy(a.rdpUser)} />
+                              <CredentialRow label="Password" value={a.rdpPassword} onCopy={() => copy(a.rdpPassword)} />
                             </div>
                           </div>
                         </td>
@@ -307,57 +288,104 @@ export function LabCredentialsPage() {
           <form id="assign-credentials-form" onSubmit={onAssign} className="flex flex-col gap-md">
             <label className="flex flex-col gap-xs">
               <span className="text-label text-muted-foreground">User</span>
-              <Input value={formUser} onChange={(e) => setFormUser(e.target.value)} required />
+              <select className={selectClass} value={formUser} onChange={(e) => setFormUser(e.target.value)} required>
+                <option value="" disabled>
+                  Select a user
+                </option>
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.username}
+                  </option>
+                ))}
+              </select>
             </label>
             <label className="flex flex-col gap-xs">
               <span className="text-label text-muted-foreground">Lab</span>
-              <Input value={formLab} onChange={(e) => setFormLab(e.target.value)} required />
+              <select className={selectClass} value={formLab} onChange={(e) => setFormLab(e.target.value)} required>
+                <option value="" disabled>
+                  Select a lab
+                </option>
+                {labs.map((l) => (
+                  <option key={l._id} value={l._id}>
+                    {l.title}
+                  </option>
+                ))}
+              </select>
             </label>
             <label className="flex flex-col gap-xs">
               <span className="text-label text-muted-foreground">Machine</span>
-              <Input value={formMachine} onChange={(e) => setFormMachine(e.target.value)} required />
-            </label>
-            <label className="flex flex-col gap-xs">
-              <span className="text-label text-muted-foreground">RDP Host</span>
-              <Input
-                value={formHost}
-                onChange={(e) => setFormHost(e.target.value)}
-                placeholder="10.42.0.5:3389"
-                className="font-mono"
+              <select
+                className={selectClass}
+                value={formMachine}
+                onChange={(e) => setFormMachine(e.target.value)}
+                disabled={freeMachines.length === 0}
                 required
-              />
+              >
+                <option value="" disabled>
+                  Select a machine
+                </option>
+                {freeMachines.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name ?? m.rdpHost}
+                  </option>
+                ))}
+              </select>
+              {freeMachines.length === 0 && (
+                <span className="text-xs text-muted-foreground">
+                  No free machines — import one in Machine Pool.
+                </span>
+              )}
             </label>
-            <label className="flex flex-col gap-xs">
-              <span className="text-label text-muted-foreground">Username</span>
-              <Input value={formUsername} onChange={(e) => setFormUsername(e.target.value)} required />
-            </label>
-            <label className="flex flex-col gap-xs">
-              <span className="text-label text-muted-foreground">Password</span>
-              <span className="relative flex-1">
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  value={formPassword}
-                  onChange={(e) => setFormPassword(e.target.value)}
-                  className="pr-9"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  className="absolute inset-y-0 right-0 flex w-9 items-center justify-center text-muted-foreground outline-none transition-colors duration-[var(--duration-fast)] ease-standard hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-primary/12"
-                >
-                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                </button>
-              </span>
-            </label>
+            {assignError && (
+              <p role="alert" className="text-sm font-medium text-destructive">
+                {assignError}
+              </p>
+            )}
           </form>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => closeAssign(false)}>
               Cancel
             </Button>
-            <Button type="submit" form="assign-credentials-form" variant="primary">
+            <Button
+              type="submit"
+              form="assign-credentials-form"
+              variant="primary"
+              disabled={freeMachines.length === 0}
+            >
               Assign
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={revokeTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRevokeTarget(null);
+            setRevokeError(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Revoke access</DialogTitle>
+            <DialogDescription>
+              Revoke <strong>{revokeTarget?.user.username}</strong>&apos;s access to{" "}
+              <strong>{revokeTarget?.lab.title}</strong>? The machine returns to the free pool.
+            </DialogDescription>
+          </DialogHeader>
+          {revokeError && (
+            <p role="alert" className="text-sm font-medium text-destructive">
+              {revokeError}
+            </p>
+          )}
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => setRevokeTarget(null)}>
+              Cancel
+            </Button>
+            <Button type="button" variant="destructive" onClick={onRevoke}>
+              Revoke
             </Button>
           </DialogFooter>
         </DialogContent>

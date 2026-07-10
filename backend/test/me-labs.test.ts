@@ -28,14 +28,19 @@ beforeAll(async () => {
   if (labRes.status !== 201) throw new Error(`lab create failed: ${labRes.status} ${labRes.text}`);
   labSlug = labRes.body.slug;
 
-  const alice = await aliceAgent.get("/api/auth/me");
-  const assignRes = await adminAgent.post("/api/admin/assignments").send({
-    userId: alice.body.id,
-    labId: labRes.body._id,
+  const machineRes = await adminAgent.post("/api/admin/machines").send({
     rdpHost: "10.0.0.5",
     rdpPort: 3389,
     rdpUser: "labuser",
     rdpPassword: "s3cretpass",
+  });
+  if (machineRes.status !== 201) throw new Error(`machine create failed: ${machineRes.status} ${machineRes.text}`);
+
+  const alice = await aliceAgent.get("/api/auth/me");
+  const assignRes = await adminAgent.post("/api/admin/assignments").send({
+    userId: alice.body.id,
+    labId: labRes.body._id,
+    machineId: machineRes.body.id,
   });
   if (assignRes.status !== 201) throw new Error(`assignment create failed: ${assignRes.status} ${assignRes.text}`);
 });

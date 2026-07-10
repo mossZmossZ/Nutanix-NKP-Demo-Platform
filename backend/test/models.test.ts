@@ -47,25 +47,36 @@ describe("Assignment model", () => {
     const base = {
       userId,
       labId,
-      rdpHost: "10.0.0.5",
-      rdpUser: "trainee",
-      rdpPassword: "encrypted-payload",
+      machineId: new mongoose.Types.ObjectId(),
     };
 
     await AssignmentModel.create(base);
-    await expect(AssignmentModel.create(base)).rejects.toThrow();
+    await expect(AssignmentModel.create({ ...base, machineId: new mongoose.Types.ObjectId() })).rejects.toThrow();
+  });
+
+  it("enforces unique machineId", async () => {
+    const machineId = new mongoose.Types.ObjectId();
+    await AssignmentModel.create({
+      userId: new mongoose.Types.ObjectId(),
+      labId: new mongoose.Types.ObjectId(),
+      machineId,
+    });
+    await expect(
+      AssignmentModel.create({
+        userId: new mongoose.Types.ObjectId(),
+        labId: new mongoose.Types.ObjectId(),
+        machineId,
+      }),
+    ).rejects.toThrow();
   });
 
   it("defaults completedPages to an empty array", async () => {
     const assignment = await AssignmentModel.create({
       userId: new mongoose.Types.ObjectId(),
       labId: new mongoose.Types.ObjectId(),
-      rdpHost: "10.0.0.6",
-      rdpUser: "trainee2",
-      rdpPassword: "encrypted-payload-2",
+      machineId: new mongoose.Types.ObjectId(),
     });
 
     expect(assignment.completedPages).toEqual([]);
-    expect(assignment.rdpPort).toBe(3389);
   });
 });
