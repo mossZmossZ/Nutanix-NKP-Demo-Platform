@@ -1,6 +1,6 @@
 import { useMemo, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, Hexagon } from 'lucide-react'
 import { useAuth } from '@/auth/AuthContext'
 import {
   DropdownMenu,
@@ -42,24 +42,28 @@ export function AppShell({ nav, title, children }: { nav: NavItem[]; title: stri
   return (
     <div className="flex min-h-screen">
       <aside className="flex w-64 shrink-0 flex-col border-r border-border bg-surface">
-        <div className="flex h-16 shrink-0 items-center border-b border-border px-lg">
+        <div className="flex h-16 shrink-0 items-center gap-xs border-b border-border px-lg">
           <Link
             to="/"
-            className="text-h4 text-foreground transition-colors duration-[var(--duration-base)] ease-standard hover:text-violet-600"
+            className="flex items-center gap-xs text-h4 text-foreground transition-colors duration-[var(--duration-base)] ease-standard hover:text-violet-600"
           >
+            <Hexagon className="size-4 text-violet-600" strokeWidth={2.25} />
             NKP Workshop
           </Link>
         </div>
         <nav className="flex flex-col gap-xxs p-sm">
+          <span className="px-sm pt-xs pb-xxs text-label uppercase tracking-wide text-muted-foreground">
+            Workspace
+          </span>
           {nav.map((item) => {
             if (item.disabled) {
               return (
                 <span
                   key={item.to}
                   aria-disabled="true"
-                  className="flex cursor-not-allowed items-center gap-xs rounded-md border-l-[3px] border-transparent px-sm py-xs text-button text-muted-foreground/50"
+                  className="flex cursor-not-allowed items-center gap-xs rounded-md px-sm py-xs text-body-sm font-medium text-muted-foreground/50"
                 >
-                  {item.icon}
+                  {item.icon ? <span className="[&_svg]:size-4">{item.icon}</span> : null}
                   {item.label}
                   <span className="ml-auto rounded-sm border border-border px-xxs text-label text-muted-foreground">
                     Soon
@@ -72,13 +76,17 @@ export function AppShell({ nav, title, children }: { nav: NavItem[]; title: stri
               <Link
                 key={item.to}
                 to={item.to}
-                className={`flex items-center gap-xs rounded-md border-l-[3px] px-sm py-xs text-button transition-colors duration-[var(--duration-base)] ease-standard ${
+                className={`flex items-center gap-xs rounded-md px-sm py-xs text-body-sm font-medium transition-colors duration-[var(--duration-base)] ease-standard ${
                   active
-                    ? 'border-violet-600 bg-violet-100 text-violet-600'
-                    : 'border-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                    ? 'bg-violet-100 text-violet-600'
+                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                 }`}
               >
-                {item.icon}
+                {item.icon ? (
+                  <span className={`[&_svg]:size-4 ${active ? 'text-violet-600' : 'text-muted-foreground'}`}>
+                    {item.icon}
+                  </span>
+                ) : null}
                 {item.label}
               </Link>
             )

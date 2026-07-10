@@ -162,8 +162,10 @@ solid color as text/dot. Used for lab & machine state.
 
 ### App shell (dashboard surfaces — Lab Access + Admin)
 
-- Persistent **left sidebar** (`surface`, 1px right `border`); active item = `violet-100`
-  background + `violet-600` text/indicator.
+- Persistent **left sidebar** (`surface`, 1px right `border`); nav items carry a lucide icon +
+  label. Active item = a quiet `violet-100` **tint block** + `violet-600` text/icon (rounded
+  `md`, **no heavy left bar**); inactive = `muted-foreground`, hover on `accent`. A small muted
+  section eyebrow (`label` type, e.g. "Workspace") may head the nav group.
 - **Top bar** (`surface`, 1px bottom `border`) with page title left, profile dropdown right.
 - Content on `canvas` with `lg`/`xl` gutters; cards and tables grouped on `surface`.
 
@@ -171,6 +173,25 @@ solid color as text/dot. Used for lab & machine state.
 
 `surface` container, `line-200` row dividers, `body-sm` cells, tabular numerals, header row in
 `label` type / `muted-foreground`. Row hover `foreground`@3%.
+
+### Iconography & data density — *precise-minimal execution*
+
+The app surfaces read as **precise, confident, technical** (Linear / UniFi lineage) by adding
+*density and sharpness*, never more color. Fewer, crisper elements beat decoration.
+
+- **Icons — lucide-react only.** `size-4` (16px) for nav / card headers, `size-3.5` (14px) for
+  inline metadata. Default `muted-foreground`; `violet-600` only when active or carrying emphasis.
+  One icon per purpose — restrained, never a sticker sheet.
+- **Data density.** Prefer showing meaningful technical metadata (k8s version, node count,
+  duration, resource values) over empty whitespace — this is what reads as "powerful". Lay it out
+  as compact `icon + value` pairs in a `body-sm` / `muted-foreground` row.
+- **Technical figures use mono.** `font-mono` + `tabular-nums` for versions, counts, hosts,
+  resource values, and any credential/command-adjacent text (extends §2). Prose stays Inter.
+- **One functional color per unit.** A card/row gets a single status `Badge`
+  (`success`/`warning`/`danger`) for real state only. Non-status attributes (difficulty, level,
+  tags) render as muted text/icon — **never** a colored badge (keeps the one-accent rule intact).
+- **Hairlines + quiet depth.** `line-200` borders and `shadow-sm` do the structural work; reserve
+  the hover raise (`-translate-y-px` + `shadow-md`, transform-only) for interactive cards.
 
 ---
 

@@ -1,6 +1,6 @@
 services:
   mongo:
-    image: mongo:8.3.4-noble
+    image: mongo:7.0
     container_name: nkp-mongo-dev
     ports:
       - "27017:27017"
@@ -19,7 +19,7 @@ services:
       - nkp-network
 
   redis:
-    image: redis:7.2-alpine
+    image: redis:8.8.0-trixie
     container_name: nkp-redis-dev
     ports:
       - "6379:6379"
