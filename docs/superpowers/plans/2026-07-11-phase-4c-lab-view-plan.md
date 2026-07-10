@@ -3,18 +3,22 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build the participant-facing "My Labs" list and a killer.sh-style split lab view
-(guide left, tabbed Remote/Credentials panel right) against the already-complete `/api/me`
-backend, with Guacamole deliberately deferred to Phase 5.
+(guide left, tabbed Remote/Credentials panel right) against the `/api/me` backend, with
+Guacamole deliberately deferred to Phase 5.
 
-**Architecture:** Pure frontend addition. `LabAccessPage` swaps its mock array for
+**Architecture:** Mostly a frontend addition. `LabAccessPage` swaps its mock array for
 `GET /me/labs`. A new `/lab-access/:slug` route renders `LabViewPage`, which fetches
 `GET /me/labs/:slug` and composes three new leaf components inside a resizable two-pane
 layout: `GuidePane` (page list + markdown reader + progress), `CredentialsPanel` (RDP fields
-+ copy), and `RemotePanel` (static placeholder). No backend changes.
++ copy), and `RemotePanel` (static placeholder). One backend addition is required: guide
+markdown can embed images from `wiki/<slug>/images/`, and nothing serves them yet, so a
+single guarded route (`GET /me/labs/:slug/images/:file`) is added — everything else reuses
+the `/api/me` surface exactly as it exists today.
 
 **Tech Stack:** React 19 + TS + Tailwind (design.md tokens) + shadcn/radix primitives +
 `react-markdown`/`remark-gfm`/`rehype-highlight` (new) + `react-resizable-panels` (new) +
-Vitest + Testing Library (existing setup, no config changes beyond a ResizeObserver stub).
+Vitest + Testing Library (existing frontend setup, no config changes beyond a ResizeObserver
+stub) + Express/Mongoose (existing backend setup, one new route + one new `wiki.ts` helper).
 
 ## Global Constraints
 
@@ -23,25 +27,188 @@ Vitest + Testing Library (existing setup, no config changes beyond a ResizeObser
   `xxs/xs/sm/md/lg/xl/xxl/section`, `text-h1..h4/body/body-sm/label/button`). Functional
   status colors (`success`/`warning`/`danger`) are reserved for genuine state, never
   decoration — syntax highlighting uses only `primary`/`foreground`/`muted-foreground`.
-- **TypeScript strict** — no `any`, no unchecked casts beyond what existing code already does
-  (e.g. the `Machine`-populate cast pattern in `me.ts`, which is backend and out of scope
-  here).
-- **No backend changes.** All required `/api/me/*` endpoints already exist and are correct
-  for this scope (verified by reading `backend/src/routes/me.ts` during design).
+- **TypeScript strict** — no `any`, no unchecked casts beyond what existing code already does.
+- **Backend change is scoped to exactly one new route + one new `wiki.ts` helper** (guide
+  images, Task 1). Every other required endpoint already exists and is correct — do not touch
+  `me.ts`'s existing handlers beyond adding the one new route and updating its `wiki` import.
 - **Guacamole is out of scope.** The Remote tab is a static placeholder only — no `guacd`
-  calls, no canvas, no new backend endpoint.
-- **RBAC**: every new route sits inside the existing `<ProtectedRoute>` wrapper in
-  `frontend/src/App.tsx` — do not add a new top-level unauthenticated route.
+  calls, no canvas, no RDP token endpoint.
+- **RBAC**: the new image route uses the same ownership check as the existing pages route
+  (assignment must exist for the caller); every new frontend route sits inside the existing
+  `<ProtectedRoute>` wrapper in `frontend/src/App.tsx` — do not add a new top-level
+  unauthenticated route.
 - Follow existing conventions: `api<T>()` wrapper from `frontend/src/lib/api.ts` for all
   requests (throws `ApiError` with `.status` on non-2xx), lazy-loaded routes via
-  `React.lazy` + `Suspense` matching `App.tsx`'s existing pattern, tests live under
+  `React.lazy` + `Suspense` matching `App.tsx`'s existing pattern, frontend tests live under
   `frontend/test/*.test.tsx` (not colocated under `src/`), mock `@/lib/api` via the
   `importOriginal` factory form (not blanket `vi.mock('@/lib/api')`) so `ApiError` stays a
-  real class in tests.
+  real class in tests; backend tests use the existing `backend/test/helpers/harness`
+  (`setup`/`teardown`/`loginAs`/`createUser`/`ADMIN`) pattern seen in `me-labs.test.ts`.
 
 ---
 
-### Task 1: Add frontend dependencies for markdown rendering and resizable panes
+### Task 1: Backend — serve lab guide images (RBAC-gated)
+
+**Files:**
+- Modify: `backend/src/lib/wiki.ts` (add `readImage` + a content-type table)
+- Modify: `backend/src/routes/me.ts` (add `GET /labs/:slug/images/:file`)
+- Test: `backend/test/me-labs.test.ts` (append a new `describe` block)
+
+**Interfaces:**
+- Consumes: `assertSafeFile`, `labDir` (already private to `wiki.ts`) — no new backend
+  dependencies.
+- Produces: `readImage(slug: string, file: string, root?: string): {data: Buffer, contentType:
+  string}` (throws if the file's extension isn't a supported image type); route
+  `GET /me/labs/:slug/images/:file` (`requireAuth`, 404 if the caller has no assignment for
+  that lab or the file is missing/unsupported) — consumed by the frontend's slug-aware `img`
+  markdown renderer (Task 4).
+
+- [ ] **Step 1: Write the failing test**
+
+Add these two imports to the top of `backend/test/me-labs.test.ts`, alongside the existing
+imports:
+
+```ts
+import fs from "fs";
+import path from "path";
+```
+
+Append this `describe` block at the end of the file:
+
+```ts
+describe("GET /api/me/labs/:slug/images/:file", () => {
+  beforeAll(() => {
+    const imagesDir = path.join(process.env.WIKI_DIR!, labSlug, "images");
+    fs.mkdirSync(imagesDir, { recursive: true });
+    fs.writeFileSync(path.join(imagesDir, "diagram.png"), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+  });
+
+  it("alice can fetch an image from her assigned lab with the right content-type", async () => {
+    const res = await aliceAgent.get(`/api/me/labs/${labSlug}/images/diagram.png`);
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toBe("image/png");
+    expect(Buffer.compare(res.body as Buffer, Buffer.from([0x89, 0x50, 0x4e, 0x47]))).toBe(0);
+  });
+
+  it("bob (not assigned) gets 404", async () => {
+    const res = await bobAgent.get(`/api/me/labs/${labSlug}/images/diagram.png`);
+    expect(res.status).toBe(404);
+  });
+
+  it("a missing file is rejected as 404, not a server error", async () => {
+    const res = await aliceAgent.get(`/api/me/labs/${labSlug}/images/does-not-exist.png`);
+    expect(res.status).toBe(404);
+  });
+
+  it("unauthenticated request -> 401", async () => {
+    const request = (await import("supertest")).default;
+    const res = await request(app).get(`/api/me/labs/${labSlug}/images/diagram.png`);
+    expect(res.status).toBe(401);
+  });
+});
+```
+
+- [ ] **Step 2: Run the test to verify it fails**
+
+Run: `cd backend && npx vitest run test/me-labs.test.ts`
+Expected: FAIL on "alice can fetch an image..." — it expects `200`/`image/png`, but with no
+route registered the request falls through to the app's default 404 handler. (The "bob" and
+"missing file" cases will already show status `404` even before the route exists, since an
+unmatched route also 404s — they're guardrails, not the primary red signal here; the alice
+case is the one that proves the feature is missing.)
+
+- [ ] **Step 3: Add `readImage` to `wiki.ts`**
+
+In `backend/src/lib/wiki.ts`, add this constant directly after the existing `PAGE_PATTERN`
+line:
+
+```ts
+const IMAGE_CONTENT_TYPES: Record<string, string> = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".svg": "image/svg+xml",
+  ".webp": "image/webp",
+};
+```
+
+Add this function directly after the existing `readPage` function:
+
+```ts
+/** Read one lab image's raw bytes + content-type from wiki/<slug>/images/. */
+export function readImage(
+  slug: string,
+  file: string,
+  root: string = env.wikiDir,
+): { data: Buffer; contentType: string } {
+  assertSafeFile(file);
+  const contentType = IMAGE_CONTENT_TYPES[path.extname(file).toLowerCase()];
+  if (!contentType) {
+    throw new Error(`Unsupported image type: ${file}`);
+  }
+  const data = fs.readFileSync(path.join(labDir(slug, root), "images", file));
+  return { data, contentType };
+}
+```
+
+- [ ] **Step 4: Add the route to `me.ts`**
+
+Change the existing import line:
+```ts
+import { listPages, readPage } from "../lib/wiki";
+```
+to:
+```ts
+import { listPages, readImage, readPage } from "../lib/wiki";
+```
+
+Add this route immediately after the existing `meRouter.get("/labs/:slug/pages/:file", ...)`
+handler and before `meRouter.post("/labs/:slug/progress", ...)`:
+
+```ts
+meRouter.get("/labs/:slug/images/:file", async (req: AuthedRequest, res) => {
+  const lab = await LabModel.findOne({ slug: req.params.slug });
+  if (!lab) {
+    res.status(404).json({ error: "lab not found" });
+    return;
+  }
+  const assignment = await AssignmentModel.exists({ userId: req.user!.id, labId: lab._id });
+  if (!assignment) {
+    res.status(404).json({ error: "lab not found" });
+    return;
+  }
+  try {
+    const { data, contentType } = readImage(lab.slug, req.params.file);
+    res.setHeader("Content-Type", contentType);
+    res.send(data);
+  } catch {
+    res.status(404).json({ error: "image not found" });
+  }
+});
+```
+
+- [ ] **Step 5: Run the test to verify it passes**
+
+Run: `cd backend && npx vitest run test/me-labs.test.ts`
+Expected: PASS (all tests in the file, including the 4 new ones).
+
+- [ ] **Step 6: Run the full backend suite and typecheck**
+
+Run: `cd backend && npm run test && npm run typecheck`
+Expected: both green — confirms the new route/helper didn't disturb any existing backend
+behavior.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add backend/src/lib/wiki.ts backend/src/routes/me.ts backend/test/me-labs.test.ts
+git commit -m "feat(backend): serve lab guide images via GET /me/labs/:slug/images/:file"
+```
+
+---
+
+### Task 2: Add frontend dependencies for markdown rendering and resizable panes
 
 **Files:**
 - Modify: `frontend/package.json`
@@ -75,7 +242,7 @@ git commit -m "chore(frontend): add react-markdown, rehype-highlight, react-resi
 
 ---
 
-### Task 2: Shared CopyButton component
+### Task 3: Shared CopyButton component
 
 **Files:**
 - Create: `frontend/src/components/CopyButton.tsx`
@@ -85,7 +252,7 @@ git commit -m "chore(frontend): add react-markdown, rehype-highlight, react-resi
 - Consumes: `Button` from `@/components/ui/button` (existing, `variant`/`className`/`onClick`
   props as read in `frontend/src/components/ui/button.tsx`).
 - Produces: `CopyButton({ value: string; label: string })` — a button that copies `value` to
-  the clipboard and briefly reflects a copied state. Used by Task 3 (code blocks) and Task 7
+  the clipboard and briefly reflects a copied state. Used by Task 4 (code blocks) and Task 8
   (credential fields).
 
 - [ ] **Step 1: Write the failing test**
@@ -168,7 +335,7 @@ git commit -m "feat(frontend): add shared CopyButton component"
 
 ---
 
-### Task 3: Markdown rendering — component map + token-based code highlighting
+### Task 4: Markdown rendering — component map + token-based code highlighting + images
 
 **Files:**
 - Create: `frontend/src/lib/markdown-components.tsx`
@@ -176,9 +343,11 @@ git commit -m "feat(frontend): add shared CopyButton component"
 - Test: `frontend/test/markdown-components.test.tsx`
 
 **Interfaces:**
-- Consumes: `CopyButton` from `@/components/CopyButton` (Task 2).
-- Produces: `markdownComponents: Components` (react-markdown's `Components` type) — consumed
-  by `GuidePane` (Task 6) as the `components` prop of `<ReactMarkdown>`.
+- Consumes: `CopyButton` from `@/components/CopyButton` (Task 3).
+- Produces: `createMarkdownComponents(slug: string): Components` (react-markdown's
+  `Components` type) — consumed by `GuidePane` (Task 7) as the `components` prop of
+  `<ReactMarkdown>`. It's a factory (not a static object) because the `img` renderer needs the
+  lab's `slug` to rewrite relative image paths to `GET /me/labs/:slug/images/:file` (Task 1).
 
 - [ ] **Step 1: Write the failing test**
 
@@ -190,7 +359,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
 import { vi } from 'vitest'
-import { markdownComponents } from '@/lib/markdown-components'
+import { createMarkdownComponents } from '@/lib/markdown-components'
 
 const sample = '# Title\n\nSome *text*.\n\n```yaml\nkey: value\n```\n'
 
@@ -199,7 +368,11 @@ test('renders headings/paragraphs on design tokens and a copyable fenced code bl
   Object.assign(navigator, { clipboard: { writeText } })
 
   render(
-    <ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+    <ReactMarkdown
+      components={createMarkdownComponents('nkp-basics')}
+      remarkPlugins={[remarkGfm]}
+      rehypePlugins={[rehypeHighlight]}
+    >
       {sample}
     </ReactMarkdown>,
   )
@@ -209,6 +382,27 @@ test('renders headings/paragraphs on design tokens and a copyable fenced code bl
 
   await userEvent.click(screen.getByRole('button', { name: /copy code/i }))
   expect(writeText).toHaveBeenCalledWith(expect.stringContaining('key: value'))
+})
+
+test('rewrites a relative image src to the guarded images route for the given slug', () => {
+  render(
+    <ReactMarkdown components={createMarkdownComponents('nkp-basics')} remarkPlugins={[remarkGfm]}>
+      {'![diagram](images/diagram.png)'}
+    </ReactMarkdown>,
+  )
+  expect(screen.getByRole('img', { name: 'diagram' })).toHaveAttribute(
+    'src',
+    '/api/me/labs/nkp-basics/images/diagram.png',
+  )
+})
+
+test('leaves an already-absolute image src untouched', () => {
+  render(
+    <ReactMarkdown components={createMarkdownComponents('nkp-basics')} remarkPlugins={[remarkGfm]}>
+      {'![external](https://example.com/pic.png)'}
+    </ReactMarkdown>,
+  )
+  expect(screen.getByRole('img', { name: 'external' })).toHaveAttribute('src', 'https://example.com/pic.png')
 })
 ```
 
@@ -239,35 +433,59 @@ function textContent(node: ReactNode): string {
   return ""
 }
 
+// True for absolute URLs (http(s)://, protocol-relative //, or a root-relative
+// path) — anything else is treated as relative to wiki/<slug>/images/.
+function isAbsoluteUrl(src: string): boolean {
+  return /^([a-z]+:)?\/\//i.test(src) || src.startsWith("/")
+}
+
 // Same element-to-token mapping as frontend/src/docs/mdx-components.tsx (the
 // build-time MDX pipeline), adapted for react-markdown's runtime `components`
 // prop since guide pages are raw markdown fetched over HTTP, not compiled MDX.
-export const markdownComponents: Components = {
-  h1: (props) => <h1 className="mt-section first:mt-0 mb-lg text-h1 text-foreground" {...props} />,
-  h2: (props) => <h2 className="mt-xl mb-md text-h2 text-foreground" {...props} />,
-  h3: (props) => <h3 className="mt-lg mb-sm text-h3 text-foreground" {...props} />,
-  p: (props) => <p className="my-md text-body text-foreground" {...props} />,
-  a: (props) => <a className="text-primary underline-offset-2 hover:underline" {...props} />,
-  ul: (props) => <ul className="my-md list-disc pl-lg text-body text-foreground [&_li]:mt-xs" {...props} />,
-  ol: (props) => <ol className="my-md list-decimal pl-lg text-body text-foreground [&_li]:mt-xs" {...props} />,
-  strong: (props) => <strong className="text-body font-semibold text-foreground" {...props} />,
-  code: ({ className, ...props }) => (
-    <code
-      className={`rounded-sm bg-violet-50 px-xxs py-[2px] font-mono text-body-sm text-foreground ${className ?? ""}`}
-      {...props}
-    />
-  ),
-  pre: ({ children, ...props }) => (
-    <pre
-      className="group relative my-lg overflow-x-auto rounded-md border border-border bg-canvas p-lg font-mono text-body-sm text-foreground [&>code]:bg-transparent [&>code]:p-0 [&>code]:rounded-none [&>code]:text-inherit"
-      {...props}
-    >
-      <span className="absolute right-sm top-sm opacity-0 transition-opacity duration-[var(--duration-fast)] ease-standard group-hover:opacity-100">
-        <CopyButton value={textContent(children)} label="code" />
-      </span>
-      {children}
-    </pre>
-  ),
+// A factory (not a static object) because `img` needs the lab's slug to
+// resolve relative image paths through the guarded images route.
+export function createMarkdownComponents(slug: string): Components {
+  return {
+    h1: (props) => <h1 className="mt-section first:mt-0 mb-lg text-h1 text-foreground" {...props} />,
+    h2: (props) => <h2 className="mt-xl mb-md text-h2 text-foreground" {...props} />,
+    h3: (props) => <h3 className="mt-lg mb-sm text-h3 text-foreground" {...props} />,
+    p: (props) => <p className="my-md text-body text-foreground" {...props} />,
+    a: (props) => <a className="text-primary underline-offset-2 hover:underline" {...props} />,
+    ul: (props) => <ul className="my-md list-disc pl-lg text-body text-foreground [&_li]:mt-xs" {...props} />,
+    ol: (props) => <ol className="my-md list-decimal pl-lg text-body text-foreground [&_li]:mt-xs" {...props} />,
+    strong: (props) => <strong className="text-body font-semibold text-foreground" {...props} />,
+    img: ({ src, alt, ...props }) => {
+      const resolvedSrc =
+        typeof src === "string" && !isAbsoluteUrl(src)
+          ? `/api/me/labs/${slug}/images/${src.replace(/^\.\//, "")}`
+          : src
+      return (
+        <img
+          src={resolvedSrc}
+          alt={alt ?? ""}
+          className="my-lg max-w-full rounded-md border border-border"
+          {...props}
+        />
+      )
+    },
+    code: ({ className, ...props }) => (
+      <code
+        className={`rounded-sm bg-violet-50 px-xxs py-[2px] font-mono text-body-sm text-foreground ${className ?? ""}`}
+        {...props}
+      />
+    ),
+    pre: ({ children, ...props }) => (
+      <pre
+        className="group relative my-lg overflow-x-auto rounded-md border border-border bg-canvas p-lg font-mono text-body-sm text-foreground [&>code]:bg-transparent [&>code]:p-0 [&>code]:rounded-none [&>code]:text-inherit"
+        {...props}
+      >
+        <span className="absolute right-sm top-sm opacity-0 transition-opacity duration-[var(--duration-fast)] ease-standard group-hover:opacity-100">
+          <CopyButton value={textContent(children)} label="code" />
+        </span>
+        {children}
+      </pre>
+    ),
+  }
 }
 ```
 
@@ -306,18 +524,18 @@ Append to the end of `frontend/src/index.css`:
 - [ ] **Step 5: Run the test to verify it passes**
 
 Run: `cd frontend && npx vitest run test/markdown-components.test.tsx`
-Expected: PASS (1 test).
+Expected: PASS (3 tests).
 
 - [ ] **Step 6: Commit**
 
 ```bash
 git add frontend/src/lib/markdown-components.tsx frontend/src/index.css frontend/test/markdown-components.test.tsx
-git commit -m "feat(frontend): add runtime markdown renderer with token-based code highlighting"
+git commit -m "feat(frontend): add runtime markdown renderer with highlighting and image resolution"
 ```
 
 ---
 
-### Task 4: Wire "My Labs" list to real data
+### Task 5: Wire "My Labs" list to real data
 
 **Files:**
 - Modify: `frontend/src/pages/LabAccessPage.tsx` (full rewrite of the mock-data body)
@@ -524,7 +742,7 @@ git commit -m "feat(frontend): wire My Labs list to GET /me/labs"
 
 ---
 
-### Task 5: Tabs and Resizable UI primitives
+### Task 6: Tabs and Resizable UI primitives
 
 **Files:**
 - Create: `frontend/src/components/ui/tabs.tsx`
@@ -536,9 +754,9 @@ git commit -m "feat(frontend): wire My Labs list to GET /me/labs"
 **Interfaces:**
 - Consumes: `Tabs` (from the bundled `radix-ui` package — already a dependency, exports
   `Tabs`, confirmed via `node -e "console.log(Object.keys(require('radix-ui')))"`) for
-  `tabs.tsx`; `react-resizable-panels` (Task 1) for `resizable.tsx`.
+  `tabs.tsx`; `react-resizable-panels` (Task 2) for `resizable.tsx`.
 - Produces: `Tabs, TabsList, TabsTrigger, TabsContent` and `ResizablePanelGroup,
-  ResizablePanel, ResizableHandle` — consumed by `LabViewPage` (Task 8).
+  ResizablePanel, ResizableHandle` — consumed by `LabViewPage` (Task 9).
 
 - [ ] **Step 1: Add the ResizeObserver stub to test setup**
 
@@ -712,20 +930,20 @@ git commit -m "feat(frontend): add Tabs and Resizable UI primitives for the lab 
 
 ---
 
-### Task 6: GuidePane — page list, markdown reader, progress, navigation
+### Task 7: GuidePane — page list, markdown reader, progress, navigation
 
 **Files:**
 - Create: `frontend/src/pages/lab-view/GuidePane.tsx`
 - Test: `frontend/test/guide-pane.test.tsx`
 
 **Interfaces:**
-- Consumes: `api<T>()`/`ApiError` from `@/lib/api`; `markdownComponents` from
-  `@/lib/markdown-components` (Task 3); `Button`/`Skeleton` from `@/components/ui/*`;
+- Consumes: `api<T>()`/`ApiError` from `@/lib/api`; `createMarkdownComponents` from
+  `@/lib/markdown-components` (Task 4); `Button`/`Skeleton` from `@/components/ui/*`;
   `GET /me/labs/:slug/pages/:file` → `{file, content}`; `POST /me/labs/:slug/progress
   {file, completed}` → `{completedPages}` (both per `backend/src/routes/me.ts`).
 - Produces: `GuidePane({ slug: string; pages: {file:string; order:number; title:string}[];
   completedPages: string[]; onProgressChange: (completedPages: string[]) => void })` —
-  consumed by `LabViewPage` (Task 8).
+  consumed by `LabViewPage` (Task 9).
 
 - [ ] **Step 1: Write the failing test**
 
@@ -735,7 +953,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
 import { GuidePane } from '@/pages/lab-view/GuidePane'
-import { api } from '@/lib/api'
+import { api, ApiError } from '@/lib/api'
 
 vi.mock('@/lib/api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/api')>()
@@ -782,6 +1000,21 @@ test('marking a page complete posts progress and reflects the returned state', a
   )
   expect(onProgressChange).toHaveBeenCalledWith(['01-intro.md'])
 })
+
+test('shows an inline error if marking complete fails, without changing the toggle state', async () => {
+  vi.mocked(api)
+    .mockResolvedValueOnce({ file: '01-intro.md', content: '# Introduction\n\nWelcome.' })
+    .mockRejectedValueOnce(new ApiError(500, 'progress update failed'))
+
+  const onProgressChange = vi.fn()
+  render(<GuidePane slug="nkp-basics" pages={pages} completedPages={[]} onProgressChange={onProgressChange} />)
+
+  await screen.findByText('Welcome.')
+  await userEvent.click(screen.getByRole('button', { name: /mark complete/i }))
+
+  expect(await screen.findByRole('alert')).toHaveTextContent('progress update failed')
+  expect(onProgressChange).not.toHaveBeenCalled()
+})
 ```
 
 - [ ] **Step 2: Run the test to verify it fails**
@@ -793,7 +1026,7 @@ Expected: FAIL — `Cannot find module '@/pages/lab-view/GuidePane'`.
 
 ```tsx
 // frontend/src/pages/lab-view/GuidePane.tsx
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeHighlight from "rehype-highlight"
@@ -801,7 +1034,7 @@ import { Check, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { api, ApiError } from "@/lib/api"
-import { markdownComponents } from "@/lib/markdown-components"
+import { createMarkdownComponents } from "@/lib/markdown-components"
 
 type Page = { file: string; order: number; title: string }
 
@@ -820,11 +1053,14 @@ export function GuidePane({
   const [content, setContent] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [toggling, setToggling] = useState(false)
+  const [toggleError, setToggleError] = useState<string | null>(null)
+  const markdownComponents = useMemo(() => createMarkdownComponents(slug), [slug])
 
   useEffect(() => {
     if (!selectedFile) return
     setContent(null)
     setError(null)
+    setToggleError(null)
     api<{ file: string; content: string }>(`/me/labs/${slug}/pages/${selectedFile}`)
       .then((res) => setContent(res.content))
       .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to load page"))
@@ -836,12 +1072,15 @@ export function GuidePane({
   async function toggleComplete() {
     if (!selectedFile) return
     setToggling(true)
+    setToggleError(null)
     try {
       const res = await api<{ completedPages: string[] }>(`/me/labs/${slug}/progress`, {
         method: "POST",
         body: JSON.stringify({ file: selectedFile, completed: !isComplete }),
       })
       onProgressChange(res.completedPages)
+    } catch (err) {
+      setToggleError(err instanceof ApiError ? err.message : "Failed to update progress")
     } finally {
       setToggling(false)
     }
@@ -891,34 +1130,41 @@ export function GuidePane({
               {content}
             </ReactMarkdown>
 
-            <div className="mt-xl flex items-center justify-between gap-sm border-t border-border pt-lg">
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={index <= 0}
-                onClick={() => setSelectedFile(pages[index - 1].file)}
-              >
-                <ChevronLeft className="size-4" />
-                Back
-              </Button>
-              <Button
-                type="button"
-                variant={isComplete ? "secondary" : "primary"}
-                disabled={toggling}
-                onClick={toggleComplete}
-              >
-                <Check className="size-4" />
-                {isComplete ? "Completed" : "Mark complete"}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={index === -1 || index >= pages.length - 1}
-                onClick={() => setSelectedFile(pages[index + 1].file)}
-              >
-                Next
-                <ChevronRight className="size-4" />
-              </Button>
+            <div className="mt-xl flex flex-col gap-sm border-t border-border pt-lg">
+              {toggleError && (
+                <p role="alert" className="text-body-sm text-danger">
+                  {toggleError}
+                </p>
+              )}
+              <div className="flex items-center justify-between gap-sm">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={index <= 0}
+                  onClick={() => setSelectedFile(pages[index - 1].file)}
+                >
+                  <ChevronLeft className="size-4" />
+                  Back
+                </Button>
+                <Button
+                  type="button"
+                  variant={isComplete ? "secondary" : "primary"}
+                  disabled={toggling}
+                  onClick={toggleComplete}
+                >
+                  <Check className="size-4" />
+                  {isComplete ? "Completed" : "Mark complete"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={index === -1 || index >= pages.length - 1}
+                  onClick={() => setSelectedFile(pages[index + 1].file)}
+                >
+                  Next
+                  <ChevronRight className="size-4" />
+                </Button>
+              </div>
             </div>
           </>
         )}
@@ -931,7 +1177,7 @@ export function GuidePane({
 - [ ] **Step 4: Run the test to verify it passes**
 
 Run: `cd frontend && npx vitest run test/guide-pane.test.tsx`
-Expected: PASS (2 tests).
+Expected: PASS (3 tests).
 
 - [ ] **Step 5: Commit**
 
@@ -942,7 +1188,7 @@ git commit -m "feat(frontend): add GuidePane (page list, markdown reader, progre
 
 ---
 
-### Task 7: CredentialsPanel and RemotePanel
+### Task 8: CredentialsPanel and RemotePanel
 
 **Files:**
 - Create: `frontend/src/pages/lab-view/CredentialsPanel.tsx`
@@ -950,9 +1196,9 @@ git commit -m "feat(frontend): add GuidePane (page list, markdown reader, progre
 - Test: `frontend/test/lab-view-panels.test.tsx`
 
 **Interfaces:**
-- Consumes: `CopyButton` from `@/components/CopyButton` (Task 2).
+- Consumes: `CopyButton` from `@/components/CopyButton` (Task 3).
 - Produces: `CredentialsPanel({ connection: {rdpHost, rdpPort, rdpUser, rdpPassword} })` and
-  `RemotePanel()` — consumed by `LabViewPage` (Task 8).
+  `RemotePanel()` — consumed by `LabViewPage` (Task 9).
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1063,7 +1309,7 @@ git commit -m "feat(frontend): add CredentialsPanel and the Remote-tab placehold
 
 ---
 
-### Task 8: LabViewPage shell — route, fetch, resizable split, tab composition
+### Task 9: LabViewPage shell — route, fetch, resizable split, tab composition
 
 **Files:**
 - Create: `frontend/src/pages/LabViewPage.tsx`
@@ -1071,9 +1317,9 @@ git commit -m "feat(frontend): add CredentialsPanel and the Remote-tab placehold
 - Test: `frontend/test/lab-view-page.test.tsx`
 
 **Interfaces:**
-- Consumes: `GuidePane` (Task 6), `CredentialsPanel`/`RemotePanel` (Task 7),
+- Consumes: `GuidePane` (Task 7), `CredentialsPanel`/`RemotePanel` (Task 8),
   `Tabs`/`TabsList`/`TabsTrigger`/`TabsContent` and
-  `ResizablePanelGroup`/`ResizablePanel`/`ResizableHandle` (Task 5), `api<T>()`/`ApiError`
+  `ResizablePanelGroup`/`ResizablePanel`/`ResizableHandle` (Task 6), `api<T>()`/`ApiError`
   from `@/lib/api`; `GET /me/labs/:slug` →
   `{id, lab:{slug,title,summary,difficulty,duration}, pages:{file,order,title}[],
   completedPages:string[], connection:{rdpHost,rdpPort,rdpUser,rdpPassword}}` (per
@@ -1280,14 +1526,14 @@ git commit -m "feat(frontend): add LabViewPage split view and wire /lab-access/:
 
 ---
 
-### Task 9: Manual end-to-end verification and TASKS.md update
+### Task 10: Manual end-to-end verification and TASKS.md update
 
 **Files:**
 - Modify: `TASKS.md` (check off the completed Phase 4c items)
 
-No new code — this task exercises the real backend (the `/me/*` endpoints already existed
-before this plan; this is the first time they're driven from a real UI) and closes out the
-phase per `TASKS.md`'s stated checkpoint.
+No new code — this task exercises the real backend (most `/me/*` endpoints already existed
+before this plan; the images route is new from Task 1) and closes out the phase per
+`TASKS.md`'s stated checkpoint.
 
 - [ ] **Step 1: Start dev infra and both apps**
 
@@ -1306,7 +1552,9 @@ Expected: backend on `:4000`, frontend dev server proxying `/api` to it (per
 
 Log in as the seeded admin (`ADMIN_USER`/`ADMIN_PASSWORD` from `backend/.env`). In the admin
 UI: create a lab (`/admin/labs`), import/create a machine (`/admin/machine-pool`), assign that
-machine to a `user`-role account for the new lab (`/admin/lab-credentials`).
+machine to a `user`-role account for the new lab (`/admin/lab-credentials`). Drop a small PNG
+into `wiki/<slug>/images/` and reference it from one of the lab's guide pages
+(`![diagram](images/<file>.png)`) so image rendering can be checked below.
 
 - [ ] **Step 3: Verify as the assigned user**
 
@@ -1317,7 +1565,9 @@ and an "Open lab" link.
 - [ ] **Step 4: Verify the lab view**
 
 Click "Open lab" → `/lab-access/<slug>`.
-Expected: guide pane on the left lists the lab's pages and renders the first page's markdown;
+Expected: guide pane on the left lists the lab's pages and renders the first page's markdown,
+including the referenced image (broken-image icon means the `images` route or the relative
+path is wrong — check the network tab for the `GET /api/me/labs/<slug>/images/<file>` request);
 clicking "Mark complete" shows a checkmark next to that page in the sidebar and persists
 across a page reload (re-fetch `/lab-access/<slug>` — the checkmark should still be there,
 proving the `POST /progress` call landed); Next/Back cycle through pages; the right panel
@@ -1361,20 +1611,25 @@ git commit -m "docs: mark Phase 4c complete (guide/progress/credentials UI; Guac
 
 ## Self-Review Notes
 
-- **Spec coverage:** every "In" item from the design spec has a task — My Labs list (Task 4),
-  routing (Task 8), split shell (Task 8), guide pane incl. page list/markdown/copy/mark-complete/
-  next-back (Tasks 2, 3, 6), Credentials tab (Task 7), Remote placeholder (Task 7), new deps
-  (Task 1), no backend changes (verified during design, not a task). Error/empty states from
-  the spec's table are covered: no labs (Task 4), unassigned slug (Task 8), page fetch failure
-  (Task 6), mark-complete failure (Task 6 — the `finally` resets `toggling`; an actual thrown
-  error surfaces via the existing unhandled-rejection path same as `LabCredentialsPage`'s
-  pattern, consistent with how the rest of the codebase handles action-button failures).
+- **Spec coverage:** every "In" item from the design spec has a task — My Labs list (Task 5),
+  routing (Task 9), split shell (Task 9), guide pane incl. page list/markdown/copy/mark-complete/
+  next-back (Tasks 3, 4, 7), Credentials tab (Task 8), Remote placeholder (Task 8), new
+  frontend deps (Task 2), the one scoped backend addition for guide images (Task 1, added
+  after the initial self-review missed that `TASKS.md`'s 4c checklist requires image support
+  and nothing served images under the original "no backend changes" framing). Error/empty
+  states from the spec's table are covered: no labs (Task 5), unassigned slug (Task 9), page
+  fetch failure (Task 7), mark-complete failure (Task 7 — inline `role="alert"` message, no
+  optimistic toggle to revert since the checkbox only reflects `completedPages` after a
+  successful response), missing/unsupported image (Task 1 — 404, browser's native broken-image
+  state, no special frontend handling needed).
 - **Placeholder scan:** no TBD/TODO left in any step; every code block is complete, not a
   sketch.
 - **Type consistency:** `Page` (`GuidePane.tsx`) and the inline `pages` shape in
   `LabDetail` (`LabViewPage.tsx`) are structurally identical (`{file, order, title}`) —
-  intentionally not a shared imported type, to avoid a forward dependency from Task 6 (built
-  before Task 8's `LabViewPage` exists); TypeScript's structural typing makes this safe.
+  intentionally not a shared imported type, to avoid a forward dependency from Task 7 (built
+  before Task 9's `LabViewPage` exists); TypeScript's structural typing makes this safe.
   `connection` shape matches between `LabViewPage`'s `LabDetail` and `CredentialsPanel`'s prop
   type. `onProgressChange(completedPages: string[])` signature matches between `GuidePane`'s
-  prop declaration and `LabViewPage`'s `handleProgressChange`.
+  prop declaration and `LabViewPage`'s `handleProgressChange`. `createMarkdownComponents(slug)`
+  is called consistently in both `markdown-components.test.tsx` (Task 4) and `GuidePane.tsx`
+  (Task 7, via `useMemo`).

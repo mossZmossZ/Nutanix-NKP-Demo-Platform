@@ -18,19 +18,24 @@ scope here** and remains Phase 5.
 **In:**
 - My Labs list (`LabAccessPage.tsx`) wired to `GET /me/labs`
 - New route `/lab-access/:slug` — split lab view
-- Guide pane: page list, markdown rendering, per-page "mark complete", Next/Back
+- Guide pane: page list, markdown rendering, per-page "mark complete", Next/Back, images
 - Right panel: `Remote` / `Credentials` tabs — Credentials real, Remote a placeholder
 
 **Out (Phase 5):**
 - `guacd` service, RDP token broker, `guacamole-common-js` canvas — the Remote tab stays a
   static "coming soon" panel until that phase
 
-**No backend changes.** All required `/api/me/*` endpoints already exist and were confirmed
-correct for this scope by reading `backend/src/routes/me.ts` directly:
+**Backend: one small addition.** Every `/api/me/*` endpoint this phase needs already existed
+and was confirmed correct by reading `backend/src/routes/me.ts` directly — *except* guide
+images. `TASKS.md`'s 4c checklist requires image support in the guide reader, and lab images
+live under `wiki/<slug>/images/` (per the 4a/4b handoffs), but nothing serves them to the
+browser yet. This spec adds one new guarded route for that; everything else is frontend-only:
 - `GET /me/labs`
 - `GET /me/labs/:slug` → `{lab, pages, completedPages, connection}`
 - `GET /me/labs/:slug/pages/:file` → `{file, content}`
 - `POST /me/labs/:slug/progress` `{file, completed}` → `{completedPages}`
+- `GET /me/labs/:slug/images/:file` → raw image bytes (**new**, RBAC: only the assignee — see
+  §6)
 
 ## 1. My Labs list (`frontend/src/pages/LabAccessPage.tsx`)
 
@@ -85,7 +90,9 @@ correct for this scope by reading `backend/src/routes/me.ts` directly:
 
 ## 5. Right panel — tabs
 
-- New shadcn `tabs` install (`@radix-ui/react-tabs`).
+- New `tabs` UI primitive wrapping the `Tabs` export already bundled in the `radix-ui`
+  package (an existing dependency — confirmed via `node -e "console.log(Object.keys(require('radix-ui')))"`,
+  no new npm package needed for tabs specifically).
 - **Credentials tab**: renders `connection.{rdpHost, rdpPort, rdpUser, rdpPassword}` as a
   simple field list, each with the shared copy button.
 - **Remote tab**: static placeholder panel — "Live desktop is coming in Phase 5" plus a hint to
@@ -93,10 +100,27 @@ correct for this scope by reading `backend/src/routes/me.ts` directly:
   Structure (tab exists, just empty) is deliberately kept so Phase 5 only has to swap in the
   canvas component, not add tab scaffolding.
 
+## 6. Guide images (backend addition)
+
+- Lab markdown can reference images with relative paths (`![diagram](images/foo.png)`) stored
+  under `wiki/<slug>/images/`. Nothing currently serves them, and the existing page-content
+  route's filename guard (`assertSafeFile`) intentionally rejects any `/` in the param, so it
+  can't be reused as-is for a nested `images/` path.
+- New backend route: `GET /me/labs/:slug/images/:file`, `requireAuth`, same ownership check as
+  the pages route (assignment must exist for the caller), 404 if unassigned or missing. Reads
+  `wiki/<slug>/images/<file>`, serves raw bytes with a content-type inferred from the
+  extension (png/jpg/jpeg/gif/svg/webp — reject anything else as 404, same as an unknown page
+  file).
+- Frontend: the markdown renderer's `img` component rewrites a relative `src` to
+  `/api/me/labs/<slug>/images/<src>` so `<img>` tags resolve through this route instead of the
+  browser trying to load them relative to the current route path (which would 404 through the
+  SPA catch-all). This makes the markdown component map **slug-aware** — it becomes a small
+  factory (`createMarkdownComponents(slug)`) instead of a single static export.
+
 ## New dependencies
 
-`react-markdown`, `remark-gfm`, `rehype-highlight` (or equivalent), `@radix-ui/react-tabs`
-(via `shadcn add tabs`), `react-resizable-panels` (via `shadcn add resizable`).
+`react-markdown`, `remark-gfm`, `rehype-highlight` (or equivalent), `react-resizable-panels`
+(new). Tabs need no new dependency (see §5).
 
 ## Error / empty states summary
 
@@ -106,6 +130,7 @@ correct for this scope by reading `backend/src/routes/me.ts` directly:
 | Lab slug not assigned to caller (`/lab-access/:slug`) | Inline "not assigned" panel, no crash |
 | Guide page fetch fails | Inline retry, scoped to guide pane only |
 | Mark-complete request fails | Toggle reverts, inline error near the button |
+| Guide image missing/unsupported type | 404 from the image route; browser shows the `<img>`'s broken-image state (no special handling needed — same as any missing image on the web) |
 
 ## Testing plan
 
