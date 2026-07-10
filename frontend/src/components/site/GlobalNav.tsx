@@ -17,7 +17,7 @@ export function GlobalNav() {
 
   async function onLogout() {
     await logout()
-    navigate('/', { replace: true })
+    navigate('/login', { replace: true })
   }
 
   const portalHref = user?.role === 'admin' ? '/admin' : '/lab-access'

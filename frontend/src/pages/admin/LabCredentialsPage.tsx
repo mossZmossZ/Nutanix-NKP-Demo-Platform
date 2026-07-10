@@ -12,7 +12,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Copy, Eye, EyeOff } from "lucide-react";
+import { Copy, Eye, EyeOff, KeyRound, Clock } from "lucide-react";
 
 type AssignmentStatus = "active" | "pending" | "revoked";
 
@@ -145,58 +145,131 @@ export function LabCredentialsPage() {
 
   return (
     <AppShell nav={adminNav} title="Lab Credentials">
-      <div className="flex flex-col gap-xl">
+      <div className="flex flex-col gap-6">
+        {/* Header */}
         <div className="flex items-center justify-between gap-sm">
-          <div className="flex flex-col gap-xxs">
-            <h2 className="text-h2 text-foreground">Lab Credentials</h2>
-            <p className="text-body-sm text-muted-foreground">
-              Assign a provisioned machine's RDP access to a participant.
+          <div>
+            <h2 className="text-3xl font-bold text-foreground">Lab Credentials Management</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Manage RDP access and assign credentials to workshop participants
             </p>
           </div>
-          <Button type="button" variant="primary" onClick={() => setAssignOpen(true)}>
-            Assign credentials
+          <Button type="button" variant="primary" onClick={() => setAssignOpen(true)} className="gap-2">
+            <KeyRound className="size-4" />
+            Assign Credentials
           </Button>
         </div>
 
-        <div className="overflow-hidden rounded-md border border-border">
+        {/* Stats */}
+        <div className="grid gap-4 md:grid-cols-4">
+          <div className="rounded-lg border border-border/40 bg-card p-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-violet-100 text-violet-600">
+                <KeyRound className="size-5" />
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">Total Assignments</p>
+                <p className="font-mono text-2xl font-bold tabular-nums text-foreground">{assignments.length}</p>
+              </div>
+            </div>
+          </div>
+          <div className="rounded-lg border border-border/40 bg-card p-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600">
+                <svg className="size-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">Active</p>
+                <p className="font-mono text-2xl font-bold tabular-nums text-foreground">
+                  {assignments.filter(a => a.status === 'active').length}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="rounded-lg border border-border/40 bg-card p-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-amber-100 text-amber-600">
+                <Clock className="size-5" />
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">Pending</p>
+                <p className="font-mono text-2xl font-bold tabular-nums text-foreground">
+                  {assignments.filter(a => a.status === 'pending').length}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="rounded-lg border border-border/40 bg-card p-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-rose-100 text-rose-600">
+                <svg className="size-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">Revoked</p>
+                <p className="font-mono text-2xl font-bold tabular-nums text-foreground">
+                  {assignments.filter(a => a.status === 'revoked').length}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="overflow-hidden rounded-lg border border-border/40 bg-card shadow-sm">
           <table className="w-full border-collapse text-left">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="px-lg py-sm text-label text-muted-foreground">User</th>
-                <th className="px-lg py-sm text-label text-muted-foreground">Lab</th>
-                <th className="px-lg py-sm text-label text-muted-foreground">Machine</th>
-                <th className="px-lg py-sm text-label text-muted-foreground">RDP Host</th>
-                <th className="px-lg py-sm text-label text-muted-foreground">Password</th>
-                <th className="px-lg py-sm text-label text-muted-foreground">Status</th>
+            <thead className="bg-muted/50">
+              <tr className="border-b border-border/40">
+                <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">User</th>
+                <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Lab</th>
+                <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Machine</th>
+                <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">RDP Host</th>
+                <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Credentials</th>
+                <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-border/40">
               {assignments.map((a) => {
                 const expanded = expandedId === a.id;
                 return (
                   <Fragment key={a.id}>
-                    <tr className="border-b border-border last:border-b-0 hover:bg-foreground/[0.03]">
-                      <td className="px-lg py-sm text-body-sm text-foreground">{a.user}</td>
-                      <td className="px-lg py-sm text-body-sm text-muted-foreground">{a.lab}</td>
-                      <td className="px-lg py-sm text-body-sm text-muted-foreground">{a.machine}</td>
-                      <td className="px-lg py-sm text-body-sm font-mono tabular-nums text-foreground">
-                        {a.rdpHost}
+                    <tr className="transition-colors hover:bg-muted/30">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <div className="flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-purple-600 text-xs font-semibold text-white uppercase">
+                            {a.user.charAt(0)}
+                          </div>
+                          <span className="font-medium text-foreground">{a.user}</span>
+                        </div>
                       </td>
-                      <td className="px-lg py-sm">
-                        <span className="flex items-center gap-xs">
-                          <span className="font-mono text-body-sm tabular-nums text-foreground">••••••••</span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            aria-label={expanded ? "Hide credentials" : "Show credentials"}
-                            className="px-xs py-xs"
-                            onClick={() => setExpandedId((id) => (id === a.id ? null : a.id))}
-                          >
-                            {expanded ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
-                          </Button>
-                        </span>
+                      <td className="px-6 py-4 text-sm text-muted-foreground">{a.lab}</td>
+                      <td className="px-6 py-4 text-sm text-muted-foreground">{a.machine}</td>
+                      <td className="px-6 py-4 font-mono text-sm tabular-nums text-foreground">{a.rdpHost}</td>
+                      <td className="px-6 py-4">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          aria-label={expanded ? "Hide credentials" : "Show credentials"}
+                          className="gap-2"
+                          onClick={() => setExpandedId((id) => (id === a.id ? null : a.id))}
+                        >
+                          {expanded ? (
+                            <>
+                              <EyeOff className="size-4" />
+                              Hide
+                            </>
+                          ) : (
+                            <>
+                              <Eye className="size-4" />
+                              Show
+                            </>
+                          )}
+                        </Button>
                       </td>
-                      <td className="px-lg py-sm">
+                      <td className="px-6 py-4">
                         <Badge variant={statusVariant[a.status]}>
                           <span className={`size-1.5 rounded-full ${statusDotClass[a.status]}`} aria-hidden="true" />
                           {statusLabel[a.status]}
@@ -204,17 +277,15 @@ export function LabCredentialsPage() {
                       </td>
                     </tr>
                     {expanded && (
-                      <tr className="border-b border-border last:border-b-0 bg-foreground/[0.02]">
-                        <td colSpan={6} className="px-lg py-md">
-                          <div
-                            className={
-                              "flex flex-col gap-xs transition duration-[var(--duration-base)] ease-standard " +
-                              "opacity-100 translate-y-0"
-                            }
-                          >
-                            <CredentialRow label="Host" value={a.rdpHost} onCopy={() => copy(a.rdpHost)} />
-                            <CredentialRow label="Username" value={a.username} onCopy={() => copy(a.username)} />
-                            <CredentialRow label="Password" value={a.password} onCopy={() => copy(a.password)} />
+                      <tr className="bg-muted/20">
+                        <td colSpan={6} className="px-6 py-4">
+                          <div className="space-y-3 rounded-lg border border-border/40 bg-card p-4">
+                            <div className="text-sm font-semibold text-foreground">Connection Details</div>
+                            <div className="grid gap-3 md:grid-cols-3">
+                              <CredentialRow label="RDP Host" value={a.rdpHost} onCopy={() => copy(a.rdpHost)} />
+                              <CredentialRow label="Username" value={a.username} onCopy={() => copy(a.username)} />
+                              <CredentialRow label="Password" value={a.password} onCopy={() => copy(a.password)} />
+                            </div>
                           </div>
                         </td>
                       </tr>
@@ -297,20 +368,20 @@ export function LabCredentialsPage() {
 
 function CredentialRow({ label, value, onCopy }: { label: string; value: string; onCopy: () => void }) {
   return (
-    <div className="flex items-center justify-between gap-sm">
-      <span className="text-label text-muted-foreground">{label}</span>
-      <span className="flex items-center gap-xs">
-        <span className="font-mono text-body-sm tabular-nums text-foreground">{value}</span>
+    <div className="flex flex-col gap-1.5 rounded-lg bg-muted/50 p-3">
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-mono text-sm font-medium tabular-nums text-foreground">{value}</span>
         <Button
           type="button"
           variant="ghost"
           aria-label={`Copy ${label.toLowerCase()}`}
-          className="px-xs py-xs"
+          className="size-7 p-0"
           onClick={onCopy}
         >
           <Copy className="size-3.5" />
         </Button>
-      </span>
+      </div>
     </div>
   );
 }
