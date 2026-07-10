@@ -13,6 +13,9 @@ const LoginPage = lazy(() => import("@/pages/LoginPage").then((m) => ({ default:
 const LabAccessPage = lazy(() => import("@/pages/LabAccessPage").then((m) => ({ default: m.LabAccessPage })));
 const UsersPage = lazy(() => import("@/pages/admin/UsersPage").then((m) => ({ default: m.UsersPage })));
 const AdminPortalPage = lazy(() => import("@/pages/admin/AdminPortalPage").then((m) => ({ default: m.AdminPortalPage })));
+const MachinesPage = lazy(() => import("@/pages/admin/MachinesPage").then((m) => ({ default: m.MachinesPage })));
+const LabCredentialsPage = lazy(() => import("@/pages/admin/LabCredentialsPage").then((m) => ({ default: m.LabCredentialsPage })));
+const SettingsPage = lazy(() => import("@/pages/admin/SettingsPage").then((m) => ({ default: m.SettingsPage })));
 
 function App() {
   return (
@@ -34,6 +37,9 @@ function App() {
       <Route element={<AdminRoute />}>
         <Route path="/admin" element={<Suspense fallback={<AppFallback />}><AdminPortalPage /></Suspense>} />
         <Route path="/admin/users" element={<Suspense fallback={<AppFallback />}><UsersPage /></Suspense>} />
+        <Route path="/admin/machines" element={<Suspense fallback={<AppFallback />}><MachinesPage /></Suspense>} />
+        <Route path="/admin/lab-credentials" element={<Suspense fallback={<AppFallback />}><LabCredentialsPage /></Suspense>} />
+        <Route path="/admin/settings" element={<Suspense fallback={<AppFallback />}><SettingsPage /></Suspense>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

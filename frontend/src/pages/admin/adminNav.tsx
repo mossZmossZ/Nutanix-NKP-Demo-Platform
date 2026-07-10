@@ -1,0 +1,12 @@
+import { LayoutDashboard, Users, Server, KeyRound, Settings } from "lucide-react";
+import type { NavItem } from "@/layouts/AppShell";
+
+// Shared admin sidebar IA (design.md §4 App shell). All admin pages render the
+// same nav so the active state + rhythm stay consistent across the console.
+export const adminNav: NavItem[] = [
+  { label: "Dashboard", to: "/admin", icon: <LayoutDashboard /> },
+  { label: "Users", to: "/admin/users", icon: <Users /> },
+  { label: "Machines", to: "/admin/machines", icon: <Server /> },
+  { label: "Lab Credentials", to: "/admin/lab-credentials", icon: <KeyRound /> },
+  { label: "Settings", to: "/admin/settings", icon: <Settings /> },
+];
