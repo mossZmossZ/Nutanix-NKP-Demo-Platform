@@ -132,12 +132,12 @@ export function LabCredentialsPage() {
   }
 
   return (
-    <AppShell nav={adminNav} title="Lab Credentials">
+    <AppShell nav={adminNav} title="Lab Machines">
       <div className="flex flex-col gap-6">
         {/* Header */}
         <div className="flex items-center justify-between gap-sm">
           <div>
-            <h2 className="text-3xl font-bold text-foreground">Lab Credentials Management</h2>
+            <h2 className="text-3xl font-bold text-foreground">Lab Machine Management</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Manage RDP access and assign credentials to workshop participants
             </p>
