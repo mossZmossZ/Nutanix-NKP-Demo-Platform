@@ -9,6 +9,14 @@ export interface WikiPage {
 }
 
 const PAGE_PATTERN = /^(\d+)-.*\.md$/;
+const IMAGE_CONTENT_TYPES: Record<string, string> = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".svg": "image/svg+xml",
+  ".webp": "image/webp",
+};
 
 function labDir(slug: string, root: string): string {
   return path.join(root, slug);
@@ -54,6 +62,21 @@ export function listPages(slug: string, root: string = env.wikiDir): WikiPage[] 
 export function readPage(slug: string, file: string, root: string = env.wikiDir): string {
   assertSafeFile(file);
   return fs.readFileSync(path.join(labDir(slug, root), file), "utf8");
+}
+
+/** Read one lab image's raw bytes + content-type from wiki/<slug>/images/. */
+export function readImage(
+  slug: string,
+  file: string,
+  root: string = env.wikiDir,
+): { data: Buffer; contentType: string } {
+  assertSafeFile(file);
+  const contentType = IMAGE_CONTENT_TYPES[path.extname(file).toLowerCase()];
+  if (!contentType) {
+    throw new Error(`Unsupported image type: ${file}`);
+  }
+  const data = fs.readFileSync(path.join(labDir(slug, root), "images", file));
+  return { data, contentType };
 }
 
 /** Write/overwrite one page's markdown content. */
