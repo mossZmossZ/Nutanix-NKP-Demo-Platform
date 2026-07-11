@@ -11,6 +11,7 @@ const DocsIndexPage = lazy(() => import("@/pages/docs/DocsIndexPage").then((m) =
 const DocPage = lazy(() => import("@/pages/docs/DocPage").then((m) => ({ default: m.DocPage })));
 const LoginPage = lazy(() => import("@/pages/LoginPage").then((m) => ({ default: m.LoginPage })));
 const LabAccessPage = lazy(() => import("@/pages/LabAccessPage").then((m) => ({ default: m.LabAccessPage })));
+const LabViewPage = lazy(() => import("@/pages/LabViewPage").then((m) => ({ default: m.LabViewPage })));
 const UsersPage = lazy(() => import("@/pages/admin/UsersPage").then((m) => ({ default: m.UsersPage })));
 const LabManagementPage = lazy(() =>
   import("@/pages/admin/LabManagementPage").then((m) => ({ default: m.LabManagementPage })),
@@ -36,6 +37,7 @@ function App() {
       {/* Authenticated app surfaces self-wrap the AppShell (children pattern). */}
       <Route element={<ProtectedRoute />}>
         <Route path="/lab-access" element={<Suspense fallback={<AppFallback />}><LabAccessPage /></Suspense>} />
+        <Route path="/lab-access/:slug" element={<Suspense fallback={<AppFallback />}><LabViewPage /></Suspense>} />
       </Route>
 
       <Route element={<AdminRoute />}>
