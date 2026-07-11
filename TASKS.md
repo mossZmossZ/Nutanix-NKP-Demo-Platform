@@ -75,7 +75,7 @@ sync with reality (it's the "current state" file).
 > from `design.md`'s violet-only rule — **accepted as-is** for the template; revisit only via
 > the Opus-agent redesign path. **New** Phase 4 surfaces follow `design.md`.
 
-## Phase 4 — Labs, Assignments & the participant experience (user-first)  ◀◀◀ NEXT
+## Phase 4 — Labs, Assignments & the participant experience (user-first)  ✅ COMPLETE
 > **Direction (2026-07-10):** perfect the *participant* experience before automating infra —
 > the admin can provision machines by hand, but the participant experience is what scales.
 > Admin provisions machines **manually** and pastes RDP creds; there is **no `Machine` model
@@ -84,33 +84,33 @@ sync with reality (it's the "current state" file).
 > isolation). Real data replaces the admin mock — **except Users, already real**.
 
 **4a — Backend domain (real data)**
-- [ ] `Lab` model — `slug, title, summary, difficulty, duration, order`; guide content is
+- [x] `Lab` model — `slug, title, summary, difficulty, duration, order`; guide content is
       **file-backed** under `wiki/<slug>/NN-*.md` (+ `wiki/<slug>/images/`), **not** in the DB
-- [ ] `Assignment` model — `userId, labId, rdpHost, rdpPort, rdpUser, rdpPassword` (encrypted
+- [x] `Assignment` model — `userId, labId, rdpHost, rdpPort, rdpUser, rdpPassword` (encrypted
       at rest per `SECURITY.md`), `completedPages: string[]` (per-user progress)
-- [ ] Admin API — Lab CRUD (create scaffolds `wiki/<slug>/01-intro.md`; edit reads/writes page
+- [x] Admin API — Lab CRUD (create scaffolds `wiki/<slug>/01-intro.md`; edit reads/writes page
       files); Assignment CRUD (assign user→lab + RDP creds; revoke)
-- [ ] User API — `GET /api/me/labs`, `GET /api/me/labs/:slug` (pages + my progress),
+- [x] User API — `GET /api/me/labs`, `GET /api/me/labs/:slug` (pages + my progress),
       `POST …/progress` (mark page complete)
 
 **4b — Admin: bind the design template to real data** (no restyle; Opus-agent for any redesign)
-- [ ] Lab management surface — CRUD labs (new surface follows `design.md` via frontend-design)
-- [ ] Lab Credentials page — swap mock array → real Assignments; **Lab field auto-links to real
+- [x] Lab management surface — CRUD labs (new surface follows `design.md` via frontend-design)
+- [x] Lab Credentials page — swap mock array → real Assignments; **Lab field auto-links to real
       Labs** (dropdown from the Lab list); assign form persists RDP creds
-- [ ] (Users page already real — leave as-is)
+- [x] (Users page already real — leave as-is)
 
 **4c — User: My Labs + killer.sh-style lab view**
-- [ ] `LabAccessPage` (My Labs) wired to real assignments (replace mock array)
-- [ ] In-lab page (net-new): split view — **guide left / desktop right**; top tabs
-      **Remote | Credentials**
-- [ ] Guide reader: file-backed **multi-page** (`wiki/<slug>/NN-*.md`), section rail,
+- [x] `LabAccessPage` (My Labs) wired to real assignments (replace mock array)
+- [x] In-lab page (net-new): split view — **guide left / desktop right**; top tabs
+      **Remote | Credentials** _(Remote tab is a static Phase-5 placeholder — Guacamole deferred)_
+- [x] Guide reader: file-backed **multi-page** (`wiki/<slug>/NN-*.md`), section rail,
       **next/back**, scroll, **mark-as-complete per page** (persisted per-user on the Assignment),
       `react-markdown`, **code + YAML** highlight, **copy** buttons, **image** support
-- [ ] Credentials tab — the user's own RDP host/user/password with copy
-- [ ] ✅ Checkpoint: assigned user sees only their labs + creds; guide pages render with
-      progress; unassigned user sees nothing
+- [x] Credentials tab — the user's own RDP host/user/password with copy
+- [x] ✅ Checkpoint: assigned user sees only their labs + creds; guide pages render with
+      progress; unassigned user sees nothing _(automated gates green; live-stack E2E is maintainer manual test)_
 
-## Phase 5 — In-browser RDP (Guacamole, lightweight & in-app)
+## Phase 5 — In-browser RDP (Guacamole, lightweight & in-app)  ◀◀◀ NEXT
 > **Lightweight, in-app canvas** (not the Java webapp): only `guacd` + a `guacamole-lite` Node
 > WS tunnel + `guacamole-common-js` rendering the raw desktop **inside the Remote tab** — no
 > Guacamole login/chrome. Token is minted server-side from the user's Assignment; the RDP

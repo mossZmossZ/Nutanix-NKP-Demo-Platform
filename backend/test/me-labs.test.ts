@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import type { Express } from "express";
 import type { Agent } from "supertest";
 import { setup, teardown, loginAs, createUser, ADMIN } from "./helpers/harness";
@@ -183,6 +185,37 @@ describe("POST /api/me/labs/:slug/progress", () => {
     const res = await request(app)
       .post(`/api/me/labs/${labSlug}/progress`)
       .send({ file: "01-intro.md", completed: true });
+    expect(res.status).toBe(401);
+  });
+});
+
+describe("GET /api/me/labs/:slug/images/:file", () => {
+  beforeAll(() => {
+    const imagesDir = path.join(process.env.WIKI_DIR!, labSlug, "images");
+    fs.mkdirSync(imagesDir, { recursive: true });
+    fs.writeFileSync(path.join(imagesDir, "diagram.png"), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+  });
+
+  it("alice can fetch an image from her assigned lab with the right content-type", async () => {
+    const res = await aliceAgent.get(`/api/me/labs/${labSlug}/images/diagram.png`);
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toBe("image/png");
+    expect(Buffer.compare(res.body as Buffer, Buffer.from([0x89, 0x50, 0x4e, 0x47]))).toBe(0);
+  });
+
+  it("bob (not assigned) gets 404", async () => {
+    const res = await bobAgent.get(`/api/me/labs/${labSlug}/images/diagram.png`);
+    expect(res.status).toBe(404);
+  });
+
+  it("a missing file is rejected as 404, not a server error", async () => {
+    const res = await aliceAgent.get(`/api/me/labs/${labSlug}/images/does-not-exist.png`);
+    expect(res.status).toBe(404);
+  });
+
+  it("unauthenticated request -> 401", async () => {
+    const request = (await import("supertest")).default;
+    const res = await request(app).get(`/api/me/labs/${labSlug}/images/diagram.png`);
     expect(res.status).toBe(401);
   });
 });

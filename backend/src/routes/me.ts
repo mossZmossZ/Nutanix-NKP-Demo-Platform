@@ -3,7 +3,7 @@ import { AssignmentModel } from "../models/Assignment";
 import { LabModel } from "../models/Lab";
 import { requireAuth, type AuthedRequest } from "../middleware/auth";
 import { decryptSecret } from "../lib/crypto";
-import { listPages, readPage } from "../lib/wiki";
+import { listPages, readImage, readPage } from "../lib/wiki";
 
 export const meRouter = Router();
 
@@ -86,6 +86,26 @@ meRouter.get("/labs/:slug/pages/:file", async (req: AuthedRequest, res) => {
     res.json({ file: req.params.file, content });
   } catch {
     res.status(404).json({ error: "page not found" });
+  }
+});
+
+meRouter.get("/labs/:slug/images/:file", async (req: AuthedRequest, res) => {
+  const lab = await LabModel.findOne({ slug: req.params.slug });
+  if (!lab) {
+    res.status(404).json({ error: "lab not found" });
+    return;
+  }
+  const assignment = await AssignmentModel.exists({ userId: req.user!.id, labId: lab._id });
+  if (!assignment) {
+    res.status(404).json({ error: "lab not found" });
+    return;
+  }
+  try {
+    const { data, contentType } = readImage(lab.slug, req.params.file);
+    res.setHeader("Content-Type", contentType);
+    res.send(data);
+  } catch {
+    res.status(404).json({ error: "image not found" });
   }
 });
 
