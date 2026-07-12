@@ -10,9 +10,7 @@ const sample = '# Title\n\nSome *text*.\n\n```yaml\nkey: value\n```\n'
 
 test('renders headings/paragraphs on design tokens and a copyable fenced code block', async () => {
   const writeText = vi.fn().mockResolvedValue(undefined)
-  const user = userEvent.setup()
-  // Assign after setup(): user-event's setup() installs its own clipboard stub.
-  Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+  Object.assign(navigator, { clipboard: { writeText } })
 
   render(
     <ReactMarkdown
@@ -27,7 +25,7 @@ test('renders headings/paragraphs on design tokens and a copyable fenced code bl
   const heading = screen.getByRole('heading', { level: 1, name: 'Title' })
   expect(heading).toHaveClass('text-h1')
 
-  await user.click(screen.getByRole('button', { name: /copy code/i }))
+  await userEvent.click(screen.getByRole('button', { name: /copy code/i }))
   expect(writeText).toHaveBeenCalledWith(expect.stringContaining('key: value'))
 })
 

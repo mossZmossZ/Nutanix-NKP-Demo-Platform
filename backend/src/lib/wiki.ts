@@ -9,7 +9,6 @@ export interface WikiPage {
 }
 
 const PAGE_PATTERN = /^(\d+)-.*\.md$/;
-
 const IMAGE_CONTENT_TYPES: Record<string, string> = {
   ".png": "image/png",
   ".jpg": "image/jpeg",

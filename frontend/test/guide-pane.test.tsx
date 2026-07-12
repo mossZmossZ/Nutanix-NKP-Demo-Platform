@@ -65,14 +65,19 @@ test('shows an inline error if marking complete fails, without changing the togg
   expect(onProgressChange).not.toHaveBeenCalled()
 })
 
-test('shows a retry control when a page fails to load, and recovers on retry', async () => {
+test('shows an inline retry when a page fails to load, and reloads content on click', async () => {
   vi.mocked(api)
-    .mockRejectedValueOnce(new ApiError(500, 'page load failed'))
-    .mockResolvedValueOnce({ file: '01-intro.md', content: '# Introduction\n\nRecovered.' })
+    .mockRejectedValueOnce(new ApiError(500, 'failed to load page'))
+    .mockResolvedValueOnce({ file: '01-intro.md', content: '# Introduction\n\nWelcome.' })
 
   render(<GuidePane slug="nkp-basics" pages={pages} completedPages={[]} onProgressChange={vi.fn()} />)
 
-  expect(await screen.findByRole('alert')).toHaveTextContent('page load failed')
+  expect(await screen.findByRole('alert')).toHaveTextContent('failed to load page')
+  // page list stays usable during the error
+  expect(screen.getByRole('button', { name: 'Setup' })).toBeInTheDocument()
+
   await userEvent.click(screen.getByRole('button', { name: /retry/i }))
-  expect(await screen.findByText('Recovered.')).toBeInTheDocument()
+
+  expect(await screen.findByText('Welcome.')).toBeInTheDocument()
+  expect(api).toHaveBeenLastCalledWith('/me/labs/nkp-basics/pages/01-intro.md')
 })

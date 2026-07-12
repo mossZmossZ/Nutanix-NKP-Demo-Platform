@@ -21,7 +21,7 @@ test('Tabs switches content when a trigger is clicked', async () => {
 
 test('ResizablePanelGroup renders both panels and a drag handle', () => {
   render(
-    <ResizablePanelGroup direction="horizontal">
+    <ResizablePanelGroup orientation="horizontal">
       <ResizablePanel defaultSize={40}>Left</ResizablePanel>
       <ResizableHandle />
       <ResizablePanel defaultSize={60}>Right</ResizablePanel>

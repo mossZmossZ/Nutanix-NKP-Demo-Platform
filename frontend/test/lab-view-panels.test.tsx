@@ -7,8 +7,14 @@ import { RemotePanel } from '@/pages/lab-view/RemotePanel'
 test('CredentialsPanel shows connection fields and copies a value on click', async () => {
   const writeText = vi.fn().mockResolvedValue(undefined)
   const user = userEvent.setup()
-  // Assign after setup(): user-event's setup() installs its own clipboard stub.
-  Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+  // userEvent.setup() installs its own getter-only navigator.clipboard stub,
+  // so it must be set up first and our stub applied after via
+  // defineProperty (not Object.assign, which no-ops against a setter-less
+  // accessor).
+  Object.defineProperty(navigator, 'clipboard', {
+    value: { writeText },
+    configurable: true,
+  })
 
   render(
     <CredentialsPanel

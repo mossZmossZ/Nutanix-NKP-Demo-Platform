@@ -75,7 +75,7 @@ sync with reality (it's the "current state" file).
 > from `design.md`'s violet-only rule — **accepted as-is** for the template; revisit only via
 > the Opus-agent redesign path. **New** Phase 4 surfaces follow `design.md`.
 
-## Phase 4 — Labs, Assignments & the participant experience (user-first)  ◀◀◀ NEXT
+## Phase 4 — Labs, Assignments & the participant experience (user-first)  ✅ COMPLETE
 > **Direction (2026-07-10):** perfect the *participant* experience before automating infra —
 > the admin can provision machines by hand, but the participant experience is what scales.
 > Admin provisions machines **manually** and pastes RDP creds; there is **no `Machine` model
@@ -89,16 +89,15 @@ sync with reality (it's the "current state" file).
 > admin manages a pool of machines and picks one when assigning. This supersedes the "typed into
 > Assignment" wording below.
 
-**4a — Backend domain (real data)** ✅ (typecheck green both packages; tests present but need a
-WSL-side `npm install` to run — bundled binding is Windows-only in this checkout)
+**4a — Backend domain (real data)** ✅
 - [x] `Lab` model — `slug, title, summary, difficulty, duration, order`; guide content is
-      **file-backed** under `wiki/<slug>/NN-*.md`, **not** in the DB (`lib/wiki.ts`)
+      **file-backed** under `wiki/<slug>/NN-*.md` (+ `wiki/<slug>/images/`), **not** in the DB (`lib/wiki.ts`)
 - [x] `Assignment` model — `userId, labId, machineId` (unique per machine) + `completedPages`;
       **creds moved to `Machine`** (`rdpHost/Port/User/Password`, password encrypted per `SECURITY.md`)
 - [x] Admin API — Lab CRUD (create scaffolds `wiki/<slug>/01-intro.md`; edit reads/writes page
       files); Assignment CRUD (bind user→lab→machine; revoke); **Machine pool CRUD** (`/admin/machines`)
 - [x] User API — `GET /api/me/labs`, `GET /api/me/labs/:slug` (pages + creds + my progress),
-      `GET …/pages/:file`, `POST …/progress` (mark page complete)
+      `GET …/pages/:file`, `GET …/images/:file`, `POST …/progress` (mark page complete)
 
 **4b — Admin: bind the design template to real data** (no restyle; Opus-agent for any redesign) ✅
 - [x] Lab management surface — CRUD labs + page editor, wired to `/admin/labs` (`LabManagementPage`)
@@ -107,21 +106,21 @@ WSL-side `npm install` to run — bundled binding is Windows-only in this checko
       assign form binds a pool machine (`LabCredentialsPage`)
 - [x] (Users page already real — leave as-is)
 
-**4c — User: My Labs + killer.sh-style lab view**
+**4c — User: My Labs + killer.sh-style lab view** ✅
 > The **Remote** tab is a static "coming soon" placeholder in 4c — the live in-browser
 > desktop (Guacamole) is **Phase 5**. The checkpoint's "guide pages render with progress"
 > covers the guide/creds surfaces only, not a live desktop.
 - [x] `LabAccessPage` (My Labs) wired to real assignments (replace mock array)
 - [x] In-lab page (net-new): split view — **guide left / desktop right**; top tabs
-      **Remote | Credentials**
+      **Remote | Credentials** _(Remote tab is a static Phase-5 placeholder — Guacamole deferred)_
 - [x] Guide reader: file-backed **multi-page** (`wiki/<slug>/NN-*.md`), section rail,
       **next/back**, scroll, **mark-as-complete per page** (persisted per-user on the Assignment),
       `react-markdown`, **code + YAML** highlight, **copy** buttons, **image** support
 - [x] Credentials tab — the user's own RDP host/user/password with copy
 - [x] ✅ Checkpoint: assigned user sees only their labs + creds; guide pages render with
-      progress; unassigned user sees nothing
+      progress; unassigned user sees nothing _(automated gates green; live-stack E2E is maintainer manual test)_
 
-## Phase 5 — In-browser RDP (Guacamole, lightweight & in-app)
+## Phase 5 — In-browser RDP (Guacamole, lightweight & in-app)  ◀◀◀ NEXT
 > **Lightweight, in-app canvas** (not the Java webapp): only `guacd` + a `guacamole-lite` Node
 > WS tunnel + `guacamole-common-js` rendering the raw desktop **inside the Remote tab** — no
 > Guacamole login/chrome. Token is minted server-side from the user's Assignment; the RDP
