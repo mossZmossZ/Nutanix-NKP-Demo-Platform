@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeHighlight from "rehype-highlight"
-import { Check, ChevronLeft, ChevronRight, RotateCw } from "lucide-react"
+import { Check, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { api, ApiError } from "@/lib/api"
@@ -24,9 +24,9 @@ export function GuidePane({
   const [selectedFile, setSelectedFile] = useState<string | null>(pages[0]?.file ?? null)
   const [content, setContent] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [reloadToken, setReloadToken] = useState(0)
   const [toggling, setToggling] = useState(false)
   const [toggleError, setToggleError] = useState<string | null>(null)
+  const [reloadKey, setReloadKey] = useState(0)
   const markdownComponents = useMemo(() => createMarkdownComponents(slug), [slug])
 
   useEffect(() => {
@@ -37,7 +37,7 @@ export function GuidePane({
     api<{ file: string; content: string }>(`/me/labs/${slug}/pages/${selectedFile}`)
       .then((res) => setContent(res.content))
       .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to load page"))
-  }, [slug, selectedFile, reloadToken])
+  }, [slug, selectedFile, reloadKey])
 
   const index = pages.findIndex((p) => p.file === selectedFile)
   const isComplete = selectedFile ? completedPages.includes(selectedFile) : false
@@ -88,12 +88,9 @@ export function GuidePane({
 
       <div className="flex-1 overflow-y-auto px-xl py-lg">
         {error ? (
-          <div className="flex flex-col items-start gap-sm">
-            <p role="alert" className="text-body text-danger">
-              {error}
-            </p>
-            <Button type="button" variant="secondary" onClick={() => setReloadToken((t) => t + 1)}>
-              <RotateCw className="size-4" />
+          <div role="alert" className="flex flex-col items-start gap-sm">
+            <p className="text-body text-danger">{error}</p>
+            <Button type="button" variant="secondary" onClick={() => setReloadKey((k) => k + 1)}>
               Retry
             </Button>
           </div>

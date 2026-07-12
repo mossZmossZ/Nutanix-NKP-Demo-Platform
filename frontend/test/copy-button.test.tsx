@@ -6,9 +6,14 @@ import { CopyButton } from '@/components/CopyButton'
 test('copies the value to the clipboard and shows a confirmation state', async () => {
   const writeText = vi.fn().mockResolvedValue(undefined)
   const user = userEvent.setup()
-  // Assign after setup(): user-event's setup() installs its own clipboard
-  // stub, so our mock must overwrite it, not the other way around.
-  Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+  // userEvent.setup() installs its own getter-only navigator.clipboard stub,
+  // so it must be set up first and our stub applied after via
+  // defineProperty (not Object.assign, which no-ops against a setter-less
+  // accessor).
+  Object.defineProperty(navigator, 'clipboard', {
+    value: { writeText },
+    configurable: true,
+  })
 
   render(<CopyButton value="secret-password" label="password" />)
   const button = screen.getByRole('button', { name: /copy password/i })

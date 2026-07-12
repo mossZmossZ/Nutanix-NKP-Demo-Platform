@@ -68,7 +68,7 @@ export function LabViewPage() {
             <Skeleton className="h-3/4 w-11/12" />
           </div>
         ) : (
-          <ResizablePanelGroup direction="horizontal" className="h-full">
+          <ResizablePanelGroup orientation="horizontal" className="h-full">
             <ResizablePanel defaultSize={40} minSize={25}>
               <GuidePane
                 slug={detail.lab.slug}

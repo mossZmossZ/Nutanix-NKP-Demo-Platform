@@ -42,10 +42,10 @@ export function createMarkdownComponents(slug: string): Components {
     ol: ({ node, ...props }) => <ol className="my-md list-decimal pl-lg text-body text-foreground [&_li]:mt-xs" {...props} />,
     strong: ({ node, ...props }) => <strong className="text-body font-semibold text-foreground" {...props} />,
     img: ({ node, src, alt, ...props }) => {
-      // Authors write `![alt](images/foo.png)`, so `src` already carries the
-      // `images/` segment — don't add it again, or the URL doubles to
-      // `.../images/images/foo.png` and 404s against the single-segment
-      // `:file` param `readImage` expects.
+      // Authors write `![alt](images/foo.png)` (see Task 10's seed step), so
+      // `src` already carries the `images/` segment — don't add it again, or
+      // the URL doubles to `.../images/images/foo.png` and 404s against the
+      // single-segment `:file` param `readImage` expects.
       const resolvedSrc =
         typeof src === "string" && !isAbsoluteUrl(src)
           ? `/api/me/labs/${slug}/${src.replace(/^\.\//, "")}`

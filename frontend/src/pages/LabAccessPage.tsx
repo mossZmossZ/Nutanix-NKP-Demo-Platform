@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react"
-import { Link } from "react-router-dom"
-import { AppShell, type NavItem } from "@/layouts/AppShell"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { AppShell, type NavItem } from "@/layouts/AppShell";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Card,
   CardContent,
@@ -11,34 +11,34 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { ArrowRight, Clock, FlaskConical, Gauge } from "lucide-react"
-import { api, ApiError } from "@/lib/api"
+} from "@/components/ui/card";
+import { ArrowRight, Clock, FlaskConical, Gauge } from "lucide-react";
+import { api, ApiError } from "@/lib/api";
 
-const nav: NavItem[] = [{ label: "My Labs", to: "/lab-access", icon: <FlaskConical /> }]
+const nav: NavItem[] = [{ label: "My Labs", to: "/lab-access", icon: <FlaskConical /> }];
 
 type LabSummary = {
-  id: string
+  id: string;
   lab: {
-    slug: string
-    title: string
-    summary: string
-    difficulty: "Beginner" | "Intermediate" | "Advanced"
-    duration: string
-  }
-  pageCount: number
-  completedCount: number
-}
+    slug: string;
+    title: string;
+    summary: string;
+    difficulty: "Beginner" | "Intermediate" | "Advanced";
+    duration: string;
+  };
+  pageCount: number;
+  completedCount: number;
+};
 
 export function LabAccessPage() {
-  const [labs, setLabs] = useState<LabSummary[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [labs, setLabs] = useState<LabSummary[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     api<LabSummary[]>("/me/labs")
       .then(setLabs)
-      .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to load labs"))
-  }, [])
+      .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to load labs"));
+  }, []);
 
   return (
     <AppShell nav={nav} title="Lab Access">
@@ -121,5 +121,5 @@ export function LabAccessPage() {
         </div>
       )}
     </AppShell>
-  )
+  );
 }
