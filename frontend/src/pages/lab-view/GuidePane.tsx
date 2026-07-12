@@ -2,9 +2,15 @@ import { useEffect, useMemo, useState } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeHighlight from "rehype-highlight"
-import { Check, ChevronLeft, ChevronRight } from "lucide-react"
+import { Check, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu"
 import { api, ApiError } from "@/lib/api"
 import { createMarkdownComponents } from "@/lib/markdown-components"
 
@@ -41,6 +47,9 @@ export function GuidePane({
 
   const index = pages.findIndex((p) => p.file === selectedFile)
   const isComplete = selectedFile ? completedPages.includes(selectedFile) : false
+  const currentTitle = pages.find((p) => p.file === selectedFile)?.title ?? ""
+  const completedCount = pages.filter((p) => completedPages.includes(p.file)).length
+  const completionPct = pages.length ? (completedCount / pages.length) * 100 : 0
 
   async function toggleComplete() {
     if (!selectedFile) return
@@ -60,33 +69,47 @@ export function GuidePane({
   }
 
   return (
-    <div className="flex h-full">
-      <nav className="w-48 shrink-0 overflow-y-auto border-r border-border bg-surface p-sm">
-        <span className="block px-sm pt-xs pb-xxs text-label uppercase tracking-wide text-muted-foreground">
-          Guide
-        </span>
-        {pages.map((page) => (
-          <button
-            key={page.file}
-            type="button"
-            onClick={() => setSelectedFile(page.file)}
-            className={`flex w-full items-center gap-xs rounded-md px-sm py-xs text-left text-body-sm font-medium transition-colors duration-[var(--duration-base)] ease-standard ${
-              page.file === selectedFile
-                ? "bg-violet-100 text-violet-600"
-                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-            }`}
-          >
-            {completedPages.includes(page.file) ? (
-              <Check className="size-3.5 shrink-0 text-success" />
-            ) : (
-              <span className="size-3.5 shrink-0" />
-            )}
-            <span className="truncate">{page.title}</span>
-          </button>
-        ))}
-      </nav>
+    <div className="h-full min-w-0 overflow-y-auto">
+      <div className="sticky top-0 z-10 border-b border-border bg-surface">
+        <div className="flex items-center justify-between gap-sm px-lg py-sm md:px-xl">
+          <DropdownMenu>
+            <DropdownMenuTrigger className="flex min-w-0 items-center gap-xs rounded-md border border-border bg-surface px-sm py-xs text-body-sm font-medium text-foreground outline-none transition-colors duration-[var(--duration-base)] ease-standard hover:bg-accent">
+              <span className="truncate">{currentTitle}</span>
+              <span className="hidden shrink-0 text-muted-foreground sm:inline">
+                Section {index + 1} of {pages.length}
+              </span>
+              <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-64">
+              {pages.map((page) => (
+                <DropdownMenuItem
+                  key={page.file}
+                  onSelect={() => setSelectedFile(page.file)}
+                  className={`gap-xs ${page.file === selectedFile ? "text-violet-600" : ""}`}
+                >
+                  {completedPages.includes(page.file) ? (
+                    <Check className="size-3.5 shrink-0 text-success" />
+                  ) : (
+                    <span className="size-3.5 shrink-0" />
+                  )}
+                  <span className="truncate">{page.title}</span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <span className="shrink-0 text-body-sm text-muted-foreground">
+            {completedCount} of {pages.length} done
+          </span>
+        </div>
+        <div className="h-1 w-full bg-border">
+          <div
+            className="h-full bg-violet-600 transition-[width] duration-[var(--duration-base)] ease-standard"
+            style={{ width: `${completionPct}%` }}
+          />
+        </div>
+      </div>
 
-      <div className="flex-1 overflow-y-auto px-xl py-lg">
+      <div className="min-w-0 px-lg py-lg md:px-xl">
         {error ? (
           <div role="alert" className="flex flex-col items-start gap-sm">
             <p className="text-body text-danger">{error}</p>

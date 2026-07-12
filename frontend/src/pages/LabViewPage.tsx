@@ -47,8 +47,8 @@ export function LabViewPage() {
   }
 
   return (
-    <AppShell nav={nav} title={detail?.lab.title ?? "Lab"}>
-      <div className="-mx-xl -my-lg h-[calc(100vh-4rem)]">
+    <AppShell nav={nav} title={detail?.lab.title ?? "Lab"} collapsible lockViewport>
+      <div className="-mx-xl -my-lg h-[calc(100vh-4rem)] overflow-hidden">
         {notFound ? (
           <div className="mx-auto max-w-3xl px-xl py-xxl text-center">
             <h2 className="text-h3 text-foreground">Lab not available</h2>
@@ -79,15 +79,15 @@ export function LabViewPage() {
             </ResizablePanel>
             <ResizableHandle />
             <ResizablePanel defaultSize={60} minSize={30}>
-              <Tabs defaultValue="remote" className="flex h-full flex-col">
+              <Tabs defaultValue="remote" className="flex h-full min-h-0 flex-col">
                 <TabsList className="m-sm w-fit shrink-0">
                   <TabsTrigger value="remote">Remote</TabsTrigger>
                   <TabsTrigger value="credentials">Credentials</TabsTrigger>
                 </TabsList>
-                <TabsContent value="remote" className="flex-1 overflow-y-auto">
+                <TabsContent value="remote" className="min-h-0 flex-1 overflow-y-auto">
                   <RemotePanel />
                 </TabsContent>
-                <TabsContent value="credentials" className="flex-1 overflow-y-auto">
+                <TabsContent value="credentials" className="min-h-0 flex-1 overflow-y-auto">
                   <CredentialsPanel connection={detail.connection} />
                 </TabsContent>
               </Tabs>

@@ -131,15 +131,30 @@ sync with reality (it's the "current state" file).
 > corners. **Motion is a first-class goal** here (heavy-focus page); all animation uses the
 > existing motion tokens in `index.css` and honors `prefers-reduced-motion`.
 > Design floor **1280px**; verify at **13" and 15.6"** laptops.
+>
+> **Status (2026-07-13):** 4d-1 + 4d-2 **built + automated gates green** (typecheck / lint /
+> build) — marked `[~]` = **awaiting maintainer functional + design confirmation** at 13"/15.6"
+> before checking off. 4d-3 / 4d-4 not started.
 
-- [ ] **4d-1 Chrome / focus layout** — make the shared `AppShell` Workspace sidebar
+- [~] **4d-1 Chrome / focus layout** — make the shared `AppShell` Workspace sidebar
       **collapsible** (slim `w-16` icon rail ⇄ full `w-64`, smooth width animation);
       **default-collapsed on the lab view**, default-expanded elsewhere (admin look unchanged);
       collapsed/expanded choice **persisted** (localStorage).
-- [ ] **4d-2 Guide navigation** — remove the `w-48` Guide sub-rail; replace with a **sticky
+      _Implemented — **pending maintainer functional + design check.** Deviations agreed in
+      grilling: sidebar **fully hides** (`w-64 ⇄ w-0`, reclaims all width) instead of a `w-16`
+      rail; **one fixed top-bar toggle** (`PanelLeft`/`PanelLeftClose`, left of title) per
+      standard UI convention — not a sidebar-header button; persisted `labWorkshop.sidebarHidden`
+      (default-hidden). Admin untouched. Width animates at `--duration-base`/`--ease-standard`._
+- [~] **4d-2 Guide navigation** — remove the `w-48` Guide sub-rail; replace with a **sticky
       top-of-document bar**: section **dropdown** (page titles + completion check + "Section N
       of M · X done") on the left, progress on the right, **thin progress bar** beneath. Keep
       the footer **Back / Mark-complete / Next** (top = jump, footer = sequential flow).
+      _Implemented — **pending maintainer functional + design check.** `w-48` rail removed;
+      sticky bar = jump **dropdown** (title + "Section N of M", per-page completion checks) left,
+      **"X of M done"** count right, **completion** progress bar beneath. Mark-complete stays
+      footer-only; dropdown checks are read-only. **Bonus (from scroll request):** lab view is
+      now a **locked viewport** — page no longer scrolls globally; only the three sections scroll
+      (Docs / Remote / Credentials) via `min-h-0` + `overflow-hidden`; doc padding is responsive._
 - [ ] **4d-3 Responsive docs ‖ RDP** — resizable split default **45/55** (doc/RDP), **persist
       the split position**; **below 1280px collapse to single-pane tabbed** layout
       (Guide / Remote / Credentials). Reclaimed sidebar+rail width keeps side-by-side livable at 13".
