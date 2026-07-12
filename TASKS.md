@@ -83,31 +83,42 @@ sync with reality (it's the "current state" file).
 > allows "typed by admin"). **Each participant gets their own desktop** (killer.sh-style
 > isolation). Real data replaces the admin mock — **except Users, already real**.
 
-**4a — Backend domain (real data)**
-- [ ] `Lab` model — `slug, title, summary, difficulty, duration, order`; guide content is
-      **file-backed** under `wiki/<slug>/NN-*.md` (+ `wiki/<slug>/images/`), **not** in the DB
-- [ ] `Assignment` model — `userId, labId, rdpHost, rdpPort, rdpUser, rdpPassword` (encrypted
-      at rest per `SECURITY.md`), `completedPages: string[]` (per-user progress)
-- [ ] Admin API — Lab CRUD (create scaffolds `wiki/<slug>/01-intro.md`; edit reads/writes page
-      files); Assignment CRUD (assign user→lab + RDP creds; revoke)
-- [ ] User API — `GET /api/me/labs`, `GET /api/me/labs/:slug` (pages + my progress),
-      `POST …/progress` (mark page complete)
+> **PIVOT (landed in `2fabd97`/`4a6925a`):** RDP creds are **not** typed into the Assignment.
+> The `Machine` model was **pulled forward from Phase 6** into a machine **pool** — creds live
+> encrypted on the Machine (`lib/crypto.ts`); an Assignment binds `userId+labId+machineId`. The
+> admin manages a pool of machines and picks one when assigning. This supersedes the "typed into
+> Assignment" wording below.
 
-**4b — Admin: bind the design template to real data** (no restyle; Opus-agent for any redesign)
-- [ ] Lab management surface — CRUD labs (new surface follows `design.md` via frontend-design)
-- [ ] Lab Credentials page — swap mock array → real Assignments; **Lab field auto-links to real
-      Labs** (dropdown from the Lab list); assign form persists RDP creds
-- [ ] (Users page already real — leave as-is)
+**4a — Backend domain (real data)** ✅ (typecheck green both packages; tests present but need a
+WSL-side `npm install` to run — bundled binding is Windows-only in this checkout)
+- [x] `Lab` model — `slug, title, summary, difficulty, duration, order`; guide content is
+      **file-backed** under `wiki/<slug>/NN-*.md`, **not** in the DB (`lib/wiki.ts`)
+- [x] `Assignment` model — `userId, labId, machineId` (unique per machine) + `completedPages`;
+      **creds moved to `Machine`** (`rdpHost/Port/User/Password`, password encrypted per `SECURITY.md`)
+- [x] Admin API — Lab CRUD (create scaffolds `wiki/<slug>/01-intro.md`; edit reads/writes page
+      files); Assignment CRUD (bind user→lab→machine; revoke); **Machine pool CRUD** (`/admin/machines`)
+- [x] User API — `GET /api/me/labs`, `GET /api/me/labs/:slug` (pages + creds + my progress),
+      `GET …/pages/:file`, `POST …/progress` (mark page complete)
+
+**4b — Admin: bind the design template to real data** (no restyle; Opus-agent for any redesign) ✅
+- [x] Lab management surface — CRUD labs + page editor, wired to `/admin/labs` (`LabManagementPage`)
+- [x] Machine pool surface — CRUD machines, wired to `/admin/machines` (`MachinePoolPage`, new)
+- [x] Lab Credentials page — real Assignments; **Lab + Machine dropdowns** from live lists;
+      assign form binds a pool machine (`LabCredentialsPage`)
+- [x] (Users page already real — leave as-is)
 
 **4c — User: My Labs + killer.sh-style lab view**
-- [ ] `LabAccessPage` (My Labs) wired to real assignments (replace mock array)
-- [ ] In-lab page (net-new): split view — **guide left / desktop right**; top tabs
+> The **Remote** tab is a static "coming soon" placeholder in 4c — the live in-browser
+> desktop (Guacamole) is **Phase 5**. The checkpoint's "guide pages render with progress"
+> covers the guide/creds surfaces only, not a live desktop.
+- [x] `LabAccessPage` (My Labs) wired to real assignments (replace mock array)
+- [x] In-lab page (net-new): split view — **guide left / desktop right**; top tabs
       **Remote | Credentials**
-- [ ] Guide reader: file-backed **multi-page** (`wiki/<slug>/NN-*.md`), section rail,
+- [x] Guide reader: file-backed **multi-page** (`wiki/<slug>/NN-*.md`), section rail,
       **next/back**, scroll, **mark-as-complete per page** (persisted per-user on the Assignment),
       `react-markdown`, **code + YAML** highlight, **copy** buttons, **image** support
-- [ ] Credentials tab — the user's own RDP host/user/password with copy
-- [ ] ✅ Checkpoint: assigned user sees only their labs + creds; guide pages render with
+- [x] Credentials tab — the user's own RDP host/user/password with copy
+- [x] ✅ Checkpoint: assigned user sees only their labs + creds; guide pages render with
       progress; unassigned user sees nothing
 
 ## Phase 5 — In-browser RDP (Guacamole, lightweight & in-app)
@@ -123,8 +134,8 @@ sync with reality (it's the "current state" file).
       in-browser; unassigned cannot
 
 ## Phase 6 — Dynamic provisioning (Terraform + Ansible + BullMQ)
-- [ ] `Machine` model (deferred from Phase 4) — `source: 'static'|'dynamic'` + status; admin
-      can then assign creds *from a machine* instead of typing them by hand
+- [x] `Machine` model — **landed early in Phase 4a** (`Machine.ts`) as a static pool; admin
+      assigns creds *from a machine*. Phase 6 adds `source: 'dynamic'` + provisioning status on top.
 - [ ] BullMQ queue + worker process; `Job` model
 - [ ] Provisioning adapter: workdir + `execa` terraform → ansible + log streaming
 - [ ] Nutanix Terraform template + Ansible playbook (NKP tooling + xrdp) in `/infra`
