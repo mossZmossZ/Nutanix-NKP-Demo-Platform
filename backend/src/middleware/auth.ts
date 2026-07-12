@@ -5,6 +5,9 @@ import { AUTH_COOKIE, type TokenPayload } from "../services/auth";
 
 export interface AuthedRequest extends Request {
   user?: TokenPayload;
+  // Express 5's ParamsDictionary widened values to `string | string[]` for
+  // repeatable params; all routes here use single named params, so narrow back.
+  params: Record<string, string>;
 }
 
 /**
