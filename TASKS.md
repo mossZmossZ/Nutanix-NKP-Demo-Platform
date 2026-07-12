@@ -120,6 +120,48 @@ sync with reality (it's the "current state" file).
 - [x] ✅ Checkpoint: assigned user sees only their labs + creds; guide pages render with
       progress; unassigned user sees nothing _(automated gates green; live-stack E2E is maintainer manual test)_
 
+**4d — Re-optimize the lab workshop page (pre-Phase-5 cleanup)**
+> Scope is **only** the lab workshop surface (`LabViewPage` + `lab-view/GuidePane`,
+> `RemotePanel`, `CredentialsPanel`) — the page users live in. **Polish/repair, no new
+> features.** New features from the original list are split out: **4e** (credentials), **4f**
+> (lab authoring), and item 3 (Machine Pool + web terminal) → **Phase 6**.
+>
+> **Design governance (decided):** keep `design.md` tokens/radii as-is — "sharp / formal /
+> minimal" means **tighter, denser, cleaner via spacing + typography**, NOT less-rounded
+> corners. **Motion is a first-class goal** here (heavy-focus page); all animation uses the
+> existing motion tokens in `index.css` and honors `prefers-reduced-motion`.
+> Design floor **1280px**; verify at **13" and 15.6"** laptops.
+
+- [ ] **4d-1 Chrome / focus layout** — make the shared `AppShell` Workspace sidebar
+      **collapsible** (slim `w-16` icon rail ⇄ full `w-64`, smooth width animation);
+      **default-collapsed on the lab view**, default-expanded elsewhere (admin look unchanged);
+      collapsed/expanded choice **persisted** (localStorage).
+- [ ] **4d-2 Guide navigation** — remove the `w-48` Guide sub-rail; replace with a **sticky
+      top-of-document bar**: section **dropdown** (page titles + completion check + "Section N
+      of M · X done") on the left, progress on the right, **thin progress bar** beneath. Keep
+      the footer **Back / Mark-complete / Next** (top = jump, footer = sequential flow).
+- [ ] **4d-3 Responsive docs ‖ RDP** — resizable split default **45/55** (doc/RDP), **persist
+      the split position**; **below 1280px collapse to single-pane tabbed** layout
+      (Guide / Remote / Credentials). Reclaimed sidebar+rail width keeps side-by-side livable at 13".
+- [ ] **4d-4 Motion & loading** — guide page fade/slide on section change; Remote↔Credentials
+      **crossfade**; **skeletons over spinners** for guide loads; **prefetch next page** +
+      lazy-load guide images; build the Remote tab's polished **"Connecting to your desktop…"
+      state** as a resting placeholder (visual only — Phase 5 wires it to the real socket).
+- [ ] ✅ Checkpoint: **maintainer manual sign-off** at 13"/15.6" (sidebar collapse+persist,
+      top dropdown+progress, responsive split + <1280 tabbed fallback, transitions, skeletons,
+      prefetch, connecting placeholder, reduced-motion honored) + automated gates green **on Windows**.
+
+**4e — Credentials system** _(new feature — grill separately before building)_
+> From item 1b + item 2. New admin **Lab Credentials** page: define credential **variables**
+> (types: user / password / endpoint / yaml), variables are **global**, credential **data maps
+> 1:1 to users**; bind the resulting creds into the lab workshop Credentials tab. Decision tree
+> not yet resolved — needs its own grilling session.
+
+**4f — Lab authoring (export / import + generator)** _(new feature — grill separately before building)_
+> From item 6 + item 7. Export/Import a lab as a single `.md` file (backup + continue dev), and
+> a `backend/script` lab generator producing guide markdown with yaml support, credential-copy,
+> pictures, and highlighting. Format + tooling not yet resolved — needs its own grilling session.
+
 ## Phase 5 — In-browser RDP (Guacamole, lightweight & in-app)  ◀◀◀ NEXT
 > **Lightweight, in-app canvas** (not the Java webapp): only `guacd` + a `guacamole-lite` Node
 > WS tunnel + `guacamole-common-js` rendering the raw desktop **inside the Remote tab** — no
@@ -135,6 +177,10 @@ sync with reality (it's the "current state" file).
 ## Phase 6 — Dynamic provisioning (Terraform + Ansible + BullMQ)
 - [x] `Machine` model — **landed early in Phase 4a** (`Machine.ts`) as a static pool; admin
       assigns creds *from a machine*. Phase 6 adds `source: 'dynamic'` + provisioning status on top.
+- [ ] **Machine Pool console** (folded in from 4d item 3) — recast the admin Machines page as a
+      **Machine Pool** view: Node / vCPU / Memory from the pool record, **Owner → mapped user**,
+      status via **health-check ping → UP / DOWN** (replaces Ready/provisioning/issue), and the
+      "view log" action → **SSH web terminal (xterm.js)**. Grill separately (needs a live host to verify).
 - [ ] BullMQ queue + worker process; `Job` model
 - [ ] Provisioning adapter: workdir + `execa` terraform → ansible + log streaming
 - [ ] Nutanix Terraform template + Ansible playbook (NKP tooling + xrdp) in `/infra`
