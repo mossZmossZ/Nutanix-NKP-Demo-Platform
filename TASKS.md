@@ -83,23 +83,33 @@ sync with reality (it's the "current state" file).
 > allows "typed by admin"). **Each participant gets their own desktop** (killer.sh-style
 > isolation). Real data replaces the admin mock — **except Users, already real**.
 
-**4a — Backend domain (real data)**
-- [x] `Lab` model — `slug, title, summary, difficulty, duration, order`; guide content is
-      **file-backed** under `wiki/<slug>/NN-*.md` (+ `wiki/<slug>/images/`), **not** in the DB
-- [x] `Assignment` model — `userId, labId, rdpHost, rdpPort, rdpUser, rdpPassword` (encrypted
-      at rest per `SECURITY.md`), `completedPages: string[]` (per-user progress)
-- [x] Admin API — Lab CRUD (create scaffolds `wiki/<slug>/01-intro.md`; edit reads/writes page
-      files); Assignment CRUD (assign user→lab + RDP creds; revoke)
-- [x] User API — `GET /api/me/labs`, `GET /api/me/labs/:slug` (pages + my progress),
-      `POST …/progress` (mark page complete)
+> **PIVOT (landed in `2fabd97`/`4a6925a`):** RDP creds are **not** typed into the Assignment.
+> The `Machine` model was **pulled forward from Phase 6** into a machine **pool** — creds live
+> encrypted on the Machine (`lib/crypto.ts`); an Assignment binds `userId+labId+machineId`. The
+> admin manages a pool of machines and picks one when assigning. This supersedes the "typed into
+> Assignment" wording below.
 
-**4b — Admin: bind the design template to real data** (no restyle; Opus-agent for any redesign)
-- [x] Lab management surface — CRUD labs (new surface follows `design.md` via frontend-design)
-- [x] Lab Credentials page — swap mock array → real Assignments; **Lab field auto-links to real
-      Labs** (dropdown from the Lab list); assign form persists RDP creds
+**4a — Backend domain (real data)** ✅
+- [x] `Lab` model — `slug, title, summary, difficulty, duration, order`; guide content is
+      **file-backed** under `wiki/<slug>/NN-*.md` (+ `wiki/<slug>/images/`), **not** in the DB (`lib/wiki.ts`)
+- [x] `Assignment` model — `userId, labId, machineId` (unique per machine) + `completedPages`;
+      **creds moved to `Machine`** (`rdpHost/Port/User/Password`, password encrypted per `SECURITY.md`)
+- [x] Admin API — Lab CRUD (create scaffolds `wiki/<slug>/01-intro.md`; edit reads/writes page
+      files); Assignment CRUD (bind user→lab→machine; revoke); **Machine pool CRUD** (`/admin/machines`)
+- [x] User API — `GET /api/me/labs`, `GET /api/me/labs/:slug` (pages + creds + my progress),
+      `GET …/pages/:file`, `GET …/images/:file`, `POST …/progress` (mark page complete)
+
+**4b — Admin: bind the design template to real data** (no restyle; Opus-agent for any redesign) ✅
+- [x] Lab management surface — CRUD labs + page editor, wired to `/admin/labs` (`LabManagementPage`)
+- [x] Machine pool surface — CRUD machines, wired to `/admin/machines` (`MachinePoolPage`, new)
+- [x] Lab Credentials page — real Assignments; **Lab + Machine dropdowns** from live lists;
+      assign form binds a pool machine (`LabCredentialsPage`)
 - [x] (Users page already real — leave as-is)
 
-**4c — User: My Labs + killer.sh-style lab view**
+**4c — User: My Labs + killer.sh-style lab view** ✅
+> The **Remote** tab is a static "coming soon" placeholder in 4c — the live in-browser
+> desktop (Guacamole) is **Phase 5**. The checkpoint's "guide pages render with progress"
+> covers the guide/creds surfaces only, not a live desktop.
 - [x] `LabAccessPage` (My Labs) wired to real assignments (replace mock array)
 - [x] In-lab page (net-new): split view — **guide left / desktop right**; top tabs
       **Remote | Credentials** _(Remote tab is a static Phase-5 placeholder — Guacamole deferred)_
@@ -109,6 +119,48 @@ sync with reality (it's the "current state" file).
 - [x] Credentials tab — the user's own RDP host/user/password with copy
 - [x] ✅ Checkpoint: assigned user sees only their labs + creds; guide pages render with
       progress; unassigned user sees nothing _(automated gates green; live-stack E2E is maintainer manual test)_
+
+**4d — Re-optimize the lab workshop page (pre-Phase-5 cleanup)**
+> Scope is **only** the lab workshop surface (`LabViewPage` + `lab-view/GuidePane`,
+> `RemotePanel`, `CredentialsPanel`) — the page users live in. **Polish/repair, no new
+> features.** New features from the original list are split out: **4e** (credentials), **4f**
+> (lab authoring), and item 3 (Machine Pool + web terminal) → **Phase 6**.
+>
+> **Design governance (decided):** keep `design.md` tokens/radii as-is — "sharp / formal /
+> minimal" means **tighter, denser, cleaner via spacing + typography**, NOT less-rounded
+> corners. **Motion is a first-class goal** here (heavy-focus page); all animation uses the
+> existing motion tokens in `index.css` and honors `prefers-reduced-motion`.
+> Design floor **1280px**; verify at **13" and 15.6"** laptops.
+
+- [ ] **4d-1 Chrome / focus layout** — make the shared `AppShell` Workspace sidebar
+      **collapsible** (slim `w-16` icon rail ⇄ full `w-64`, smooth width animation);
+      **default-collapsed on the lab view**, default-expanded elsewhere (admin look unchanged);
+      collapsed/expanded choice **persisted** (localStorage).
+- [ ] **4d-2 Guide navigation** — remove the `w-48` Guide sub-rail; replace with a **sticky
+      top-of-document bar**: section **dropdown** (page titles + completion check + "Section N
+      of M · X done") on the left, progress on the right, **thin progress bar** beneath. Keep
+      the footer **Back / Mark-complete / Next** (top = jump, footer = sequential flow).
+- [ ] **4d-3 Responsive docs ‖ RDP** — resizable split default **45/55** (doc/RDP), **persist
+      the split position**; **below 1280px collapse to single-pane tabbed** layout
+      (Guide / Remote / Credentials). Reclaimed sidebar+rail width keeps side-by-side livable at 13".
+- [ ] **4d-4 Motion & loading** — guide page fade/slide on section change; Remote↔Credentials
+      **crossfade**; **skeletons over spinners** for guide loads; **prefetch next page** +
+      lazy-load guide images; build the Remote tab's polished **"Connecting to your desktop…"
+      state** as a resting placeholder (visual only — Phase 5 wires it to the real socket).
+- [ ] ✅ Checkpoint: **maintainer manual sign-off** at 13"/15.6" (sidebar collapse+persist,
+      top dropdown+progress, responsive split + <1280 tabbed fallback, transitions, skeletons,
+      prefetch, connecting placeholder, reduced-motion honored) + automated gates green **on Windows**.
+
+**4e — Credentials system** _(new feature — grill separately before building)_
+> From item 1b + item 2. New admin **Lab Credentials** page: define credential **variables**
+> (types: user / password / endpoint / yaml), variables are **global**, credential **data maps
+> 1:1 to users**; bind the resulting creds into the lab workshop Credentials tab. Decision tree
+> not yet resolved — needs its own grilling session.
+
+**4f — Lab authoring (export / import + generator)** _(new feature — grill separately before building)_
+> From item 6 + item 7. Export/Import a lab as a single `.md` file (backup + continue dev), and
+> a `backend/script` lab generator producing guide markdown with yaml support, credential-copy,
+> pictures, and highlighting. Format + tooling not yet resolved — needs its own grilling session.
 
 ## Phase 5 — In-browser RDP (Guacamole, lightweight & in-app)  ◀◀◀ NEXT
 > **Lightweight, in-app canvas** (not the Java webapp): only `guacd` + a `guacamole-lite` Node
@@ -123,8 +175,12 @@ sync with reality (it's the "current state" file).
       in-browser; unassigned cannot
 
 ## Phase 6 — Dynamic provisioning (Terraform + Ansible + BullMQ)
-- [ ] `Machine` model (deferred from Phase 4) — `source: 'static'|'dynamic'` + status; admin
-      can then assign creds *from a machine* instead of typing them by hand
+- [x] `Machine` model — **landed early in Phase 4a** (`Machine.ts`) as a static pool; admin
+      assigns creds *from a machine*. Phase 6 adds `source: 'dynamic'` + provisioning status on top.
+- [ ] **Machine Pool console** (folded in from 4d item 3) — recast the admin Machines page as a
+      **Machine Pool** view: Node / vCPU / Memory from the pool record, **Owner → mapped user**,
+      status via **health-check ping → UP / DOWN** (replaces Ready/provisioning/issue), and the
+      "view log" action → **SSH web terminal (xterm.js)**. Grill separately (needs a live host to verify).
 - [ ] BullMQ queue + worker process; `Job` model
 - [ ] Provisioning adapter: workdir + `execa` terraform → ansible + log streaming
 - [ ] Nutanix Terraform template + Ansible playbook (NKP tooling + xrdp) in `/infra`
