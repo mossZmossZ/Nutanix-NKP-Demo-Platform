@@ -7,6 +7,7 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/componen
 import { FlaskConical } from "lucide-react"
 import { api, ApiError } from "@/lib/api"
 import { useMediaQuery } from "@/lib/useMediaQuery"
+import { useRemoteSession } from "@/lib/useRemoteSession"
 import { GuidePane } from "./lab-view/GuidePane"
 import { CredentialsPanel, type LabCredential } from "./lab-view/CredentialsPanel"
 import { RemotePanel } from "./lab-view/RemotePanel"
@@ -48,6 +49,10 @@ export function LabViewPage() {
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
   const [sessionTab, setSessionTab] = useState<"remote" | "credentials">("remote")
   const isDesktop = useMediaQuery("(min-width: 1280px)")
+  // One live RDP session for the lab. Slug is withheld until the assignment
+  // loads so we only connect for labs the user actually has (a 403 otherwise).
+  // Lives here (not in RemotePanel) so it survives the tab/breakpoint remounts.
+  const session = useRemoteSession(detail ? slug : undefined)
 
   useEffect(() => {
     if (!slug) return
@@ -119,7 +124,7 @@ export function LabViewPage() {
                   value="remote"
                   className="min-h-0 flex-1 overflow-y-auto duration-[var(--duration-base)] ease-standard animate-in fade-in"
                 >
-                  <RemotePanel />
+                  <RemotePanel session={session} label={detail.lab.title} />
                 </TabsContent>
                 <TabsContent
                   value="credentials"

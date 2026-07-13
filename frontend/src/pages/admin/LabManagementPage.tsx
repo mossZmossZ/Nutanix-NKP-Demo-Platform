@@ -11,7 +11,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { BookOpen, FileText, Layers, Pencil, Trash2, BarChart3, Download, Upload } from "lucide-react";
+import { BookOpen, FileText, Layers, Pencil, Trash2, BarChart3, Download, Upload, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 
@@ -47,6 +47,14 @@ const selectClass =
 const textareaClass =
   "min-h-[24rem] w-full flex-1 resize-none rounded-md border border-input bg-surface px-sm py-xs " +
   "font-mono text-body-sm text-foreground outline-none transition-[color,border-color,box-shadow] " +
+  "duration-[var(--duration-fast)] ease-standard hover:border-ink-500/40 " +
+  "focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-primary/12";
+
+// Compact summary field (~3 rows) — the page-editor `textareaClass` bakes in a
+// 24rem min-height that would make the lab dialogs taller than the viewport.
+const summaryClass =
+  "min-h-20 w-full resize-none rounded-md border border-input bg-surface px-sm py-xs " +
+  "text-body text-foreground outline-none transition-[color,border-color,box-shadow] " +
   "duration-[var(--duration-fast)] ease-standard hover:border-ink-500/40 " +
   "focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-primary/12";
 
@@ -87,6 +95,16 @@ export function LabManagementPage() {
   const [savedContent, setSavedContent] = useState("");
   const [pagesError, setPagesError] = useState<string | null>(null);
   const [savingPage, setSavingPage] = useState(false);
+
+  // New-page dialog (nested over the page editor)
+  const [newPageOpen, setNewPageOpen] = useState(false);
+  const [newPageTitle, setNewPageTitle] = useState("");
+  const [newPageError, setNewPageError] = useState<string | null>(null);
+  const [creatingPage, setCreatingPage] = useState(false);
+
+  // Delete-page confirm (nested over the page editor)
+  const [deletePageTarget, setDeletePageTarget] = useState<WikiPage | null>(null);
+  const [deletePageError, setDeletePageError] = useState<string | null>(null);
 
   async function load() {
     try {
@@ -279,6 +297,53 @@ export function LabManagementPage() {
     }
   }
 
+  async function onCreatePage(e: FormEvent) {
+    e.preventDefault();
+    if (!pagesLab) return;
+    setNewPageError(null);
+    setCreatingPage(true);
+    try {
+      const page = await api<WikiPage>(`/admin/labs/${pagesLab.slug}/pages`, {
+        method: "POST",
+        body: JSON.stringify({ title: newPageTitle.trim() }),
+      });
+      const detail = await api<LabDetail>(`/admin/labs/${pagesLab.slug}`);
+      setPages(detail.pages);
+      await openPage(pagesLab.slug, page.file);
+      setNewPageOpen(false);
+      setNewPageTitle("");
+      toast.success(`Created "${page.title}"`);
+      await load();
+    } catch (err) {
+      setNewPageError(err instanceof ApiError ? err.message : "Failed to create page");
+    } finally {
+      setCreatingPage(false);
+    }
+  }
+
+  async function onDeletePage() {
+    if (!pagesLab || !deletePageTarget) return;
+    setDeletePageError(null);
+    try {
+      await api(`/admin/labs/${pagesLab.slug}/pages/${deletePageTarget.file}`, { method: "DELETE" });
+      const detail = await api<LabDetail>(`/admin/labs/${pagesLab.slug}`);
+      setPages(detail.pages);
+      if (activeFile === deletePageTarget.file) {
+        if (detail.pages.length > 0) await openPage(pagesLab.slug, detail.pages[0].file);
+        else {
+          setActiveFile(null);
+          setContent("");
+          setSavedContent("");
+        }
+      }
+      setDeletePageTarget(null);
+      toast.success(`Deleted "${deletePageTarget.title}"`);
+      await load();
+    } catch (err) {
+      setDeletePageError(err instanceof ApiError ? err.message : "Failed to delete page");
+    }
+  }
+
   const dirty = content !== savedContent;
   const totalPages = labs.reduce((sum, lab) => sum + lab.pageCount, 0);
 
@@ -468,7 +533,7 @@ export function LabManagementPage() {
             <label className="flex flex-col gap-xs">
               <span className="text-label text-muted-foreground">Summary</span>
               <textarea
-                className={textareaClass + " min-h-20"}
+                className={summaryClass}
                 value={createForm.summary}
                 onChange={(e) => setCreateForm((f) => ({ ...f, summary: e.target.value }))}
               />
@@ -539,7 +604,7 @@ export function LabManagementPage() {
             <label className="flex flex-col gap-xs">
               <span className="text-label text-muted-foreground">Summary</span>
               <textarea
-                className={textareaClass + " min-h-20"}
+                className={summaryClass}
                 value={editForm.summary}
                 onChange={(e) => setEditForm((f) => ({ ...f, summary: e.target.value }))}
               />
@@ -654,20 +719,49 @@ export function LabManagementPage() {
                 <p className="text-body-sm text-muted-foreground">No pages found.</p>
               ) : (
                 pages.map((p) => (
-                  <button
+                  <div
                     key={p.file}
-                    type="button"
-                    onClick={() => pagesLab && openPage(pagesLab.slug, p.file)}
-                    className={`rounded-md px-sm py-xs text-left text-body-sm font-medium transition-colors duration-[var(--duration-fast)] ease-standard ${
+                    className={`group flex items-center rounded-md transition-colors duration-[var(--duration-fast)] ease-standard ${
                       activeFile === p.file
                         ? "bg-violet-100 text-violet-600"
                         : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                     }`}
                   >
-                    {p.title}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => pagesLab && openPage(pagesLab.slug, p.file)}
+                      className="min-w-0 flex-1 truncate px-sm py-xs text-left text-body-sm font-medium"
+                    >
+                      {p.title}
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Delete ${p.title}`}
+                      disabled={pages.length <= 1}
+                      onClick={() => {
+                        setDeletePageTarget(p);
+                        setDeletePageError(null);
+                      }}
+                      className="mr-1 shrink-0 rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100 disabled:pointer-events-none disabled:opacity-0"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </div>
                 ))
               )}
+              <Button
+                type="button"
+                variant="ghost"
+                className="mt-1 justify-start gap-1.5 text-body-sm"
+                onClick={() => {
+                  setNewPageTitle("");
+                  setNewPageError(null);
+                  setNewPageOpen(true);
+                }}
+              >
+                <Plus className="size-3.5" />
+                New page
+              </Button>
             </div>
             <div className="flex flex-1 flex-col gap-xs">
               <div className="flex items-center justify-between">
@@ -689,6 +783,67 @@ export function LabManagementPage() {
             </Button>
             <Button type="button" variant="primary" disabled={!activeFile || !dirty || savingPage} onClick={onSavePage}>
               {savingPage ? "Saving…" : "Save page"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* New-page dialog (nested over the page editor) */}
+      <Dialog open={newPageOpen} onOpenChange={(open) => !open && setNewPageOpen(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>New page</DialogTitle>
+            <DialogDescription>
+              Add a guide page to <span className="font-medium text-foreground">{pagesLab?.title}</span>. The
+              filename is generated from the title.
+            </DialogDescription>
+          </DialogHeader>
+          <form id="new-page-form" onSubmit={onCreatePage} className="flex flex-col gap-md">
+            <label className="flex flex-col gap-xs">
+              <span className="text-label text-muted-foreground">Page title</span>
+              <Input
+                value={newPageTitle}
+                onChange={(e) => setNewPageTitle(e.target.value)}
+                placeholder="Deploy the cluster"
+                autoFocus
+                required
+              />
+            </label>
+            {newPageError && <p className="text-body-sm font-medium text-destructive">{newPageError}</p>}
+          </form>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => setNewPageOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form="new-page-form"
+              variant="primary"
+              disabled={!newPageTitle.trim() || creatingPage}
+            >
+              {creatingPage ? "Creating…" : "Create page"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete-page confirm (nested over the page editor) */}
+      <Dialog open={deletePageTarget !== null} onOpenChange={(open) => !open && setDeletePageTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete page</DialogTitle>
+            <DialogDescription>
+              Delete <span className="font-medium text-foreground">{deletePageTarget?.title}</span>{" "}
+              (<span className="font-mono">{deletePageTarget?.file}</span>)? This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {deletePageError && <p className="text-body-sm font-medium text-destructive">{deletePageError}</p>}
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => setDeletePageTarget(null)}>
+              Cancel
+            </Button>
+            <Button type="button" variant="destructive" onClick={onDeletePage}>
+              Delete page
             </Button>
           </DialogFooter>
         </DialogContent>

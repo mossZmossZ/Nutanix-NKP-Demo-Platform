@@ -34,6 +34,35 @@ services:
     networks:
       - nkp-network
 
+  # --- Phase 5: in-browser RDP (dev only) ---
+  # guacd renders the remote desktop protocol. The backend's WS tunnel
+  # (guacamole-lite) talks to it on 4822; guacd in turn reaches the RDP host.
+  guacd:
+    # 1.6.0 adds RDP Graphics Pipeline (GFX) support. Windows Server (WDDM) sends
+    # its desktop over GFX, which guacd 1.5.5 can't render -> black screen with only
+    # a cursor. Linux/xrdp uses legacy bitmaps and worked on 1.5.5 either way.
+    image: guacamole/guacd:1.6.0
+    container_name: nkp-guacd-dev
+    # Temporary: debug log level to diagnose the Windows blank-screen (graphics
+    # pipeline negotiation). Revert to remove once resolved.
+    environment:
+      GUACD_LOG_LEVEL: debug
+    ports:
+      - "4822:4822"
+    networks:
+      - nkp-network
+
+  # Throwaway xrdp desktop to point a Machine at while building Phase 5.
+  # Machine row: rdpHost=xrdp-test  rdpPort=3389  user=student  pass=student.
+  # guacd reaches it by service name over nkp-network.
+  xrdp-test:
+    build: ./xrdp-test
+    container_name: nkp-xrdp-test-dev
+    ports:
+      - "3390:3389"
+    networks:
+      - nkp-network
+
 volumes:
   mongo-data:
   redis-data:
@@ -41,3 +70,9 @@ volumes:
 networks:
   nkp-network:
     driver: bridge
+    # Pin an explicit subnet so Docker's default pool doesn't grab 172.18.0.0/16,
+    # which collides with the Nutanix lab network (172.18.13.x) and makes RDP
+    # targets unreachable from guacd. Keep this clear of the lab's real subnets.
+    ipam:
+      config:
+        - subnet: 172.99.0.0/24

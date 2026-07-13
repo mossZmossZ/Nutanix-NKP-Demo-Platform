@@ -98,6 +98,34 @@ describe("admin labs routes", () => {
     expect(res.status).toBe(400);
   });
 
+  it("POST page creates NN-slug.md from a title, seeded with a heading", async () => {
+    const res = await adminAgent
+      .post("/api/admin/labs/intro-nkp/pages")
+      .send({ title: "Deploy the Cluster" });
+    expect(res.status).toBe(201);
+    expect(res.body.file).toBe("02-deploy-the-cluster.md");
+
+    const page = await adminAgent.get("/api/admin/labs/intro-nkp/pages/02-deploy-the-cluster.md");
+    expect(page.body.content).toBe("# Deploy the Cluster\n");
+  });
+
+  it("POST page rejects an empty title -> 400", async () => {
+    const res = await adminAgent.post("/api/admin/labs/intro-nkp/pages").send({ title: "  " });
+    expect(res.status).toBe(400);
+  });
+
+  it("DELETE page removes a non-last page -> 204", async () => {
+    const res = await adminAgent.delete("/api/admin/labs/intro-nkp/pages/02-deploy-the-cluster.md");
+    expect(res.status).toBe(204);
+    const detail = await adminAgent.get("/api/admin/labs/intro-nkp");
+    expect(detail.body.pages).toHaveLength(1);
+  });
+
+  it("DELETE page blocks removing the last remaining page -> 409", async () => {
+    const res = await adminAgent.delete("/api/admin/labs/intro-nkp/pages/01-intro.md");
+    expect(res.status).toBe(409);
+  });
+
   it("GET page 404s for missing page file", async () => {
     const res = await adminAgent.get("/api/admin/labs/intro-nkp/pages/99-missing.md");
     expect(res.status).toBe(404);

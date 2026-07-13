@@ -2,7 +2,7 @@ import { Router } from "express";
 import { LabModel } from "../../models/Lab";
 import { AssignmentModel } from "../../models/Assignment";
 import { requireAuth, requireAdmin } from "../../middleware/auth";
-import { scaffoldLab, listPages, readPage, writePage, removeLab } from "../../lib/wiki";
+import { scaffoldLab, listPages, readPage, writePage, createPage, deletePage, removeLab } from "../../lib/wiki";
 import { serializeLab, parseLabArchive, ArchiveError } from "../../lib/labArchive";
 
 export const adminLabsRouter = Router();
@@ -254,4 +254,40 @@ adminLabsRouter.put("/:slug/pages/:file", async (req, res) => {
   }
   writePage(lab.slug, req.params.file, content);
   res.json({ file: req.params.file, content });
+});
+
+adminLabsRouter.post("/:slug/pages", async (req, res) => {
+  const lab = await LabModel.findOne({ slug: req.params.slug });
+  if (!lab) {
+    res.status(404).json({ error: "lab not found" });
+    return;
+  }
+  const { title } = req.body ?? {};
+  if (typeof title !== "string" || !title.trim()) {
+    res.status(400).json({ error: "title is required" });
+    return;
+  }
+  const page = createPage(lab.slug, title.trim());
+  res.status(201).json(page);
+});
+
+// Delete a guide page. A lab must keep at least one page, so the final page
+// can't be removed (409) — an empty guide breaks the participant lab view.
+adminLabsRouter.delete("/:slug/pages/:file", async (req, res) => {
+  const lab = await LabModel.findOne({ slug: req.params.slug });
+  if (!lab) {
+    res.status(404).json({ error: "lab not found" });
+    return;
+  }
+  const pages = listPages(lab.slug);
+  if (!pages.some((p) => p.file === req.params.file)) {
+    res.status(404).json({ error: "page not found" });
+    return;
+  }
+  if (pages.length <= 1) {
+    res.status(409).json({ error: "a lab must keep at least one page" });
+    return;
+  }
+  deletePage(lab.slug, req.params.file);
+  res.status(204).end();
 });
