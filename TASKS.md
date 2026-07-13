@@ -220,10 +220,33 @@ sync with reality (it's the "current state" file).
 > - **Gates:** backend typecheck/lint + **129 tests** green; frontend typecheck/lint/build green;
 >   suite **7 failed (frozen Phase-2 set) / 33 passed**. Live-stack functional check is maintainer manual.
 
-**4f — Lab authoring (export / import + generator)** _(new feature — grill separately before building)_
+**4f — Lab authoring (export / import + generator)**
 > From item 6 + item 7. Export/Import a lab as a single `.md` file (backup + continue dev), and
 > a `backend/script` lab generator producing guide markdown with yaml support, credential-copy,
-> pictures, and highlighting. Format + tooling not yet resolved — needs its own grilling session.
+> pictures, and highlighting.
+- [~] **Export / Import (single-file `.md`)** — **BUILT (2026-07-13, grilled first) pending maintainer
+      functional check.** Format (locked): YAML frontmatter (all Lab fields + `credentialVars` **with
+      `_id`s**) then guide pages delimited by `<!-- page: NN-name.md -->` markers. Images are S3 URLs in
+      the page markdown → round-trip as text (no binary handling). New `lib/labArchive.ts`
+      (`serializeLab`/`parseLabArchive` + validation). `GET /admin/labs/:slug/export` (downloads
+      `<slug>.md`); `POST /admin/labs/import` `{content, mode?}` — **create** (409 on dup slug, response
+      carries `assignmentCount`) or **overwrite** (reuses credentialVar `_id`s so per-user values on
+      Assignments survive; vars dropped from the file are `$unset` across the lab's assignments). Express
+      json limit bumped 100kb→2mb. Frontend `LabManagementPage`: header **Import** (file picker → 409 →
+      overwrite-confirm dialog warning about cleared values) + per-card **Export** (anchor download) +
+      `sonner` toasts. Backend **140 tests** (+11: round-trip, create, dup-409, overwrite-reconcile,
+      malformed-400, RBAC-403) + lint green; frontend typecheck/lint clean on new code (build blocked
+      only by the pre-existing `sonner.tsx` Toaster wart).
+- [~] **Reference/example lab** — **BUILT (2026-07-13, grilled first) pending maintainer
+      functional check.** Resolved (grilling): the "generator" is not a script — Import already
+      exists, so the deliverable is a single checked-in archive `backend/examples/example-lab.md`
+      (+ `README.md`) that an admin imports via **Lab management → Import** to see every guide
+      feature and copy as an authoring template. Content: 4 pages (markdown basics + GFM table /
+      yaml+bash fenced blocks with highlight+copy / credentials explainer / placeholder image)
+      and 3 `credentialVars` — one each of endpoint/yaml/text. Image uses `placehold.co` (absolute
+      URL) with a comment showing the S3 form, since import carries no binary images. No runtime
+      code touched; verified the file parses via the real `parseLabArchive` (4 pages, 3 cred vars,
+      filenames valid, round-trips) + backend typecheck/lint green.
 
 ## Phase 5 — In-browser RDP (Guacamole, lightweight & in-app)  ◀◀◀ NEXT
 > **Lightweight, in-app canvas** (not the Java webapp): only `guacd` + a `guacamole-lite` Node

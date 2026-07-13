@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { AppShell } from "@/layouts/AppShell";
 import { adminNav } from "./adminNav";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,8 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { BookOpen, FileText, Layers, Pencil, Trash2, BarChart3 } from "lucide-react";
+import { BookOpen, FileText, Layers, Pencil, Trash2, BarChart3, Download, Upload } from "lucide-react";
+import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 
 type Difficulty = "Beginner" | "Intermediate" | "Advanced";
@@ -69,6 +70,14 @@ export function LabManagementPage() {
   // Delete confirm dialog
   const [deleteLab, setDeleteLab] = useState<Lab | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  // Import (file picker + overwrite-confirm dialog)
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [overwrite, setOverwrite] = useState<{
+    content: string;
+    slug: string;
+    assignmentCount: number;
+  } | null>(null);
 
   // Guide-page editor dialog
   const [pagesLab, setPagesLab] = useState<Lab | null>(null);
@@ -168,6 +177,61 @@ export function LabManagementPage() {
     }
   }
 
+  // Export downloads the single-file .md archive. A same-origin anchor carries
+  // the auth cookie, so the browser handles the download directly.
+  function exportLab(lab: Lab) {
+    const a = document.createElement("a");
+    a.href = `/api/admin/labs/${lab.slug}/export`;
+    a.download = `${lab.slug}.md`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  // POST the archive; a 409 means the slug exists and the admin must confirm an
+  // overwrite. Raw fetch (not the api helper) so we can read the 409's body.
+  async function postImport(content: string, mode?: "overwrite") {
+    const res = await fetch("/api/admin/labs/import", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content, mode }),
+    });
+    const body = await res.json().catch(() => ({}));
+    return { status: res.status, body };
+  }
+
+  async function onImportFile(file: File) {
+    const content = await file.text();
+    try {
+      const { status, body } = await postImport(content);
+      if (status === 409) {
+        setOverwrite({ content, slug: body.slug, assignmentCount: body.assignmentCount ?? 0 });
+        return;
+      }
+      if (status >= 400) {
+        toast.error(body.error ?? "Failed to import lab");
+        return;
+      }
+      toast.success(`Imported "${body.slug}" (${body.pageCount} pages)`);
+      await load();
+    } catch {
+      toast.error("Failed to read the lab file");
+    }
+  }
+
+  async function onConfirmOverwrite() {
+    if (!overwrite) return;
+    const { status, body } = await postImport(overwrite.content, "overwrite");
+    if (status >= 400) {
+      toast.error(body.error ?? "Failed to overwrite lab");
+      return;
+    }
+    setOverwrite(null);
+    toast.success(`Overwrote "${body.slug}" (${body.pageCount} pages)`);
+    await load();
+  }
+
   async function openPages(lab: Lab) {
     setPagesLab(lab);
     setPages([]);
@@ -229,10 +293,32 @@ export function LabManagementPage() {
               Create and curate hands-on lab guides for the workshop catalog
             </p>
           </div>
-          <Button type="button" variant="primary" onClick={openCreate} className="gap-2">
-            <span className="text-lg leading-none">+</span>
-            New Lab
-          </Button>
+          <div className="flex items-center gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".md,text/markdown"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) onImportFile(file);
+                e.target.value = "";
+              }}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => fileInputRef.current?.click()}
+              className="gap-2"
+            >
+              <Upload className="size-4" />
+              Import
+            </Button>
+            <Button type="button" variant="primary" onClick={openCreate} className="gap-2">
+              <span className="text-lg leading-none">+</span>
+              New Lab
+            </Button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -324,6 +410,14 @@ export function LabManagementPage() {
                   <Button type="button" variant="secondary" className="flex-1 gap-1.5" onClick={() => openPages(lab)}>
                     <FileText className="size-3.5" />
                     Pages
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    aria-label={`Export ${lab.title}`}
+                    onClick={() => exportLab(lab)}
+                  >
+                    <Download className="size-3.5" />
                   </Button>
                   <Button
                     type="button"
@@ -510,6 +604,37 @@ export function LabManagementPage() {
             </Button>
             <Button type="button" variant="destructive" onClick={onDelete}>
               Delete lab
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import overwrite-confirm dialog */}
+      <Dialog open={overwrite !== null} onOpenChange={(open) => !open && setOverwrite(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Overwrite existing lab</DialogTitle>
+            <DialogDescription>
+              A lab with slug <span className="font-mono text-foreground">{overwrite?.slug}</span> already
+              exists. Importing will replace its metadata and all guide pages.
+              {overwrite && overwrite.assignmentCount > 0 ? (
+                <>
+                  {" "}
+                  <span className="font-medium text-foreground">
+                    {overwrite.assignmentCount} participant
+                    {overwrite.assignmentCount === 1 ? " is" : "s are"} assigned
+                  </span>{" "}
+                  — their saved values for any credential variable removed in this file will be cleared.
+                </>
+              ) : null}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => setOverwrite(null)}>
+              Cancel
+            </Button>
+            <Button type="button" variant="destructive" onClick={onConfirmOverwrite}>
+              Overwrite lab
             </Button>
           </DialogFooter>
         </DialogContent>

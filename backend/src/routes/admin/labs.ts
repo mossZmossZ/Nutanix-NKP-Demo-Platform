@@ -3,6 +3,7 @@ import { LabModel } from "../../models/Lab";
 import { AssignmentModel } from "../../models/Assignment";
 import { requireAuth, requireAdmin } from "../../middleware/auth";
 import { scaffoldLab, listPages, readPage, writePage, removeLab } from "../../lib/wiki";
+import { serializeLab, parseLabArchive, ArchiveError } from "../../lib/labArchive";
 
 export const adminLabsRouter = Router();
 
@@ -36,6 +37,80 @@ adminLabsRouter.post("/", async (req, res) => {
   res.status(201).json(lab);
 });
 
+// Import a lab from a single-file .md archive (see lib/labArchive.ts). Without
+// mode=overwrite an existing slug is a 409 (the response carries assignment
+// counts so the UI can warn); with it, pages + metadata are replaced and
+// credentialVar _ids are reused so per-user values survive — vars dropped from
+// the file have their values unset from the lab's assignments.
+adminLabsRouter.post("/import", async (req, res) => {
+  const { content, mode } = req.body ?? {};
+  if (typeof content !== "string") {
+    res.status(400).json({ error: "content must be a string" });
+    return;
+  }
+  let parsed;
+  try {
+    parsed = parseLabArchive(content);
+  } catch (err) {
+    res.status(400).json({ error: err instanceof ArchiveError ? err.message : "invalid lab file" });
+    return;
+  }
+  const { meta, pages } = parsed;
+  const existing = await LabModel.findOne({ slug: meta.slug });
+
+  if (existing && mode !== "overwrite") {
+    const assignmentCount = await AssignmentModel.countDocuments({ labId: existing._id });
+    res.status(409).json({
+      error: `lab "${meta.slug}" already exists`,
+      slug: meta.slug,
+      hasAssignments: assignmentCount > 0,
+      assignmentCount,
+    });
+    return;
+  }
+
+  const vars = meta.credentialVars ?? [];
+
+  if (existing) {
+    const keptIds = new Set(vars.filter((v) => v._id).map((v) => v._id));
+    const removedIds = existing.credentialVars
+      .map((v) => String(v._id))
+      .filter((id) => !keptIds.has(id));
+
+    existing.title = meta.title;
+    existing.summary = meta.summary ?? "";
+    existing.difficulty = (meta.difficulty ?? "Beginner") as typeof existing.difficulty;
+    existing.duration = meta.duration ?? "";
+    existing.order = meta.order ?? 0;
+    existing.set("credentialVars", vars);
+    await existing.save();
+
+    removeLab(existing.slug);
+    for (const page of pages) writePage(existing.slug, page.file, page.content);
+
+    if (removedIds.length > 0) {
+      const unset = Object.fromEntries(removedIds.map((id) => [`credentialValues.${id}`, ""]));
+      await AssignmentModel.updateMany({ labId: existing._id }, { $unset: unset });
+    }
+
+    res.json({ ...existing.toObject(), pageCount: pages.length, mode: "overwrite" });
+    return;
+  }
+
+  const lab = await LabModel.create({
+    slug: meta.slug,
+    title: meta.title,
+    summary: meta.summary,
+    difficulty: meta.difficulty,
+    duration: meta.duration,
+    order: meta.order,
+    credentialVars: vars,
+  });
+  removeLab(lab.slug);
+  for (const page of pages) writePage(lab.slug, page.file, page.content);
+  res.status(201).json({ ...lab.toObject(), pageCount: pages.length, mode: "create" });
+});
+
 adminLabsRouter.get("/:slug", async (req, res) => {
   const lab = await LabModel.findOne({ slug: req.params.slug });
   if (!lab) {
@@ -43,6 +118,35 @@ adminLabsRouter.get("/:slug", async (req, res) => {
     return;
   }
   res.json({ ...lab.toObject(), pages: listPages(lab.slug) });
+});
+
+// Export a lab as a single downloadable .md archive (see lib/labArchive.ts).
+adminLabsRouter.get("/:slug/export", async (req, res) => {
+  const lab = await LabModel.findOne({ slug: req.params.slug });
+  if (!lab) {
+    res.status(404).json({ error: "lab not found" });
+    return;
+  }
+  const pages = listPages(lab.slug).map((p) => ({ file: p.file, content: readPage(lab.slug, p.file) }));
+  const doc = serializeLab(
+    {
+      slug: lab.slug,
+      title: lab.title,
+      summary: lab.summary,
+      difficulty: lab.difficulty,
+      duration: lab.duration,
+      order: lab.order,
+      credentialVars: lab.credentialVars.map((v) => ({
+        _id: String(v._id),
+        label: v.label,
+        type: v.type,
+      })),
+    },
+    pages,
+  );
+  res.type("text/markdown");
+  res.setHeader("Content-Disposition", `attachment; filename="${lab.slug}.md"`);
+  res.send(doc);
 });
 
 adminLabsRouter.patch("/:slug", async (req, res) => {
