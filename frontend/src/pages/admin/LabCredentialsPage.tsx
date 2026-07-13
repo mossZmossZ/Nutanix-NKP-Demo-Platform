@@ -2,19 +2,13 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { AppShell } from "@/layouts/AppShell";
 import { adminNav } from "./adminNav";
 import { Button } from "@/components/ui/button";
-import { KeyRound, Plus, Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { KeyRound, Link2, Plus, Trash2, Type as TypeIcon, FileCode } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
-
-const selectClass =
-  "h-10 rounded-md border border-input bg-surface px-sm py-xs text-body text-foreground " +
-  "outline-none transition-[color,border-color,box-shadow] duration-[var(--duration-fast)] ease-standard " +
-  "hover:border-ink-500/40 focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-primary/12 " +
-  "disabled:cursor-not-allowed disabled:opacity-50";
-
-const inputClass =
-  "h-10 w-full rounded-md border border-input bg-surface px-sm py-xs text-body text-foreground " +
-  "outline-none transition-[color,border-color,box-shadow] duration-[var(--duration-fast)] ease-standard " +
-  "hover:border-ink-500/40 focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-primary/12";
+import { cn } from "@/lib/utils";
 
 type VarType = "endpoint" | "yaml" | "text";
 type CredentialVar = { _id: string; label: string; type: VarType };
@@ -27,10 +21,21 @@ type Assignment = {
 };
 
 const TYPE_OPTIONS: { value: VarType; label: string }[] = [
-  { value: "text", label: "text (plain copy)" },
-  { value: "endpoint", label: "endpoint (URL)" },
-  { value: "yaml", label: "yaml (code block)" },
+  { value: "text", label: "text — plain copy" },
+  { value: "endpoint", label: "endpoint — URL" },
+  { value: "yaml", label: "yaml — code block" },
 ];
+
+const TYPE_META: Record<VarType, { icon: typeof Link2; hint: string }> = {
+  endpoint: { icon: Link2, hint: "https://…" },
+  yaml: { icon: FileCode, hint: "paste yaml…" },
+  text: { icon: TypeIcon, hint: "" },
+};
+
+const textareaClass =
+  "flex min-h-32 w-full resize-y rounded-md border border-input bg-surface px-sm py-sm font-mono text-body-sm text-foreground " +
+  "placeholder:text-muted-foreground outline-none transition-[color,border-color,box-shadow] duration-[var(--duration-fast)] ease-standard " +
+  "hover:border-ink-500/40 focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-primary/12";
 
 export function LabCredentialsPage() {
   const [labs, setLabs] = useState<Lab[]>([]);
@@ -158,168 +163,199 @@ export function LabCredentialsPage() {
 
   return (
     <AppShell nav={adminNav} title="Lab Credentials">
-      <div className="flex flex-col gap-6">
-        <div>
-          <h2 className="text-3xl font-bold text-foreground">Lab Credentials</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Define the credential variables a lab shows, then fill each participant&apos;s values.
-          </p>
+      <div className="mx-auto flex max-w-5xl flex-col gap-lg">
+        {/* Header */}
+        <div className="flex items-start gap-md">
+          <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <KeyRound className="size-5" />
+          </div>
+          <div>
+            <h2 className="text-h2 text-foreground">Lab Credentials</h2>
+            <p className="mt-xxs text-body-sm text-muted-foreground">
+              Define the credential variables a lab shows, then fill in each participant&apos;s values.
+            </p>
+          </div>
         </div>
 
         {error && (
-          <p role="alert" className="rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm font-medium text-destructive">
+          <p role="alert" className="rounded-md border border-destructive/20 bg-destructive/10 p-md text-body-sm font-medium text-destructive">
             {error}
           </p>
         )}
 
         {/* Lab picker */}
-        <label className="flex max-w-sm flex-col gap-xs">
+        <div className="flex flex-col gap-xs sm:max-w-sm">
           <span className="text-label text-muted-foreground">Lab</span>
-          <select className={selectClass} value={labSlug} onChange={(e) => setLabSlug(e.target.value)}>
-            <option value="" disabled>
-              Select a lab
-            </option>
-            {labs.map((l) => (
-              <option key={l._id} value={l.slug}>
-                {l.title}
-              </option>
-            ))}
-          </select>
-        </label>
+          <Select value={labSlug} onValueChange={setLabSlug}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select a lab" />
+            </SelectTrigger>
+            <SelectContent>
+              {labs.map((l) => (
+                <SelectItem key={l._id} value={l.slug}>
+                  {l.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        {selectedLab && (
-          <div className="grid gap-6 lg:grid-cols-2">
+        {selectedLab ? (
+          <div className="grid gap-lg lg:grid-cols-2">
             {/* Section 1 — variable schema */}
-            <section className="rounded-lg border border-border/40 bg-card p-5 shadow-sm">
-              <h3 className="text-sm font-semibold text-foreground">Variables</h3>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Shared by every participant of this lab. Edit = remove and re-add.
-              </p>
-
-              <ul className="mt-4 flex flex-col gap-2">
-                {vars.length === 0 && (
-                  <li className="text-sm text-muted-foreground">No variables yet.</li>
-                )}
-                {vars.map((v) => (
-                  <li
-                    key={v._id}
-                    className="flex items-center justify-between gap-2 rounded-md border border-border/40 bg-muted/30 px-3 py-2"
-                  >
-                    <span className="font-mono text-sm text-foreground">{v.label}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">{v.type}</span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        aria-label={`Remove ${v.label}`}
-                        className="size-7 p-0 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                        onClick={() => onRemoveVar(v._id)}
+            <Card className="shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  Variables
+                  <Badge variant="neutral">{vars.length}</Badge>
+                </CardTitle>
+                <CardDescription>
+                  Shared by every participant of this lab. Editing = remove and re-add.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-md">
+                <ul className="flex flex-col gap-xs">
+                  {vars.length === 0 && (
+                    <li className="rounded-md border border-dashed border-border/60 px-md py-lg text-center text-body-sm text-muted-foreground">
+                      No variables yet — add one below.
+                    </li>
+                  )}
+                  {vars.map((v) => {
+                    const Icon = TYPE_META[v.type].icon;
+                    return (
+                      <li
+                        key={v._id}
+                        className="group flex items-center gap-sm rounded-md border border-border bg-surface px-md py-sm transition-colors hover:border-ink-500/40"
                       >
-                        <Trash2 className="size-3.5" />
-                      </Button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+                        <Icon className="size-4 shrink-0 text-muted-foreground" />
+                        <span className="flex-1 truncate font-mono text-body-sm text-foreground">{v.label}</span>
+                        <Badge variant="neutral" className="font-normal">{v.type}</Badge>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          aria-label={`Remove ${v.label}`}
+                          className="size-8 p-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100"
+                          onClick={() => onRemoveVar(v._id)}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </li>
+                    );
+                  })}
+                </ul>
 
-              <form onSubmit={onAddVar} className="mt-4 flex items-end gap-2">
-                <label className="flex flex-1 flex-col gap-xs">
-                  <span className="text-label text-muted-foreground">Label</span>
-                  <input
-                    className={inputClass}
-                    value={newLabel}
-                    onChange={(e) => setNewLabel(e.target.value)}
-                    placeholder="e.g. nkp_dashboard"
-                  />
-                </label>
-                <label className="flex flex-col gap-xs">
-                  <span className="text-label text-muted-foreground">Type</span>
-                  <select className={selectClass} value={newType} onChange={(e) => setNewType(e.target.value as VarType)}>
-                    {TYPE_OPTIONS.map((t) => (
-                      <option key={t.value} value={t.value}>
-                        {t.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <Button type="submit" variant="primary" className="gap-1" disabled={!newLabel.trim()}>
-                  <Plus className="size-4" />
-                  Add
-                </Button>
-              </form>
-              {varError && <p role="alert" className="mt-2 text-sm text-destructive">{varError}</p>}
-            </section>
+                <form onSubmit={onAddVar} className="flex flex-col gap-sm rounded-md border border-border/60 bg-canvas p-md">
+                  <div className="flex flex-col gap-sm sm:flex-row sm:items-end">
+                    <label className="flex flex-1 flex-col gap-xs">
+                      <span className="text-label text-muted-foreground">Label</span>
+                      <Input
+                        value={newLabel}
+                        onChange={(e) => setNewLabel(e.target.value)}
+                        placeholder="e.g. nkp_dashboard"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-xs sm:w-44">
+                      <span className="text-label text-muted-foreground">Type</span>
+                      <Select value={newType} onValueChange={(v) => setNewType(v as VarType)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TYPE_OPTIONS.map((t) => (
+                            <SelectItem key={t.value} value={t.value}>
+                              {t.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </label>
+                  </div>
+                  <Button type="submit" variant="primary" className="gap-1 self-start" disabled={!newLabel.trim()}>
+                    <Plus className="size-4" />
+                    Add variable
+                  </Button>
+                  {varError && <p role="alert" className="text-body-sm text-destructive">{varError}</p>}
+                </form>
+              </CardContent>
+            </Card>
 
             {/* Section 2 — per-user values */}
-            <section className="rounded-lg border border-border/40 bg-card p-5 shadow-sm">
-              <h3 className="text-sm font-semibold text-foreground">Participant values</h3>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Each value maps 1:1 to the selected user.
-              </p>
+            <Card className="shadow-sm">
+              <CardHeader>
+                <CardTitle>Participant values</CardTitle>
+                <CardDescription>Each value maps 1:1 to the selected user.</CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-md">
+                <div className="flex flex-col gap-xs">
+                  <span className="text-label text-muted-foreground">User</span>
+                  <Select value={userId} onValueChange={setUserId} disabled={labAssignments.length === 0}>
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder={labAssignments.length === 0 ? "No users assigned to this lab" : "Select a user"}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {labAssignments.map((a) => (
+                        <SelectItem key={a.id} value={a.user.id}>
+                          {a.user.username}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <label className="mt-4 flex flex-col gap-xs">
-                <span className="text-label text-muted-foreground">User</span>
-                <select
-                  className={selectClass}
-                  value={userId}
-                  onChange={(e) => setUserId(e.target.value)}
-                  disabled={labAssignments.length === 0}
-                >
-                  <option value="" disabled>
-                    {labAssignments.length === 0 ? "No users assigned to this lab" : "Select a user"}
-                  </option>
-                  {labAssignments.map((a) => (
-                    <option key={a.id} value={a.user.id}>
-                      {a.user.username}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              {selectedAssignment && (
-                <form onSubmit={onSaveValues} className="mt-4 flex flex-col gap-4">
-                  {vars.length === 0 && (
-                    <p className="text-sm text-muted-foreground">Add a variable first.</p>
-                  )}
-                  {vars.map((v) => (
-                    <label key={v._id} className="flex flex-col gap-xs">
-                      <span className="text-label text-muted-foreground">
-                        {v.label} <span className="text-muted-foreground/60">· {v.type}</span>
+                {!selectedAssignment ? (
+                  <p className="rounded-md border border-dashed border-border/60 px-md py-lg text-center text-body-sm text-muted-foreground">
+                    Select a user to fill their values.
+                  </p>
+                ) : vars.length === 0 ? (
+                  <p className="rounded-md border border-dashed border-border/60 px-md py-lg text-center text-body-sm text-muted-foreground">
+                    Add a variable first.
+                  </p>
+                ) : (
+                  <form onSubmit={onSaveValues} className="flex flex-col gap-md">
+                    {vars.map((v) => (
+                      <label key={v._id} className="flex flex-col gap-xs">
+                        <span className="flex items-center gap-xs text-label text-muted-foreground">
+                          <span className="font-mono normal-case text-foreground">{v.label}</span>
+                          <Badge variant="neutral" className="font-normal">{v.type}</Badge>
+                        </span>
+                        {v.type === "yaml" ? (
+                          <textarea
+                            className={textareaClass}
+                            value={formValues[v._id] ?? ""}
+                            onChange={(e) => setFormValues((p) => ({ ...p, [v._id]: e.target.value }))}
+                            placeholder={TYPE_META[v.type].hint}
+                          />
+                        ) : (
+                          <Input
+                            className="font-mono"
+                            value={formValues[v._id] ?? ""}
+                            onChange={(e) => setFormValues((p) => ({ ...p, [v._id]: e.target.value }))}
+                            placeholder={TYPE_META[v.type].hint}
+                          />
+                        )}
+                      </label>
+                    ))}
+                    <div className="flex items-center gap-sm">
+                      <Button type="submit" variant="primary">Save values</Button>
+                      <span
+                        className={cn(
+                          "text-body-sm text-success transition-opacity duration-[var(--duration-base)]",
+                          saved ? "opacity-100" : "opacity-0",
+                        )}
+                      >
+                        Saved
                       </span>
-                      {v.type === "yaml" ? (
-                        <textarea
-                          className={`${inputClass} h-32 resize-y py-sm font-mono`}
-                          value={formValues[v._id] ?? ""}
-                          onChange={(e) => setFormValues((p) => ({ ...p, [v._id]: e.target.value }))}
-                          placeholder="paste yaml…"
-                        />
-                      ) : (
-                        <input
-                          className={`${inputClass} font-mono`}
-                          value={formValues[v._id] ?? ""}
-                          onChange={(e) => setFormValues((p) => ({ ...p, [v._id]: e.target.value }))}
-                          placeholder={v.type === "endpoint" ? "https://…" : ""}
-                        />
-                      )}
-                    </label>
-                  ))}
-                  {vars.length > 0 && (
-                    <div className="flex items-center gap-3">
-                      <Button type="submit" variant="primary">
-                        Save
-                      </Button>
-                      {saved && <span className="text-sm text-success">Saved</span>}
                     </div>
-                  )}
-                  {saveError && <p role="alert" className="text-sm text-destructive">{saveError}</p>}
-                </form>
-              )}
-            </section>
+                    {saveError && <p role="alert" className="text-body-sm text-destructive">{saveError}</p>}
+                  </form>
+                )}
+              </CardContent>
+            </Card>
           </div>
-        )}
-
-        {!selectedLab && (
-          <div className="flex items-center gap-2 rounded-lg border border-dashed border-border/60 p-6 text-sm text-muted-foreground">
+        ) : (
+          <div className="flex items-center gap-sm rounded-md border border-dashed border-border/60 p-xl text-body-sm text-muted-foreground">
             <KeyRound className="size-4" />
             Select a lab to manage its credentials.
           </div>
