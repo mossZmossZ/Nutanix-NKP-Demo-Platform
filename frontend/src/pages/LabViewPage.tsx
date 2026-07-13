@@ -144,7 +144,16 @@ export function LabViewPage() {
                 <ResizablePanel id="docs" minSize="29%">
                   {guide}
                 </ResizablePanel>
-                <ResizableHandle />
+                {/* Only the drag handle should rebalance the split. v4 wires a
+                    native keydown resize on the separator; it early-returns when
+                    the event is already defaultPrevented, so preventing arrow
+                    keys in the capture phase (before that native listener) is
+                    enough to disable keyboard resizing without touching drag. */}
+                <ResizableHandle
+                  onKeyDownCapture={(e) => {
+                    if (e.key.startsWith("Arrow")) e.preventDefault()
+                  }}
+                />
                 <ResizablePanel id="remote" minSize="33%">
                   {remoteSession}
                 </ResizablePanel>
