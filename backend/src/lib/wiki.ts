@@ -92,6 +92,34 @@ export function writePage(
   fs.writeFileSync(path.join(dir, file), content);
 }
 
+/**
+ * Create a new page from a title: filename is NN-<slugified-title>.md where NN
+ * is one past the highest existing page number, seeded with a `# <title>`
+ * heading. Returns the new page's metadata. No renumbering of siblings.
+ */
+export function createPage(
+  slug: string,
+  title: string,
+  root: string = env.wikiDir,
+): WikiPage {
+  const pages = listPages(slug, root);
+  const order = (pages.length ? Math.max(...pages.map((p) => p.order)) : 0) + 1;
+  const nn = String(order).padStart(2, "0");
+  const namePart = title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const file = `${nn}-${namePart || "page"}.md`;
+  writePage(slug, file, `# ${title}\n`, root);
+  return { file, order, title };
+}
+
+/** Delete one page file. Caller enforces the "keep at least one page" rule. */
+export function deletePage(slug: string, file: string, root: string = env.wikiDir): void {
+  assertSafeFile(file);
+  fs.rmSync(path.join(labDir(slug, root), file), { force: true });
+}
+
 /** Recursively remove wiki/<slug>/. */
 export function removeLab(slug: string, root: string = env.wikiDir): void {
   fs.rmSync(labDir(slug, root), { recursive: true, force: true });
