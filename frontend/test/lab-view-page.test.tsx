@@ -28,6 +28,7 @@ const baseDetail = {
   lab: { slug: 'nkp-basics', title: 'NKP Basics', summary: '', difficulty: 'Beginner', duration: '30 min' },
   pages: [],
   completedPages: [],
+  credentials: [{ id: 'v1', label: 'namespace', type: 'text', value: 'team-a' }],
   connection: { rdpHost: '10.0.0.5', rdpPort: 3389, rdpUser: 'trainee', rdpPassword: 'hunter2' },
 }
 
@@ -47,7 +48,7 @@ test('shows a not-assigned message on 404', async () => {
   expect(await screen.findByText(/lab not available/i)).toBeInTheDocument()
 })
 
-test('switching to the Credentials tab shows the connection details', async () => {
+test('switching to the Credentials tab shows the lab credentials', async () => {
   vi.mocked(api).mockResolvedValueOnce(baseDetail)
   const user = userEvent.setup()
 
@@ -63,7 +64,7 @@ test('switching to the Credentials tab shows the connection details', async () =
   // explicitly first so the click's activation fires as it would in a browser.
   credentialsTab.focus()
   await user.click(credentialsTab)
-  expect(screen.getByText('10.0.0.5:3389')).toBeInTheDocument()
+  expect(screen.getByText('team-a')).toBeInTheDocument()
 })
 
 test('marking a page complete in GuidePane propagates into completedPages', async () => {

@@ -194,16 +194,59 @@ sync with reality (it's the "current state" file).
       top dropdown+progress, responsive split + <1280 tabbed fallback, transitions, skeletons,
       prefetch, connecting placeholder, reduced-motion honored) + automated gates green **on Windows**.
 
-**4e — Credentials system** _(new feature — grill separately before building)_
-> From item 1b + item 2. New admin **Lab Credentials** page: define credential **variables**
-> (types: user / password / endpoint / yaml), variables are **global**, credential **data maps
-> 1:1 to users**; bind the resulting creds into the lab workshop Credentials tab. Decision tree
-> not yet resolved — needs its own grilling session.
+**4e — Credentials system** ✅ (built; automated gates green — awaiting maintainer functional check)
+> **Grilled + built 2026-07-13.** Resolved model: a **Lab owns a list of credential variables**
+> (`Lab.credentialVars: [{_id, label, type}]`, types **endpoint / yaml / text** — password type
+> dropped, **all plaintext** per maintainer). Every participant of the lab sees the **same
+> variable set**; each **value is per-user**, stored on the **Assignment** (`credentialValues`
+> Map keyed by var `_id`) → revoking the assignment clears the values. Unfilled variables are
+> **hidden** in the participant Credentials tab.
+> - **Backend:** `Lab.credentialVars` + `Assignment.credentialValues`; admin `POST/DELETE
+>   /admin/labs/:slug/credential-vars` (add/remove; delete `$unset`s the key from all the lab's
+>   assignments); admin `PATCH /admin/assignments/:id/credentials`; `GET /api/me/labs/:slug` now
+>   returns `credentials` (this user's **filled** vars). `connection` (RDP) stays in the payload
+>   for the Phase-5 Guacamole token but is **no longer shown** in the Credentials tab.
+> - **Frontend:** existing machine-assignment page renamed **"Lab Machines"** (`LabMachinesPage`,
+>   `/admin/lab-machines`); **new "Lab Credentials"** page (`/admin/lab-credentials`) — pick lab →
+>   define vars (add/remove) → pick assigned user → per-field form → save. Participant
+>   `CredentialsPanel` rewritten: RDP dropped; renders per-user vars (endpoint=link+copy,
+>   yaml=highlighted code block+copy, text=mono+copy) with an empty state.
+> - **UX/UI finalizer (2026-07-13):** Lab selector redesigned from bare dropdown → full-width
+>   context bar (icon + selected-lab name + search dropdown with title/slug rows). Variables +
+>   Participant cards now split at `md:` (768px, was `lg:` 1024px) with matched heights (`flex
+>   flex-col`). Empty states centered with icons. Toast notifications (`sonner`, design.md
+>   tokens) for save success/failure — slide-in from right at top-right corner. Content fills
+>   available width (removed `mx-auto max-w-5xl`).
+> - **Gates:** backend typecheck/lint + **129 tests** green; frontend typecheck/lint/build green;
+>   suite **7 failed (frozen Phase-2 set) / 33 passed**. Live-stack functional check is maintainer manual.
 
-**4f — Lab authoring (export / import + generator)** _(new feature — grill separately before building)_
+**4f — Lab authoring (export / import + generator)**
 > From item 6 + item 7. Export/Import a lab as a single `.md` file (backup + continue dev), and
 > a `backend/script` lab generator producing guide markdown with yaml support, credential-copy,
-> pictures, and highlighting. Format + tooling not yet resolved — needs its own grilling session.
+> pictures, and highlighting.
+- [~] **Export / Import (single-file `.md`)** — **BUILT (2026-07-13, grilled first) pending maintainer
+      functional check.** Format (locked): YAML frontmatter (all Lab fields + `credentialVars` **with
+      `_id`s**) then guide pages delimited by `<!-- page: NN-name.md -->` markers. Images are S3 URLs in
+      the page markdown → round-trip as text (no binary handling). New `lib/labArchive.ts`
+      (`serializeLab`/`parseLabArchive` + validation). `GET /admin/labs/:slug/export` (downloads
+      `<slug>.md`); `POST /admin/labs/import` `{content, mode?}` — **create** (409 on dup slug, response
+      carries `assignmentCount`) or **overwrite** (reuses credentialVar `_id`s so per-user values on
+      Assignments survive; vars dropped from the file are `$unset` across the lab's assignments). Express
+      json limit bumped 100kb→2mb. Frontend `LabManagementPage`: header **Import** (file picker → 409 →
+      overwrite-confirm dialog warning about cleared values) + per-card **Export** (anchor download) +
+      `sonner` toasts. Backend **140 tests** (+11: round-trip, create, dup-409, overwrite-reconcile,
+      malformed-400, RBAC-403) + lint green; frontend typecheck/lint clean on new code (build blocked
+      only by the pre-existing `sonner.tsx` Toaster wart).
+- [~] **Reference/example lab** — **BUILT (2026-07-13, grilled first) pending maintainer
+      functional check.** Resolved (grilling): the "generator" is not a script — Import already
+      exists, so the deliverable is a single checked-in archive `backend/examples/example-lab.md`
+      (+ `README.md`) that an admin imports via **Lab management → Import** to see every guide
+      feature and copy as an authoring template. Content: 4 pages (markdown basics + GFM table /
+      yaml+bash fenced blocks with highlight+copy / credentials explainer / placeholder image)
+      and 3 `credentialVars` — one each of endpoint/yaml/text. Image uses `placehold.co` (absolute
+      URL) with a comment showing the S3 form, since import carries no binary images. No runtime
+      code touched; verified the file parses via the real `parseLabArchive` (4 pages, 3 cred vars,
+      filenames valid, round-trips) + backend typecheck/lint green.
 
 ## Phase 5 — In-browser RDP (Guacamole, lightweight & in-app)  ◀◀◀ NEXT
 > **Lightweight, in-app canvas** (not the Java webapp): only `guacd` + a `guacamole-lite` Node
@@ -220,10 +263,34 @@ sync with reality (it's the "current state" file).
 ## Phase 6 — Dynamic provisioning (Terraform + Ansible + BullMQ)
 - [x] `Machine` model — **landed early in Phase 4a** (`Machine.ts`) as a static pool; admin
       assigns creds *from a machine*. Phase 6 adds `source: 'dynamic'` + provisioning status on top.
-- [ ] **Machine Pool console** (folded in from 4d item 3) — recast the admin Machines page as a
-      **Machine Pool** view: Node / vCPU / Memory from the pool record, **Owner → mapped user**,
-      status via **health-check ping → UP / DOWN** (replaces Ready/provisioning/issue), and the
-      "view log" action → **SSH web terminal (xterm.js)**. Grill separately (needs a live host to verify).
+      **Updated 2026-07-13:** added `vcpu`, `memory`, `os`, `drive` optional fields for rich dashboard.
+- [x] **Machine Pool console** (folded in from 4d item 3) — ✅ **COMPLETE (2026-07-13):**
+>       Merged mock `/admin/machines` + real `MachinePoolPage` into a single card-grid
+>       dashboard at `/admin/machines`. Stats bar (Total/Free/Assigned/UP/DOWN) + per-machine
+>       cards (OS, vCPU, Memory, Drive dropdowns + free-text Drive on import/edit). Live
+>       TCP health-check polling (UP/DOWN badges, 30s, not persisted). "Open Console"
+>       button → placeholder modal ("coming soon"). Delete confirmation dialog + import/delete
+>       success toasts (`sonner`). `vcpu`/`memory`/`os`/`drive` fields added to backend
+>       Machine model. Nav consolidated — "Machine Pool" entry removed.
+>       Backend + frontend typecheck/lint green. **User signoff received.**
+> - [~] SSH web terminal (xterm.js) — **BUILT (2026-07-13) pending maintainer review/signoff:**
+>       Replaced "coming soon" placeholder with live SSH console modal (`max-w-5xl`, 500px
+>       terminal). Admin clicks "Open Console" → modal opens with a dark terminal-chrome header
+>       (machine name, live SSH health status badge, hardware specs, host:port) + xterm.js
+>       terminal body. Backend: WebSocket upgrade at `/api/ws/console/:machineId` (same-origin,
+>       cookie-auth, admin-only) → `ws` + `ssh2` creates an SSH shell, piping I/O bidirectionally
+>       with pty resize sync. Error overlay on connection failure, connecting spinner,
+>       disconnected state. New `sshPort` field on Machine model (default 22) exposed in
+>       import/edit forms. New `GET /admin/machines/:id/health/ssh` endpoint (TCP ping to
+>       `sshPort`). Frontend: `combinedHealth` (`useMemo` merging RDP + SSH health) drives
+>       stats bar (UP/DOWN counts) and card health badges — machine shows UP if either port
+>       reachable. Chrome header uses design tokens (`bg-ink-900`, `primary`, `success`/`danger`/
+>       `warning`). Close button removed from terminal (modal's built-in X suffices); xterm.js
+>       init delayed via `ResizeObserver` until container has dimensions (avoids Dialog-animation
+>       crash). Added deps: `ssh2`, `ws`, `@xterm/xterm`, `@xterm/addon-fit` + type stubs.
+>       Backend + frontend typecheck/lint green. Vite proxy configured for WebSocket upgrade
+>       (`ws: true`). Build green modulo pre-existing sonner.tsx `Toaster` issue.
+
 - [ ] BullMQ queue + worker process; `Job` model
 - [ ] Provisioning adapter: workdir + `execa` terraform → ansible + log streaming
 - [ ] Nutanix Terraform template + Ansible playbook (NKP tooling + xrdp) in `/infra`

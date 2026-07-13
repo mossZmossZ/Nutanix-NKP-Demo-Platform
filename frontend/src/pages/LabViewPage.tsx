@@ -8,7 +8,7 @@ import { FlaskConical } from "lucide-react"
 import { api, ApiError } from "@/lib/api"
 import { useMediaQuery } from "@/lib/useMediaQuery"
 import { GuidePane } from "./lab-view/GuidePane"
-import { CredentialsPanel } from "./lab-view/CredentialsPanel"
+import { CredentialsPanel, type LabCredential } from "./lab-view/CredentialsPanel"
 import { RemotePanel } from "./lab-view/RemotePanel"
 
 const nav: NavItem[] = [{ label: "My Labs", to: "/lab-access", icon: <FlaskConical /> }]
@@ -33,6 +33,8 @@ type LabDetail = {
   lab: { slug: string; title: string; summary: string; difficulty: string; duration: string }
   pages: { file: string; order: number; title: string }[]
   completedPages: string[]
+  credentials: LabCredential[]
+  // Still returned for the Phase-5 Remote/Guacamole token; no longer shown here.
   connection: { rdpHost: string; rdpPort: number; rdpUser: string; rdpPassword: string }
 }
 
@@ -123,7 +125,7 @@ export function LabViewPage() {
                   value="credentials"
                   className="min-h-0 flex-1 overflow-y-auto duration-[var(--duration-base)] ease-standard animate-in fade-in"
                 >
-                  <CredentialsPanel connection={detail.connection} />
+                  <CredentialsPanel credentials={detail.credentials} />
                 </TabsContent>
               </Tabs>
             )
@@ -144,7 +146,16 @@ export function LabViewPage() {
                 <ResizablePanel id="docs" minSize="29%">
                   {guide}
                 </ResizablePanel>
-                <ResizableHandle />
+                {/* Only the drag handle should rebalance the split. v4 wires a
+                    native keydown resize on the separator; it early-returns when
+                    the event is already defaultPrevented, so preventing arrow
+                    keys in the capture phase (before that native listener) is
+                    enough to disable keyboard resizing without touching drag. */}
+                <ResizableHandle
+                  onKeyDownCapture={(e) => {
+                    if (e.key.startsWith("Arrow")) e.preventDefault()
+                  }}
+                />
                 <ResizablePanel id="remote" minSize="33%">
                   {remoteSession}
                 </ResizablePanel>

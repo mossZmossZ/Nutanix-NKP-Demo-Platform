@@ -11,6 +11,11 @@ const machineSchema = new Schema(
     rdpUser: { type: String, required: true, trim: true },
     rdpPassword: { type: String, required: true },
     status: { type: String, enum: ["free", "assigned"], default: "free" },
+    vcpu: { type: Number },
+    memory: { type: String },
+    os: { type: String },
+    drive: { type: String },
+    sshPort: { type: Number, default: 22 },
   },
   { timestamps: true },
 );

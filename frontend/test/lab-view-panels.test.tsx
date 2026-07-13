@@ -4,7 +4,7 @@ import { vi } from 'vitest'
 import { CredentialsPanel } from '@/pages/lab-view/CredentialsPanel'
 import { RemotePanel } from '@/pages/lab-view/RemotePanel'
 
-test('CredentialsPanel shows connection fields and copies a value on click', async () => {
+test('CredentialsPanel shows lab credentials and copies a value on click', async () => {
   const writeText = vi.fn().mockResolvedValue(undefined)
   const user = userEvent.setup()
   // userEvent.setup() installs its own getter-only navigator.clipboard stub,
@@ -18,13 +18,21 @@ test('CredentialsPanel shows connection fields and copies a value on click', asy
 
   render(
     <CredentialsPanel
-      connection={{ rdpHost: '10.0.0.5', rdpPort: 3389, rdpUser: 'trainee', rdpPassword: 'hunter2' }}
+      credentials={[
+        { id: '1', label: 'namespace', type: 'text', value: 'team-a' },
+        { id: '2', label: 'dashboard', type: 'endpoint', value: 'https://nkp.example' },
+      ]}
     />,
   )
 
-  expect(screen.getByText('10.0.0.5:3389')).toBeInTheDocument()
-  await user.click(screen.getByRole('button', { name: /copy password/i }))
-  expect(writeText).toHaveBeenCalledWith('hunter2')
+  expect(screen.getByText('team-a')).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: /copy dashboard/i }))
+  expect(writeText).toHaveBeenCalledWith('https://nkp.example')
+})
+
+test('CredentialsPanel shows an empty state when there are no credentials', () => {
+  render(<CredentialsPanel credentials={[]} />)
+  expect(screen.getByText(/no credentials for this lab/i)).toBeInTheDocument()
 })
 
 test('RemotePanel shows the connecting placeholder', () => {

@@ -56,11 +56,26 @@ meRouter.get("/labs/:slug", async (req: AuthedRequest, res) => {
     rdpUser: string;
     rdpPassword: string;
   };
+  // The Credentials tab shows the lab's variables filled with THIS user's
+  // values; unfilled variables are dropped so a half-configured lab doesn't
+  // look broken to the participant.
+  const values = assignment.credentialValues;
+  const credentials = lab.credentialVars
+    .map((v) => ({
+      id: v._id.toString(),
+      label: v.label,
+      type: v.type,
+      value: values?.get(v._id.toString()) ?? "",
+    }))
+    .filter((c) => c.value !== "");
   res.json({
     id: assignment.id,
     lab: labSummary(lab),
     pages: listPages(lab.slug),
     completedPages: assignment.completedPages,
+    credentials,
+    // connection stays for the Phase-5 Remote/Guacamole token; no longer shown
+    // in the Credentials tab.
     connection: {
       rdpHost: machine.rdpHost,
       rdpPort: machine.rdpPort,

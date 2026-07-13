@@ -30,6 +30,7 @@ function assignmentDTO(a: {
     status: string;
   };
   completedPages: string[];
+  credentialValues?: Map<string, string>;
 }) {
   const user =
     typeof a.userId === "object" ? { id: a.userId.id, username: a.userId.username } : a.userId;
@@ -46,6 +47,7 @@ function assignmentDTO(a: {
     rdpUser: m.rdpUser,
     rdpPassword: decryptSecret(m.rdpPassword),
     completedPages: a.completedPages,
+    credentialValues: Object.fromEntries(a.credentialValues ?? []),
   };
 }
 
@@ -108,6 +110,33 @@ adminAssignmentsRouter.post("/", async (req, res) => {
     }
     throw err;
   }
+});
+
+// Save a participant's per-user credential values for their assigned lab. Keys
+// are Lab.credentialVars subdoc _ids; the whole map is replaced with what the
+// admin submits (blank fields drop out via the frontend).
+adminAssignmentsRouter.patch("/:id/credentials", async (req, res) => {
+  if (!isValidObjectId(req.params.id)) {
+    res.status(404).json({ error: "assignment not found" });
+    return;
+  }
+  const { values } = req.body ?? {};
+  if (values === null || typeof values !== "object" || Array.isArray(values)) {
+    res.status(400).json({ error: "values must be an object" });
+    return;
+  }
+  const assignment = await AssignmentModel.findById(req.params.id);
+  if (!assignment) {
+    res.status(404).json({ error: "assignment not found" });
+    return;
+  }
+  assignment.credentialValues = new Map(
+    Object.entries(values as Record<string, unknown>)
+      .filter(([, v]) => typeof v === "string" && v.trim() !== "")
+      .map(([k, v]) => [k, v as string]),
+  );
+  await assignment.save();
+  res.json({ credentialValues: Object.fromEntries(assignment.credentialValues) });
 });
 
 adminAssignmentsRouter.delete("/:id", async (req, res) => {
