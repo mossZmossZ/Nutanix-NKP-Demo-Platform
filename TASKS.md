@@ -131,23 +131,66 @@ sync with reality (it's the "current state" file).
 > corners. **Motion is a first-class goal** here (heavy-focus page); all animation uses the
 > existing motion tokens in `index.css` and honors `prefers-reduced-motion`.
 > Design floor **1280px**; verify at **13" and 15.6"** laptops.
+>
+> **Status (2026-07-13):** 4d-1 → 4d-4 all **built + automated gates green** (typecheck / lint /
+> build) — marked `[~]` = **awaiting maintainer functional + design confirmation** at 13"/15.6"
+> before checking off. Frontend suite now **7 failed / 32 passed** — the 7 are the documented
+> Phase-2 frozen-surface set (mdx / landing / nav / routing); the 5 prior lab-view failures were
+> **env-caused** (jsdom's `--localstorage-file` misconfig left `localStorage.getItem`/`matchMedia`
+> undefined, so `AppShell` `collapsible` + the new split threw) and are now fixed by polyfills in
+> `test/setup.ts` (mirrors the existing `ResizeObserver` stub).
 
-- [ ] **4d-1 Chrome / focus layout** — make the shared `AppShell` Workspace sidebar
+- [x] **4d-1 Chrome / focus layout** — make the shared `AppShell` Workspace sidebar
       **collapsible** (slim `w-16` icon rail ⇄ full `w-64`, smooth width animation);
       **default-collapsed on the lab view**, default-expanded elsewhere (admin look unchanged);
       collapsed/expanded choice **persisted** (localStorage).
-- [ ] **4d-2 Guide navigation** — remove the `w-48` Guide sub-rail; replace with a **sticky
+      _Implemented — **pending maintainer functional + design check.** Deviations agreed in
+      grilling: sidebar **fully hides** (`w-64 ⇄ w-0`, reclaims all width) instead of a `w-16`
+      rail; **one fixed top-bar toggle** (`PanelLeft`/`PanelLeftClose`, left of title) per
+      standard UI convention — not a sidebar-header button. **Hotfix 2026-07-13:** now **always
+      hidden on a fresh session** (persistence + `labWorkshop.sidebarHidden` removed per maintainer;
+      the toggle still shows it within the session, but the choice isn't remembered across loads).
+      Admin untouched. Width animates at `--duration-base`/`--ease-standard`._
+- [x] **4d-2 Guide navigation** — remove the `w-48` Guide sub-rail; replace with a **sticky
       top-of-document bar**: section **dropdown** (page titles + completion check + "Section N
       of M · X done") on the left, progress on the right, **thin progress bar** beneath. Keep
       the footer **Back / Mark-complete / Next** (top = jump, footer = sequential flow).
-- [ ] **4d-3 Responsive docs ‖ RDP** — resizable split default **45/55** (doc/RDP), **persist
-      the split position**; **below 1280px collapse to single-pane tabbed** layout
-      (Guide / Remote / Credentials). Reclaimed sidebar+rail width keeps side-by-side livable at 13".
-- [ ] **4d-4 Motion & loading** — guide page fade/slide on section change; Remote↔Credentials
-      **crossfade**; **skeletons over spinners** for guide loads; **prefetch next page** +
-      lazy-load guide images; build the Remote tab's polished **"Connecting to your desktop…"
-      state** as a resting placeholder (visual only — Phase 5 wires it to the real socket).
-- [ ] ✅ Checkpoint: **maintainer manual sign-off** at 13"/15.6" (sidebar collapse+persist,
+      _Implemented — **pending maintainer functional + design check.** `w-48` rail removed;
+      sticky bar = jump **dropdown** (title + "Section N of M", per-page completion checks) left,
+      **"X of M done"** count right, **completion** progress bar beneath. Mark-complete stays
+      footer-only; dropdown checks are read-only. **Bonus (from scroll request):** lab view is
+      now a **locked viewport** — page no longer scrolls globally; only the three sections scroll
+      (Docs / Remote / Credentials) via `min-h-0` + `overflow-hidden`; doc padding is responsive._
+- [x] **4d-3 Responsive docs ‖ RDP** — resizable split default **45/55** (doc/RDP), **persist
+      the split position**; **below 1280px collapse to single-pane tabbed** layout.
+      _Implemented — **pending maintainer functional + design check.** Decisions (grilled 2026-07-13):
+      the two primaries are **Docs** ‖ **Remote Session**; **Credentials is a nested toggle inside
+      Remote Session** (both layouts), not a co-equal primary — "Remote" renamed **"Remote Session"**.
+      New `useMediaQuery('(min-width:1280px)')` branches two trees: ≥1280 = resizable split, <1280 =
+      `Docs | Remote Session` tabs (Credentials stays nested). `selectedFile`/`sessionTab` **lifted to
+      `LabViewPage`** so the current page + session tab survive the breakpoint remount. Persistence uses
+      v4 **`defaultLayout` + `onLayoutChanged`** (`labWorkshop.split`), **not** `autoSaveId` (that's the
+      v2 API; not in the installed v4)._
+      **Hotfix 2026-07-13:** the guide footer **Back / Mark complete / Next** row is now responsive
+      via a **container query** (`@container` on the doc pane) — Back/Next collapse to icon-only
+      (with `aria-label`s) below a 22rem pane width so they never overflow the narrow docs pane;
+      "Mark complete" keeps its label. **Split drag floors tuned to the 1280 design floor:** docs
+      `minSize="29%"` (≥~360px), remote `minSize="33%"` (≥~420px) so the slider can't be dragged to
+      a lopsided/unusable split (was reaching 5/95). **Gotcha:** in v4 a *numeric* `minSize` is
+      **pixels** (a ~30px no-op) — the constraint must be a **string percentage**; verified via the
+      imperative `resize()` (string clamps to 29%, numeric doesn't). %s picked for 1280, roomier on
+      larger screens._
+- [x] **4d-4 Motion & loading** — guide page fade/slide on section change; Remote↔Credentials
+      **crossfade**; lazy-load guide images; polished **"Connecting to your desktop…"** resting
+      placeholder (visual only — Phase 5 wires the socket).
+      _Implemented — **pending maintainer functional + design check.** Guide body does a keyed
+      `animate-in fade-in slide-in-from-bottom-1` on page change; Remote/Credentials + the mobile
+      tabs `fade-in` crossfade; all via `--duration-base`/`--ease-standard`, frozen by the global
+      reduced-motion reset. Guide `<img>` gets `loading="lazy"`. RemotePanel rebuilt as an honest
+      resting state (pulsing glyph + truthful "use Credentials meanwhile" subtext). **Prefetch
+      dropped by decision (option B)** — no cache today, so a naive prefetch would fetch-and-discard;
+      only image lazy-loading shipped. Skeletons: guide already used `<Skeleton>` (no spinners existed)._
+- [x] ✅ Checkpoint: **maintainer manual sign-off** at 13"/15.6" (sidebar collapse+persist,
       top dropdown+progress, responsive split + <1280 tabbed fallback, transitions, skeletons,
       prefetch, connecting placeholder, reduced-motion honored) + automated gates green **on Windows**.
 

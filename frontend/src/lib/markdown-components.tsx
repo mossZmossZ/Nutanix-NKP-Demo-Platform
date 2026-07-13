@@ -54,6 +54,7 @@ export function createMarkdownComponents(slug: string): Components {
         <img
           src={resolvedSrc}
           alt={alt ?? ""}
+          loading="lazy"
           className="my-lg max-w-full rounded-md border border-border"
           {...props}
         />

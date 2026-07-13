@@ -1,6 +1,6 @@
-import { useMemo, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { ChevronDown, Hexagon, Home, FlaskConical, ShieldCheck, FileText, LogOut } from 'lucide-react'
+import { ChevronDown, Hexagon, Home, FlaskConical, ShieldCheck, FileText, LogOut, PanelLeft, PanelLeftClose } from 'lucide-react'
 import { useAuth } from '@/auth/AuthContext'
 import {
   DropdownMenu,
@@ -19,10 +19,33 @@ export type NavItem = { label: string; to: string; icon?: ReactNode; disabled?: 
 // top bar, shared by Lab Access and Admin. Pages self-wrap via `children`
 // (not <Outlet/> — see task-5 integration contract); routing/lazy-loading
 // is wired later, not here.
-export function AppShell({ nav, title, children }: { nav: NavItem[]; title: string; children: ReactNode }) {
+// `collapsible` opts a surface into a hideable Workspace sidebar with a fixed
+// top-bar toggle (used by the lab workshop). Other surfaces omit it and render
+// the sidebar exactly as before.
+export function AppShell({
+  nav,
+  title,
+  children,
+  collapsible = false,
+  lockViewport = false,
+}: {
+  nav: NavItem[]
+  title: string
+  children: ReactNode
+  collapsible?: boolean
+  lockViewport?: boolean
+}) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const { pathname } = useLocation()
+
+  // Always start hidden on a fresh session (maintainer 2026-07-13): the lab view
+  // reclaims the width for its guide/RDP split. The toggle still shows it for the
+  // rest of the session, but the choice is intentionally not persisted.
+  const [sidebarHidden, setSidebarHidden] = useState(collapsible)
+  function toggleSidebar() {
+    setSidebarHidden((hidden) => !hidden)
+  }
 
   // Longest matching `to` wins, so a nested route (e.g. /admin/users) doesn't
   // also light up a parent entry (e.g. /admin).
@@ -45,8 +68,12 @@ export function AppShell({ nav, title, children }: { nav: NavItem[]; title: stri
   }
 
   return (
-    <div className="flex min-h-screen">
-      <aside className="flex w-64 shrink-0 flex-col border-r border-border bg-surface">
+    <div className={`flex ${lockViewport ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
+      <aside
+        className={`flex shrink-0 flex-col overflow-hidden bg-surface transition-[width] duration-[var(--duration-base)] ease-standard ${
+          collapsible && sidebarHidden ? 'w-0' : 'w-64 border-r border-border'
+        }`}
+      >
         <div className="flex h-16 shrink-0 items-center gap-xs border-b border-border px-lg">
           <Link
             to="/"
@@ -101,7 +128,20 @@ export function AppShell({ nav, title, children }: { nav: NavItem[]; title: stri
 
       <div className="flex flex-1 flex-col">
         <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-surface px-xl">
-          <span className="text-h3 text-foreground">{title}</span>
+          <div className="flex items-center gap-sm">
+            {collapsible ? (
+              <button
+                type="button"
+                onClick={toggleSidebar}
+                aria-label={sidebarHidden ? 'Show sidebar' : 'Hide sidebar'}
+                aria-expanded={!sidebarHidden}
+                className="rounded-md p-xs text-muted-foreground transition-colors duration-[var(--duration-base)] ease-standard hover:bg-accent hover:text-accent-foreground"
+              >
+                {sidebarHidden ? <PanelLeft className="size-5" /> : <PanelLeftClose className="size-5" />}
+              </button>
+            ) : null}
+            <span className="text-h3 text-foreground">{title}</span>
+          </div>
 
           {user ? (
             <DropdownMenu>
@@ -219,7 +259,9 @@ export function AppShell({ nav, title, children }: { nav: NavItem[]; title: stri
           ) : null}
         </header>
 
-        <main className="flex-1 bg-canvas px-xl py-lg">{children}</main>
+        <main className={`flex-1 bg-canvas px-xl py-lg ${lockViewport ? 'min-h-0 overflow-hidden' : ''}`}>
+          {children}
+        </main>
       </div>
     </div>
   )
