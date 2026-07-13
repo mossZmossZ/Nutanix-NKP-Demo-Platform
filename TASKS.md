@@ -194,11 +194,25 @@ sync with reality (it's the "current state" file).
       top dropdown+progress, responsive split + <1280 tabbed fallback, transitions, skeletons,
       prefetch, connecting placeholder, reduced-motion honored) + automated gates green **on Windows**.
 
-**4e — Credentials system** _(new feature — grill separately before building)_
-> From item 1b + item 2. New admin **Lab Credentials** page: define credential **variables**
-> (types: user / password / endpoint / yaml), variables are **global**, credential **data maps
-> 1:1 to users**; bind the resulting creds into the lab workshop Credentials tab. Decision tree
-> not yet resolved — needs its own grilling session.
+**4e — Credentials system** ✅ (built; automated gates green — awaiting maintainer functional check)
+> **Grilled + built 2026-07-13.** Resolved model: a **Lab owns a list of credential variables**
+> (`Lab.credentialVars: [{_id, label, type}]`, types **endpoint / yaml / text** — password type
+> dropped, **all plaintext** per maintainer). Every participant of the lab sees the **same
+> variable set**; each **value is per-user**, stored on the **Assignment** (`credentialValues`
+> Map keyed by var `_id`) → revoking the assignment clears the values. Unfilled variables are
+> **hidden** in the participant Credentials tab.
+> - **Backend:** `Lab.credentialVars` + `Assignment.credentialValues`; admin `POST/DELETE
+>   /admin/labs/:slug/credential-vars` (add/remove; delete `$unset`s the key from all the lab's
+>   assignments); admin `PATCH /admin/assignments/:id/credentials`; `GET /api/me/labs/:slug` now
+>   returns `credentials` (this user's **filled** vars). `connection` (RDP) stays in the payload
+>   for the Phase-5 Guacamole token but is **no longer shown** in the Credentials tab.
+> - **Frontend:** existing machine-assignment page renamed **"Lab Machines"** (`LabMachinesPage`,
+>   `/admin/lab-machines`); **new "Lab Credentials"** page (`/admin/lab-credentials`) — pick lab →
+>   define vars (add/remove) → pick assigned user → per-field form → save. Participant
+>   `CredentialsPanel` rewritten: RDP dropped; renders per-user vars (endpoint=link+copy,
+>   yaml=highlighted code block+copy, text=mono+copy) with an empty state.
+> - **Gates:** backend typecheck/lint + **129 tests** green; frontend typecheck/lint/build green;
+>   suite **7 failed (frozen Phase-2 set) / 33 passed**. Live-stack functional check is maintainer manual.
 
 **4f — Lab authoring (export / import + generator)** _(new feature — grill separately before building)_
 > From item 6 + item 7. Export/Import a lab as a single `.md` file (backup + continue dev), and

@@ -19,6 +19,7 @@ const LabManagementPage = lazy(() =>
 const AdminPortalPage = lazy(() => import("@/pages/admin/AdminPortalPage").then((m) => ({ default: m.AdminPortalPage })));
 const MachinesPage = lazy(() => import("@/pages/admin/MachinesPage").then((m) => ({ default: m.MachinesPage })));
 const MachinePoolPage = lazy(() => import("@/pages/admin/MachinePoolPage").then((m) => ({ default: m.MachinePoolPage })));
+const LabMachinesPage = lazy(() => import("@/pages/admin/LabMachinesPage").then((m) => ({ default: m.LabMachinesPage })));
 const LabCredentialsPage = lazy(() => import("@/pages/admin/LabCredentialsPage").then((m) => ({ default: m.LabCredentialsPage })));
 const SettingsPage = lazy(() => import("@/pages/admin/SettingsPage").then((m) => ({ default: m.SettingsPage })));
 
@@ -46,6 +47,7 @@ function App() {
         <Route path="/admin/labs" element={<Suspense fallback={<AppFallback />}><LabManagementPage /></Suspense>} />
         <Route path="/admin/machines" element={<Suspense fallback={<AppFallback />}><MachinesPage /></Suspense>} />
         <Route path="/admin/machine-pool" element={<Suspense fallback={<AppFallback />}><MachinePoolPage /></Suspense>} />
+        <Route path="/admin/lab-machines" element={<Suspense fallback={<AppFallback />}><LabMachinesPage /></Suspense>} />
         <Route path="/admin/lab-credentials" element={<Suspense fallback={<AppFallback />}><LabCredentialsPage /></Suspense>} />
         <Route path="/admin/settings" element={<Suspense fallback={<AppFallback />}><SettingsPage /></Suspense>} />
       </Route>

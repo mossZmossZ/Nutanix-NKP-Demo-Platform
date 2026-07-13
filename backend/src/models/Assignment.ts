@@ -9,6 +9,9 @@ const assignmentSchema = new Schema(
     labId: { type: Schema.Types.ObjectId, ref: "Lab", required: true },
     machineId: { type: Schema.Types.ObjectId, ref: "Machine", required: true, unique: true },
     completedPages: { type: [String], default: [] },
+    // Per-user credential values, keyed by the Lab.credentialVars subdoc _id.
+    // Plaintext (Phase 4e). Cleared with the assignment on revoke.
+    credentialValues: { type: Map, of: String, default: {} },
   },
   { timestamps: true },
 );
