@@ -6,9 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { KeyRound, Link2, Plus, Trash2, Type as TypeIcon, FileCode } from "lucide-react";
+import { KeyRound, Link2, Plus, Trash2, Type as TypeIcon, FileCode, Search, FlaskConical } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
-import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 type VarType = "endpoint" | "yaml" | "text";
 type CredentialVar = { _id: string; label: string; type: VarType };
@@ -53,7 +53,6 @@ export function LabCredentialsPage() {
   // Per-user value form
   const [formValues, setFormValues] = useState<Record<string, string>>({});
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
 
   const selectedLab = useMemo(() => labs.find((l) => l.slug === labSlug) ?? null, [labs, labSlug]);
   const labAssignments = useMemo(
@@ -86,14 +85,12 @@ export function LabCredentialsPage() {
   useEffect(() => {
     setUserId("");
     setFormValues({});
-    setSaved(false);
   }, [labSlug]);
 
   // Prefill the value form from the selected user's saved values.
   useEffect(() => {
     setFormValues(selectedAssignment ? { ...selectedAssignment.credentialValues } : {});
     setSaveError(null);
-    setSaved(false);
   }, [selectedAssignment]);
 
   async function onAddVar(e: FormEvent) {
@@ -144,7 +141,6 @@ export function LabCredentialsPage() {
     e.preventDefault();
     if (!selectedAssignment) return;
     setSaveError(null);
-    setSaved(false);
     try {
       const { credentialValues } = await api<{ credentialValues: Record<string, string> }>(
         `/admin/assignments/${selectedAssignment.id}/credentials`,
@@ -153,9 +149,13 @@ export function LabCredentialsPage() {
       setAssignments((prev) =>
         prev.map((a) => (a.id === selectedAssignment.id ? { ...a, credentialValues } : a)),
       );
-      setSaved(true);
+      toast.success("Credentials saved", {
+        description: `${selectedAssignment.user.username}'s values have been updated.`,
+      });
     } catch (err) {
-      setSaveError(err instanceof ApiError ? err.message : "Failed to save values");
+      const msg = err instanceof ApiError ? err.message : "Failed to save values";
+      setSaveError(msg);
+      toast.error("Failed to save credentials", { description: msg });
     }
   }
 
@@ -163,7 +163,7 @@ export function LabCredentialsPage() {
 
   return (
     <AppShell nav={adminNav} title="Lab Credentials">
-      <div className="mx-auto flex max-w-5xl flex-col gap-lg">
+      <div className="flex flex-col gap-lg">
         {/* Header */}
         <div className="flex items-start gap-md">
           <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -183,27 +183,45 @@ export function LabCredentialsPage() {
           </p>
         )}
 
-        {/* Lab picker */}
-        <div className="flex flex-col gap-xs sm:max-w-sm">
-          <span className="text-label text-muted-foreground">Lab</span>
-          <Select value={labSlug} onValueChange={setLabSlug}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select a lab" />
-            </SelectTrigger>
-            <SelectContent>
-              {labs.map((l) => (
-                <SelectItem key={l._id} value={l.slug}>
-                  {l.title}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        {/* Lab picker — full-width context bar with icon */}
+        <div className="flex flex-col gap-sm rounded-lg border border-border bg-surface p-md shadow-sm">
+          <div className="flex flex-col gap-xs sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-sm">
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <FlaskConical className="size-4" />
+              </div>
+              <div className="flex flex-col gap-xxs">
+                <span className="text-label text-muted-foreground uppercase">Lab</span>
+                {selectedLab ? (
+                  <span className="text-body font-semibold text-foreground">{selectedLab.title}</span>
+                ) : (
+                  <span className="text-body-sm text-muted-foreground">No lab selected</span>
+                )}
+              </div>
+            </div>
+            <Select value={labSlug} onValueChange={setLabSlug}>
+              <SelectTrigger className="w-full sm:w-72">
+                <Search className="mr-2 size-4 shrink-0 text-muted-foreground" />
+                <SelectValue placeholder="Select a lab…" />
+              </SelectTrigger>
+              <SelectContent>
+                {labs.map((l) => (
+                  <SelectItem key={l._id} value={l.slug}>
+                    <span className="flex flex-col">
+                      <span className="text-body-sm font-medium">{l.title}</span>
+                      <span className="text-label text-muted-foreground">{l.slug}</span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {selectedLab ? (
-          <div className="grid gap-lg lg:grid-cols-2">
+          <div className="grid gap-lg md:grid-cols-2">
             {/* Section 1 — variable schema */}
-            <Card className="shadow-sm">
+            <Card className="flex flex-col shadow-sm">
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   Variables
@@ -280,18 +298,19 @@ export function LabCredentialsPage() {
             </Card>
 
             {/* Section 2 — per-user values */}
-            <Card className="shadow-sm">
+            <Card className="flex flex-col shadow-sm">
               <CardHeader>
                 <CardTitle>Participant values</CardTitle>
                 <CardDescription>Each value maps 1:1 to the selected user.</CardDescription>
               </CardHeader>
-              <CardContent className="flex flex-col gap-md">
+              <CardContent className="flex flex-1 flex-col gap-md">
                 <div className="flex flex-col gap-xs">
                   <span className="text-label text-muted-foreground">User</span>
                   <Select value={userId} onValueChange={setUserId} disabled={labAssignments.length === 0}>
                     <SelectTrigger>
+                      <Search className="mr-2 size-4 shrink-0 text-muted-foreground" />
                       <SelectValue
-                        placeholder={labAssignments.length === 0 ? "No users assigned to this lab" : "Select a user"}
+                        placeholder={labAssignments.length === 0 ? "No users assigned to this lab" : "Select a user…"}
                       />
                     </SelectTrigger>
                     <SelectContent>
@@ -305,13 +324,19 @@ export function LabCredentialsPage() {
                 </div>
 
                 {!selectedAssignment ? (
-                  <p className="rounded-md border border-dashed border-border/60 px-md py-lg text-center text-body-sm text-muted-foreground">
-                    Select a user to fill their values.
-                  </p>
+                  <div className="flex flex-1 flex-col items-center justify-center gap-sm rounded-md border border-dashed border-border/60 px-md py-xl text-center">
+                    <Search className="size-8 text-muted-foreground/40" />
+                    <p className="max-w-48 text-body-sm text-muted-foreground">
+                      Select a user to fill their credential values.
+                    </p>
+                  </div>
                 ) : vars.length === 0 ? (
-                  <p className="rounded-md border border-dashed border-border/60 px-md py-lg text-center text-body-sm text-muted-foreground">
-                    Add a variable first.
-                  </p>
+                  <div className="flex flex-1 flex-col items-center justify-center gap-sm rounded-md border border-dashed border-border/60 px-md py-xl text-center">
+                    <Plus className="size-8 text-muted-foreground/40" />
+                    <p className="max-w-48 text-body-sm text-muted-foreground">
+                      Add a variable first, then fill its value.
+                    </p>
+                  </div>
                 ) : (
                   <form onSubmit={onSaveValues} className="flex flex-col gap-md">
                     {vars.map((v) => (
@@ -339,14 +364,6 @@ export function LabCredentialsPage() {
                     ))}
                     <div className="flex items-center gap-sm">
                       <Button type="submit" variant="primary">Save values</Button>
-                      <span
-                        className={cn(
-                          "text-body-sm text-success transition-opacity duration-[var(--duration-base)]",
-                          saved ? "opacity-100" : "opacity-0",
-                        )}
-                      >
-                        Saved
-                      </span>
                     </div>
                     {saveError && <p role="alert" className="text-body-sm text-destructive">{saveError}</p>}
                   </form>

@@ -9,6 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
+import { Toaster } from '@/components/ui/sonner'
 
 // `disabled` renders a non-navigable, greyed-out preview item (e.g. Admin's
 // Machines/Assignments, whose routes land in a later phase). Deviation from the
@@ -263,6 +264,7 @@ export function AppShell({
           {children}
         </main>
       </div>
+      <Toaster richColors closeButton position="top-right" visibleToasts={3} />
     </div>
   )
 }

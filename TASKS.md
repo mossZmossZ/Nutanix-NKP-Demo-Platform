@@ -211,6 +211,12 @@ sync with reality (it's the "current state" file).
 >   define vars (add/remove) → pick assigned user → per-field form → save. Participant
 >   `CredentialsPanel` rewritten: RDP dropped; renders per-user vars (endpoint=link+copy,
 >   yaml=highlighted code block+copy, text=mono+copy) with an empty state.
+> - **UX/UI finalizer (2026-07-13):** Lab selector redesigned from bare dropdown → full-width
+>   context bar (icon + selected-lab name + search dropdown with title/slug rows). Variables +
+>   Participant cards now split at `md:` (768px, was `lg:` 1024px) with matched heights (`flex
+>   flex-col`). Empty states centered with icons. Toast notifications (`sonner`, design.md
+>   tokens) for save success/failure — slide-in from right at top-right corner. Content fills
+>   available width (removed `mx-auto max-w-5xl`).
 > - **Gates:** backend typecheck/lint + **129 tests** green; frontend typecheck/lint/build green;
 >   suite **7 failed (frozen Phase-2 set) / 33 passed**. Live-stack functional check is maintainer manual.
 

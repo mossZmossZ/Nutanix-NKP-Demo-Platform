@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom'
 import { GlobalNav } from '@/components/site/GlobalNav'
 import { Footer } from '@/components/site/Footer'
+import { Toaster } from '@/components/ui/sonner'
 
 export function PublicLayout() {
   return (
@@ -10,6 +11,7 @@ export function PublicLayout() {
         <Outlet />
       </main>
       <Footer />
+      <Toaster richColors closeButton position="top-right" visibleToasts={3} />
     </div>
   )
 }
