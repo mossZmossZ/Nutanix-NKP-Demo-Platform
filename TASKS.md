@@ -253,10 +253,13 @@ sync with reality (it's the "current state" file).
 > WS tunnel + `guacamole-common-js` rendering the raw desktop **inside the Remote tab** — no
 > Guacamole login/chrome. Token is minted server-side from the user's Assignment; the RDP
 > password never reaches the client. **Needs a reachable xrdp host to verify.**
-- [ ] `guacd` in **dev** compose + `guacamole-lite` tunnel wired to the backend
-- [ ] Backend token endpoint — AES-encrypted connection token from the requesting user's
+- [*] `guacd` in **dev** compose + `guacamole-lite` tunnel wired to the backend
+- [*] Backend token endpoint — AES-encrypted connection token from the requesting user's
       Assignment (RBAC: only the assignee)
-- [ ] Frontend — `guacamole-common-js` canvas mounts in the **Remote** tab of the in-lab page
+- [*] Frontend — `guacamole-common-js` canvas mounts in the **Remote** tab of the in-lab page
+> Remark the frontend and guacd has developed but it's cannot Use the Remote desktop to windows client and define
+> windows client is testing environment and Linux RDP is production use
+> Pending task to find the issue connected but blank screen only seen the cursor
 - [ ] ✅ Checkpoint (real xrdp host): assigned user reaches their **own** live RDP desktop
       in-browser; unassigned cannot
 

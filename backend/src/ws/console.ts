@@ -1,13 +1,11 @@
 import type { IncomingMessage } from "http";
+import type { Duplex } from "stream";
 import { WebSocketServer, type WebSocket } from "ws";
 import { Client } from "ssh2";
-import jwt from "jsonwebtoken";
-import type { Server } from "http";
 import { isValidObjectId } from "mongoose";
-import { env } from "../config/env";
-import { AUTH_COOKIE, type TokenPayload } from "../services/auth";
 import { MachineModel } from "../models/Machine";
 import { decryptSecret } from "../lib/crypto";
+import { authenticateUpgrade } from "./auth";
 
 interface ResizeMessage {
   type: "resize";
@@ -15,15 +13,7 @@ interface ResizeMessage {
   rows: number;
 }
 
-function parseCookies(cookieHeader: string): Record<string, string> {
-  const map: Record<string, string> = {};
-  for (const part of cookieHeader.split(";")) {
-    const eq = part.indexOf("=");
-    if (eq === -1) continue;
-    map[part.slice(0, eq).trim()] = decodeURIComponent(part.slice(eq + 1).trim());
-  }
-  return map;
-}
+const wss = new WebSocketServer({ noServer: true });
 
 function parseMachineId(pathname: string): string | null {
   const match = pathname.match(/\/api\/ws\/console\/([^/]+)/);
@@ -34,6 +24,11 @@ function sendError(ws: WebSocket, message: string): void {
   if (ws.readyState === ws.OPEN) {
     ws.send(JSON.stringify({ type: "error", message }));
   }
+}
+
+function reject(socket: Duplex, status: number, reason: string): void {
+  socket.write(`HTTP/1.1 ${status} ${reason}\r\n\r\n`);
+  socket.destroy();
 }
 
 function setupSSHSession(ws: WebSocket, machine: {
@@ -108,69 +103,33 @@ function setupSSHSession(ws: WebSocket, machine: {
   });
 }
 
-export function setupConsoleWebSocket(server: Server): void {
-  const wss = new WebSocketServer({ noServer: true });
+// Handles WS upgrades at /api/ws/console/:machineId. Admin-only SSH console.
+export async function handleConsoleUpgrade(
+  request: IncomingMessage,
+  socket: Duplex,
+  head: Buffer,
+): Promise<void> {
+  const machineId = parseMachineId(request.url ?? "");
+  if (!machineId || !isValidObjectId(machineId)) return reject(socket, 400, "Bad Request");
 
-  server.on("upgrade", async (request: IncomingMessage, socket, head) => {
-    const pathname = request.url ?? "";
+  const payload = authenticateUpgrade(request);
+  if (!payload) return reject(socket, 401, "Unauthorized");
+  if (payload.role !== "admin") return reject(socket, 403, "Forbidden");
 
-    if (!pathname.startsWith("/api/ws/console")) {
-      socket.destroy();
-      return;
-    }
+  let machine;
+  try {
+    machine = await MachineModel.findById(machineId);
+  } catch {
+    return reject(socket, 500, "Internal Server Error");
+  }
+  if (!machine) return reject(socket, 404, "Not Found");
 
-    const machineId = parseMachineId(pathname);
-    if (!machineId || !isValidObjectId(machineId)) {
-      socket.write("HTTP/1.1 400 Bad Request\r\n\r\n");
-      socket.destroy();
-      return;
-    }
-
-    const cookies = parseCookies(request.headers.cookie ?? "");
-    const token = cookies[AUTH_COOKIE];
-    if (!token) {
-      socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
-      socket.destroy();
-      return;
-    }
-
-    let payload: TokenPayload;
-    try {
-      payload = jwt.verify(token, env.jwtSecret) as TokenPayload;
-    } catch {
-      socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
-      socket.destroy();
-      return;
-    }
-
-    if (payload.role !== "admin") {
-      socket.write("HTTP/1.1 403 Forbidden\r\n\r\n");
-      socket.destroy();
-      return;
-    }
-
-    let machine;
-    try {
-      machine = await MachineModel.findById(machineId);
-    } catch {
-      socket.write("HTTP/1.1 500 Internal Server Error\r\n\r\n");
-      socket.destroy();
-      return;
-    }
-
-    if (!machine) {
-      socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
-      socket.destroy();
-      return;
-    }
-
-    wss.handleUpgrade(request, socket, head, (ws) => {
-      setupSSHSession(ws, {
-        rdpHost: machine.rdpHost,
-        sshPort: machine.sshPort ?? 22,
-        rdpUser: machine.rdpUser,
-        rdpPassword: decryptSecret(machine.rdpPassword),
-      });
+  wss.handleUpgrade(request, socket, head, (ws) => {
+    setupSSHSession(ws, {
+      rdpHost: machine.rdpHost,
+      sshPort: machine.sshPort ?? 22,
+      rdpUser: machine.rdpUser,
+      rdpPassword: decryptSecret(machine.rdpPassword),
     });
   });
 }
