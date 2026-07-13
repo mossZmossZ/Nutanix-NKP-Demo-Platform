@@ -32,7 +32,10 @@ export default defineConfig({
   server: {
     // Single-origin dev: proxy the API so the auth cookie is first-party.
     proxy: {
-      '/api': 'http://localhost:4000',
+      '/api': {
+        target: 'http://localhost:4000',
+        ws: true,
+      },
     },
     // Allow importing MDX from the repo-root /docs-content (outside the Vite root).
     fs: {

@@ -1,3 +1,4 @@
+import { createConnection } from "net";
 import { Router } from "express";
 import { isValidObjectId } from "mongoose";
 import { MachineModel } from "../../models/Machine";
@@ -16,6 +17,11 @@ function machineDTO(m: {
   rdpUser: string;
   rdpPassword: string;
   status: string;
+  vcpu?: number | null;
+  memory?: string | null;
+  os?: string | null;
+  drive?: string | null;
+  sshPort: number;
 }) {
   return {
     id: m.id,
@@ -25,7 +31,30 @@ function machineDTO(m: {
     rdpUser: m.rdpUser,
     rdpPassword: decryptSecret(m.rdpPassword),
     status: m.status,
+    vcpu: m.vcpu ?? undefined,
+    memory: m.memory ?? undefined,
+    os: m.os ?? undefined,
+    drive: m.drive ?? undefined,
+    sshPort: m.sshPort,
   };
+}
+
+function tcpPing(host: string, port: number, timeout = 3000): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = createConnection({ host, port, timeout });
+    socket.on("connect", () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.on("error", () => {
+      socket.destroy();
+      resolve(false);
+    });
+    socket.on("timeout", () => {
+      socket.destroy();
+      resolve(false);
+    });
+  });
 }
 
 adminMachinesRouter.get("/", async (_req, res) => {
@@ -34,7 +63,7 @@ adminMachinesRouter.get("/", async (_req, res) => {
 });
 
 adminMachinesRouter.post("/", async (req, res) => {
-  const { name, rdpHost, rdpPort, rdpUser, rdpPassword } = req.body ?? {};
+  const { name, rdpHost, rdpPort, rdpUser, rdpPassword, vcpu, memory, os, drive, sshPort } = req.body ?? {};
   if (
     typeof rdpHost !== "string" ||
     !rdpHost.trim() ||
@@ -53,6 +82,11 @@ adminMachinesRouter.post("/", async (req, res) => {
     rdpUser,
     rdpPassword: encryptSecret(rdpPassword),
     status: "free",
+    vcpu,
+    memory,
+    os,
+    drive,
+    sshPort,
   });
   res.status(201).json(machineDTO(machine as never));
 });
@@ -67,12 +101,17 @@ adminMachinesRouter.patch("/:id", async (req, res) => {
     res.status(404).json({ error: "machine not found" });
     return;
   }
-  const { name, rdpHost, rdpPort, rdpUser, rdpPassword } = req.body ?? {};
+  const { name, rdpHost, rdpPort, rdpUser, rdpPassword, vcpu, memory, os, drive, sshPort } = req.body ?? {};
   if (name !== undefined) machine.name = name;
   if (rdpHost !== undefined) machine.rdpHost = rdpHost;
   if (rdpPort !== undefined) machine.rdpPort = rdpPort;
   if (rdpUser !== undefined) machine.rdpUser = rdpUser;
   if (rdpPassword !== undefined) machine.rdpPassword = encryptSecret(rdpPassword);
+  if (vcpu !== undefined) machine.vcpu = vcpu;
+  if (memory !== undefined) machine.memory = memory;
+  if (os !== undefined) machine.os = os;
+  if (drive !== undefined) machine.drive = drive;
+  if (sshPort !== undefined) machine.sshPort = sshPort;
   await machine.save();
   res.json(machineDTO(machine as never));
 });
@@ -93,4 +132,32 @@ adminMachinesRouter.delete("/:id", async (req, res) => {
   }
   await machine.deleteOne();
   res.status(204).end();
+});
+
+adminMachinesRouter.get("/:id/health/ssh", async (req, res) => {
+  if (!isValidObjectId(req.params.id)) {
+    res.status(404).json({ error: "machine not found" });
+    return;
+  }
+  const machine = await MachineModel.findById(req.params.id);
+  if (!machine) {
+    res.status(404).json({ error: "machine not found" });
+    return;
+  }
+  const reachable = await tcpPing(machine.rdpHost, machine.sshPort ?? 22);
+  res.json({ reachable });
+});
+
+adminMachinesRouter.get("/:id/health", async (req, res) => {
+  if (!isValidObjectId(req.params.id)) {
+    res.status(404).json({ error: "machine not found" });
+    return;
+  }
+  const machine = await MachineModel.findById(req.params.id);
+  if (!machine) {
+    res.status(404).json({ error: "machine not found" });
+    return;
+  }
+  const reachable = await tcpPing(machine.rdpHost, machine.rdpPort);
+  res.json({ reachable });
 });

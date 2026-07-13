@@ -240,10 +240,34 @@ sync with reality (it's the "current state" file).
 ## Phase 6 — Dynamic provisioning (Terraform + Ansible + BullMQ)
 - [x] `Machine` model — **landed early in Phase 4a** (`Machine.ts`) as a static pool; admin
       assigns creds *from a machine*. Phase 6 adds `source: 'dynamic'` + provisioning status on top.
-- [ ] **Machine Pool console** (folded in from 4d item 3) — recast the admin Machines page as a
-      **Machine Pool** view: Node / vCPU / Memory from the pool record, **Owner → mapped user**,
-      status via **health-check ping → UP / DOWN** (replaces Ready/provisioning/issue), and the
-      "view log" action → **SSH web terminal (xterm.js)**. Grill separately (needs a live host to verify).
+      **Updated 2026-07-13:** added `vcpu`, `memory`, `os`, `drive` optional fields for rich dashboard.
+- [x] **Machine Pool console** (folded in from 4d item 3) — ✅ **COMPLETE (2026-07-13):**
+>       Merged mock `/admin/machines` + real `MachinePoolPage` into a single card-grid
+>       dashboard at `/admin/machines`. Stats bar (Total/Free/Assigned/UP/DOWN) + per-machine
+>       cards (OS, vCPU, Memory, Drive dropdowns + free-text Drive on import/edit). Live
+>       TCP health-check polling (UP/DOWN badges, 30s, not persisted). "Open Console"
+>       button → placeholder modal ("coming soon"). Delete confirmation dialog + import/delete
+>       success toasts (`sonner`). `vcpu`/`memory`/`os`/`drive` fields added to backend
+>       Machine model. Nav consolidated — "Machine Pool" entry removed.
+>       Backend + frontend typecheck/lint green. **User signoff received.**
+> - [~] SSH web terminal (xterm.js) — **BUILT (2026-07-13) pending maintainer review/signoff:**
+>       Replaced "coming soon" placeholder with live SSH console modal (`max-w-5xl`, 500px
+>       terminal). Admin clicks "Open Console" → modal opens with a dark terminal-chrome header
+>       (machine name, live SSH health status badge, hardware specs, host:port) + xterm.js
+>       terminal body. Backend: WebSocket upgrade at `/api/ws/console/:machineId` (same-origin,
+>       cookie-auth, admin-only) → `ws` + `ssh2` creates an SSH shell, piping I/O bidirectionally
+>       with pty resize sync. Error overlay on connection failure, connecting spinner,
+>       disconnected state. New `sshPort` field on Machine model (default 22) exposed in
+>       import/edit forms. New `GET /admin/machines/:id/health/ssh` endpoint (TCP ping to
+>       `sshPort`). Frontend: `combinedHealth` (`useMemo` merging RDP + SSH health) drives
+>       stats bar (UP/DOWN counts) and card health badges — machine shows UP if either port
+>       reachable. Chrome header uses design tokens (`bg-ink-900`, `primary`, `success`/`danger`/
+>       `warning`). Close button removed from terminal (modal's built-in X suffices); xterm.js
+>       init delayed via `ResizeObserver` until container has dimensions (avoids Dialog-animation
+>       crash). Added deps: `ssh2`, `ws`, `@xterm/xterm`, `@xterm/addon-fit` + type stubs.
+>       Backend + frontend typecheck/lint green. Vite proxy configured for WebSocket upgrade
+>       (`ws: true`). Build green modulo pre-existing sonner.tsx `Toaster` issue.
+
 - [ ] BullMQ queue + worker process; `Job` model
 - [ ] Provisioning adapter: workdir + `execa` terraform → ansible + log streaming
 - [ ] Nutanix Terraform template + Ansible playbook (NKP tooling + xrdp) in `/infra`
