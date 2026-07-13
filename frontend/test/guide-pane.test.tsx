@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
@@ -14,12 +15,34 @@ const pages = [
   { file: '02-setup.md', order: 2, title: 'Setup' },
 ]
 
+// GuidePane's page selection is controlled by LabViewPage; this harness owns
+// that state the same way so navigation clicks actually change the page.
+function Harness({
+  completedPages = [],
+  onProgressChange = vi.fn(),
+}: {
+  completedPages?: string[]
+  onProgressChange?: (completedPages: string[]) => void
+}) {
+  const [selectedFile, setSelectedFile] = useState<string | null>(null)
+  return (
+    <GuidePane
+      slug="nkp-basics"
+      pages={pages}
+      completedPages={completedPages}
+      onProgressChange={onProgressChange}
+      selectedFile={selectedFile ?? pages[0].file}
+      onSelectFile={setSelectedFile}
+    />
+  )
+}
+
 test('loads the first page, then navigates to the next page on click', async () => {
   vi.mocked(api)
     .mockResolvedValueOnce({ file: '01-intro.md', content: '# Introduction\n\nWelcome.' })
     .mockResolvedValueOnce({ file: '02-setup.md', content: '# Setup\n\nInstall things.' })
 
-  render(<GuidePane slug="nkp-basics" pages={pages} completedPages={[]} onProgressChange={vi.fn()} />)
+  render(<Harness />)
 
   expect(await screen.findByText('Welcome.')).toBeInTheDocument()
   expect(api).toHaveBeenCalledWith('/me/labs/nkp-basics/pages/01-intro.md')
@@ -36,7 +59,7 @@ test('marking a page complete posts progress and reflects the returned state', a
     .mockResolvedValueOnce({ completedPages: ['01-intro.md'] })
 
   const onProgressChange = vi.fn()
-  render(<GuidePane slug="nkp-basics" pages={pages} completedPages={[]} onProgressChange={onProgressChange} />)
+  render(<Harness onProgressChange={onProgressChange} />)
 
   await screen.findByText('Welcome.')
   await userEvent.click(screen.getByRole('button', { name: /mark complete/i }))
@@ -56,7 +79,7 @@ test('shows an inline error if marking complete fails, without changing the togg
     .mockRejectedValueOnce(new ApiError(500, 'progress update failed'))
 
   const onProgressChange = vi.fn()
-  render(<GuidePane slug="nkp-basics" pages={pages} completedPages={[]} onProgressChange={onProgressChange} />)
+  render(<Harness onProgressChange={onProgressChange} />)
 
   await screen.findByText('Welcome.')
   await userEvent.click(screen.getByRole('button', { name: /mark complete/i }))
@@ -70,11 +93,13 @@ test('shows an inline retry when a page fails to load, and reloads content on cl
     .mockRejectedValueOnce(new ApiError(500, 'failed to load page'))
     .mockResolvedValueOnce({ file: '01-intro.md', content: '# Introduction\n\nWelcome.' })
 
-  render(<GuidePane slug="nkp-basics" pages={pages} completedPages={[]} onProgressChange={vi.fn()} />)
+  render(<Harness />)
 
   expect(await screen.findByRole('alert')).toHaveTextContent('failed to load page')
-  // page list stays usable during the error
-  expect(screen.getByRole('button', { name: 'Setup' })).toBeInTheDocument()
+  // page list stays usable during the error — pages live in the section dropdown
+  await userEvent.click(screen.getByRole('button', { name: /introduction/i }))
+  expect(await screen.findByRole('menuitem', { name: /setup/i })).toBeInTheDocument()
+  await userEvent.keyboard('{Escape}')
 
   await userEvent.click(screen.getByRole('button', { name: /retry/i }))
 

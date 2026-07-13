@@ -15,10 +15,6 @@ import {
 // Task 5 integration contract, authorized for Task 6 to show the full sidebar IA.
 export type NavItem = { label: string; to: string; icon?: ReactNode; disabled?: boolean }
 
-// Persisted collapse state for the lab-workshop Workspace sidebar. Absent on
-// first visit → hidden (the lab view reclaims the width for its guide/RDP split).
-const SIDEBAR_HIDDEN_KEY = 'labWorkshop.sidebarHidden'
-
 // design.md §4 App shell (dashboard surfaces): persistent left sidebar +
 // top bar, shared by Lab Access and Admin. Pages self-wrap via `children`
 // (not <Outlet/> — see task-5 integration contract); routing/lazy-loading
@@ -43,15 +39,12 @@ export function AppShell({
   const navigate = useNavigate()
   const { pathname } = useLocation()
 
-  const [sidebarHidden, setSidebarHidden] = useState(
-    () => collapsible && localStorage.getItem(SIDEBAR_HIDDEN_KEY) !== 'false',
-  )
+  // Always start hidden on a fresh session (maintainer 2026-07-13): the lab view
+  // reclaims the width for its guide/RDP split. The toggle still shows it for the
+  // rest of the session, but the choice is intentionally not persisted.
+  const [sidebarHidden, setSidebarHidden] = useState(collapsible)
   function toggleSidebar() {
-    setSidebarHidden((hidden) => {
-      const next = !hidden
-      localStorage.setItem(SIDEBAR_HIDDEN_KEY, String(next))
-      return next
-    })
+    setSidebarHidden((hidden) => !hidden)
   }
 
   // Longest matching `to` wins, so a nested route (e.g. /admin/users) doesn't

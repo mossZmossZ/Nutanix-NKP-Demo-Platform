@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
+// selectedFile/onSelectFile are lifted to LabViewPage so the current page
+// survives the >=1280 split <-> <1280 tabs remount when the viewport crosses the
+// breakpoint.
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeHighlight from "rehype-highlight"
@@ -21,13 +24,16 @@ export function GuidePane({
   pages,
   completedPages,
   onProgressChange,
+  selectedFile,
+  onSelectFile,
 }: {
   slug: string
   pages: Page[]
   completedPages: string[]
   onProgressChange: (completedPages: string[]) => void
+  selectedFile: string | null
+  onSelectFile: (file: string) => void
 }) {
-  const [selectedFile, setSelectedFile] = useState<string | null>(pages[0]?.file ?? null)
   const [content, setContent] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [toggling, setToggling] = useState(false)
@@ -84,7 +90,7 @@ export function GuidePane({
               {pages.map((page) => (
                 <DropdownMenuItem
                   key={page.file}
-                  onSelect={() => setSelectedFile(page.file)}
+                  onSelect={() => onSelectFile(page.file)}
                   className={`gap-xs ${page.file === selectedFile ? "text-violet-600" : ""}`}
                 >
                   {completedPages.includes(page.file) ? (
@@ -109,7 +115,10 @@ export function GuidePane({
         </div>
       </div>
 
-      <div className="min-w-0 px-lg py-lg md:px-xl">
+      <div
+        key={selectedFile ?? ""}
+        className="@container min-w-0 px-lg py-lg duration-[var(--duration-base)] ease-standard animate-in fade-in slide-in-from-bottom-1 md:px-xl"
+      >
         {error ? (
           <div role="alert" className="flex flex-col items-start gap-sm">
             <p className="text-body text-danger">{error}</p>
@@ -139,11 +148,12 @@ export function GuidePane({
                 <Button
                   type="button"
                   variant="secondary"
+                  aria-label="Back"
                   disabled={index <= 0}
-                  onClick={() => setSelectedFile(pages[index - 1].file)}
+                  onClick={() => onSelectFile(pages[index - 1].file)}
                 >
                   <ChevronLeft className="size-4" />
-                  Back
+                  <span className="hidden @[22rem]:inline">Back</span>
                 </Button>
                 <Button
                   type="button"
@@ -157,10 +167,11 @@ export function GuidePane({
                 <Button
                   type="button"
                   variant="secondary"
+                  aria-label="Next"
                   disabled={index === -1 || index >= pages.length - 1}
-                  onClick={() => setSelectedFile(pages[index + 1].file)}
+                  onClick={() => onSelectFile(pages[index + 1].file)}
                 >
-                  Next
+                  <span className="hidden @[22rem]:inline">Next</span>
                   <ChevronRight className="size-4" />
                 </Button>
               </div>

@@ -27,7 +27,7 @@ test('CredentialsPanel shows connection fields and copies a value on click', asy
   expect(writeText).toHaveBeenCalledWith('hunter2')
 })
 
-test('RemotePanel shows a coming-soon placeholder', () => {
+test('RemotePanel shows the connecting placeholder', () => {
   render(<RemotePanel />)
-  expect(screen.getByText(/coming soon/i)).toBeInTheDocument()
+  expect(screen.getByText(/connecting to your desktop/i)).toBeInTheDocument()
 })
