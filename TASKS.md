@@ -273,16 +273,25 @@ sync with reality (it's the "current state" file).
 > log), `Settings` (singleton), plus `User` preference fields. No presence/session/settings
 > tracking exists today — this is net-new.
 
-**6a — Presence & activity backend (net-new)**
-- [ ] **Heartbeat** — frontend pings `~30s` **only while** `document.visibilityState === 'visible'`
+**6a — Presence & activity backend (net-new)** ✅ (built 2026-07-15; backend gates green — awaiting live E2E with the 6c dashboard UI)
+- [x] **Heartbeat** — frontend pings `~30s` **only while** `document.visibilityState === 'visible'`
       (`visibilitychange`-gated); backend updates `lastSeen` + accumulates active time.
-- [ ] **Concurrent users** — distinct users with `lastSeen` within a `~60s` window (ephemeral, live).
-- [ ] **Per-user active-time-today** (cumulative, **Option B**) — `UserActivity` collection keyed
+      _`useHeartbeat` hook in `AuthProvider` (fires while authenticated); `POST /api/me/heartbeat`
+      → `services/presence.recordHeartbeat`._
+- [x] **Concurrent users** — distinct users with `lastSeen` within a `~60s` window (ephemeral, live).
+      _`getConcurrentUserCount` (`PRESENCE_WINDOW_MS`)._
+- [x] **Per-user active-time-today** (cumulative, **Option B**) — `UserActivity` collection keyed
       `(userId, dayKey)`, upsert + `$inc activeSeconds` by `delta = min(now − lastHeartbeat, ~60s cap)`
       (cap discards sleep/closed-lid gaps). `dayKey` = `YYYY-MM-DD` in **`WORKSHOP_TZ`** (env, default
       `Asia/Bangkok`) so "today" matches admin local midnight. Per-day docs keep history for free.
-- [ ] **Audit log** — `AuditEvent` model + write-hooks on assignment create/revoke, user
-      create/delete, machine import/delete, lab create/import, login.
+      _`getActivityToday` (busiest-first, `online` flag); `dayKey` via `Intl.DateTimeFormat` en-CA._
+- [x] **Audit log** — `AuditEvent` model + write-hooks on assignment create/revoke, user
+      create/delete, machine create/delete, lab create/import, login. _`services/audit`
+      (`recordAudit` denormalizes `actorUsername`; `listRecentAudit`); read via `GET /api/admin/dashboard`._
+- [x] Read endpoint: `GET /api/admin/dashboard` (RBAC-gated) → `{ concurrentUsers, activeToday,
+      recentActivity }`. _6c extends it with counts/health/enrollment + builds the UI._
+- [x] ✅ Gates: backend **155 tests** (+15 new in `presence-activity.test.ts`) + typecheck + lint green;
+      frontend typecheck/lint clean on new code (`useHeartbeat.ts`, `AuthContext.tsx`).
 
 **6b — Settings page (mock → real)**
 - [ ] **Account & Security** — admin changes **their own** password (bcrypt; currently missing).

@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { api, type User } from "@/lib/api";
+import { useHeartbeat } from "./useHeartbeat";
 
 interface AuthState {
   user: User | null;
@@ -21,6 +22,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .catch(() => setUser(null))
       .finally(() => setLoading(false));
   }, []);
+
+  // Presence heartbeat runs whenever we have an authenticated user.
+  useHeartbeat(!!user);
 
   async function login(username: string, password: string) {
     const u = await api<User>("/auth/login", {

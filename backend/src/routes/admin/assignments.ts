@@ -4,8 +4,9 @@ import { AssignmentModel } from "../../models/Assignment";
 import { UserModel } from "../../models/User";
 import { LabModel } from "../../models/Lab";
 import { MachineModel } from "../../models/Machine";
-import { requireAuth, requireAdmin } from "../../middleware/auth";
+import { requireAuth, requireAdmin, type AuthedRequest } from "../../middleware/auth";
 import { decryptSecret } from "../../lib/crypto";
+import { recordAudit } from "../../services/audit";
 
 export const adminAssignmentsRouter = Router();
 
@@ -59,7 +60,7 @@ adminAssignmentsRouter.get("/", async (_req, res) => {
   res.json(assignments.map((a) => assignmentDTO(a as never)));
 });
 
-adminAssignmentsRouter.post("/", async (req, res) => {
+adminAssignmentsRouter.post("/", async (req: AuthedRequest, res) => {
   const { userId, labId, machineId } = req.body ?? {};
   if (typeof userId !== "string" || typeof labId !== "string" || typeof machineId !== "string") {
     res.status(400).json({ error: "userId, labId, machineId are required" });
@@ -100,7 +101,16 @@ adminAssignmentsRouter.post("/", async (req, res) => {
       { path: "labId", select: "slug title" },
       { path: "machineId" },
     ]);
-    res.status(201).json(assignmentDTO(populated as never));
+    const dto = assignmentDTO(populated as never);
+    const who = typeof dto.user === "object" ? dto.user.username : "";
+    const what = typeof dto.lab === "object" ? dto.lab.title : "";
+    await recordAudit({
+      actorId: req.user!.id,
+      action: "assignment.create",
+      targetType: "assignment",
+      targetLabel: `${who} → ${what}`,
+    });
+    res.status(201).json(dto);
   } catch (err: unknown) {
     // Create failed (e.g. duplicate) after we already claimed the machine — release it.
     await MachineModel.findByIdAndUpdate(machineId, { $set: { status: "free" } });
@@ -139,19 +149,29 @@ adminAssignmentsRouter.patch("/:id/credentials", async (req, res) => {
   res.json({ credentialValues: Object.fromEntries(assignment.credentialValues) });
 });
 
-adminAssignmentsRouter.delete("/:id", async (req, res) => {
+adminAssignmentsRouter.delete("/:id", async (req: AuthedRequest, res) => {
   if (!isValidObjectId(req.params.id)) {
     res.status(404).json({ error: "assignment not found" });
     return;
   }
-  const assignment = await AssignmentModel.findById(req.params.id);
+  const assignment = await AssignmentModel.findById(req.params.id)
+    .populate("userId", "username")
+    .populate("labId", "title");
   if (!assignment) {
     res.status(404).json({ error: "assignment not found" });
     return;
   }
+  const who = (assignment.userId as unknown as { username?: string })?.username ?? "";
+  const what = (assignment.labId as unknown as { title?: string })?.title ?? "";
   const machineId = assignment.machineId;
   await assignment.deleteOne();
   resetMachine(machineId.toString());
   await MachineModel.findByIdAndUpdate(machineId, { $set: { status: "free" } });
+  await recordAudit({
+    actorId: req.user!.id,
+    action: "assignment.revoke",
+    targetType: "assignment",
+    targetLabel: `${who} → ${what}`,
+  });
   res.status(204).end();
 });

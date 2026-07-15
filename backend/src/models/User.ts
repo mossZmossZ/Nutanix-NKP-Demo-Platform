@@ -7,6 +7,8 @@ const userSchema = new Schema(
     username: { type: String, required: true, unique: true, trim: true },
     passwordHash: { type: String, required: true },
     role: { type: String, enum: ["admin", "user"], required: true, default: "user" },
+    // Presence: refreshed by the heartbeat; drives the dashboard concurrent-user count.
+    lastSeen: { type: Date },
   },
   { timestamps: true },
 );

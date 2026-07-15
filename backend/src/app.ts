@@ -6,6 +6,7 @@ import { adminUsersRouter } from "./routes/admin/users";
 import { adminLabsRouter } from "./routes/admin/labs";
 import { adminAssignmentsRouter } from "./routes/admin/assignments";
 import { adminMachinesRouter } from "./routes/admin/machines";
+import { adminDashboardRouter } from "./routes/admin/dashboard";
 import { authRouter } from "./routes/auth";
 import { healthRouter } from "./routes/health";
 import { meRouter } from "./routes/me";
@@ -23,6 +24,7 @@ export function createApp(): Express {
   app.use("/api/admin/labs", adminLabsRouter);
   app.use("/api/admin/assignments", adminAssignmentsRouter);
   app.use("/api/admin/machines", adminMachinesRouter);
+  app.use("/api/admin/dashboard", adminDashboardRouter);
   app.use("/api/me", meRouter);
 
   app.use(errorHandler);

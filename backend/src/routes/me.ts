@@ -4,10 +4,17 @@ import { LabModel } from "../models/Lab";
 import { requireAuth, type AuthedRequest } from "../middleware/auth";
 import { decryptSecret } from "../lib/crypto";
 import { listPages, readImage, readPage } from "../lib/wiki";
+import { recordHeartbeat } from "../services/presence";
 
 export const meRouter = Router();
 
 meRouter.use(requireAuth);
+
+// Presence heartbeat: the frontend pings ~30s while its tab is visible.
+meRouter.post("/heartbeat", async (req: AuthedRequest, res) => {
+  await recordHeartbeat(req.user!.id);
+  res.status(204).end();
+});
 
 function labSummary(lab: { slug: string; title: string; summary: string; difficulty: string; duration: string }) {
   return {
