@@ -304,19 +304,26 @@ sync with reality (it's the "current state" file).
 - [ ] Drop the mock **infra** cards (k8s version, node count, vCPU/mem defaults, Guacamole host,
       session timeout, 2FA toggle, brand-color picker).
 
-**6c — Dashboard redesign (all real; keep richer look; built inline)**
-- [ ] **Hero band** — **concurrent-users-now** + **active-time-per-user-today table**
-      (username · time today · last-seen) — the headline metric.
-- [ ] Real stat cards — total **users / machines / labs** (live counts).
-- [ ] **Machine health** — UP/DOWN, free/assigned, summed vCPU/mem (reuses existing TCP health checks).
-- [ ] **Labs by enrollment** + avg progress (reinterprets the mock "Active Workshops"; from Assignments).
-- [ ] **Recent Activity** feed — real, from `AuditEvent` (last N).
-- [ ] Keep Quick Actions.
-- [ ] **Cut** trend deltas (+12% etc.) and the APM/performance bar (Uptime/Response/CPU/Security)
-      — no data source / infra. Keep the current gradient/multicolor aesthetic (**not** re-paletted to violet-only).
+**6c — Dashboard redesign (all real; keep richer look; built inline)** ✅ (built 2026-07-15; automated gates green — awaiting maintainer live check)
+- [x] **Hero band** — **concurrent-users-now** (gradient panel, live pulse) + **active-time-per-user-today
+      table** (username · time today · online flag). Auto-refreshes every 30s.
+- [x] Real stat cards — total **users / machines / labs** (live counts; trend deltas dropped).
+- [x] **Machine pool** — free/assigned split (bar + %) + total vCPU. _Decision: live UP/DOWN health
+      **stays on the Machines page** (per-machine TCP polling already there); pinging the whole pool on
+      every dashboard load would hang the summary on unreachable hosts. `machineSummary` is persisted/instant._
+- [x] **Labs by enrollment** + avg progress (from Assignments; `getLabsByEnrollment`, busiest-first, top 5).
+- [x] **Recent Activity** feed — real, from `AuditEvent` via `GET /api/admin/dashboard` (last 20);
+      `describeAudit` maps each action → icon + phrasing.
+- [x] Keep Quick Actions.
+- [x] **Cut** trend deltas + the APM/performance bar (Uptime/Response/CPU/Security) and the mock
+      "Export Report / Last 30 days" header buttons — no data source / infra. Richer gradient aesthetic kept.
+- [x] Backend: `services/dashboard.ts` (`getCounts`/`getMachineSummary`/`getLabsByEnrollment`) folded into
+      the dashboard endpoint. Gates: backend **160 tests** (+4 in `dashboard-stats.test.ts`) + typecheck +
+      lint green; frontend `AdminPortalPage` rewritten to real data — typecheck/lint clean on new code
+      (`build` still blocked only by the pre-existing `sonner.tsx` Toaster wart).
 - [ ] ✅ Checkpoint: dashboard shows only real data (live concurrent count, real per-user daily
-      active time, real counts/health, real activity feed); Settings persist (password, platform
-      name, default font size); a participant's font-size choice persists across devices.
+      active time, real counts, real activity feed) — **6c done**; Settings persist (password, platform
+      name, default font size) — **6b**; a participant's font-size choice persists across devices — **6b**.
 
 ## Phase 7 — Dynamic provisioning (Terraform + Ansible + BullMQ)
 - [x] `Machine` model — **landed early in Phase 4a** (`Machine.ts`) as a static pool; admin
