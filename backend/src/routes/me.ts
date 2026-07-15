@@ -1,10 +1,13 @@
 import { Router } from "express";
 import { AssignmentModel } from "../models/Assignment";
 import { LabModel } from "../models/Lab";
+import { UserModel } from "../models/User";
 import { requireAuth, type AuthedRequest } from "../middleware/auth";
 import { decryptSecret } from "../lib/crypto";
 import { listPages, readImage, readPage } from "../lib/wiki";
 import { recordHeartbeat } from "../services/presence";
+import { hashPassword, verifyPassword } from "../services/auth";
+import { getSettings, isValidDocFontSize, DOC_FONT_MIN, DOC_FONT_MAX } from "../services/settings";
 
 export const meRouter = Router();
 
@@ -14,6 +17,63 @@ meRouter.use(requireAuth);
 meRouter.post("/heartbeat", async (req: AuthedRequest, res) => {
   await recordHeartbeat(req.user!.id);
   res.status(204).end();
+});
+
+// Resolved client settings: platform name + this user's effective doc font size
+// (their own preference, falling back to the platform default). Drives the app
+// header brand and the lab-guide zoom.
+meRouter.get("/settings", async (req: AuthedRequest, res) => {
+  const [user, settings] = await Promise.all([
+    UserModel.findById(req.user!.id),
+    getSettings(),
+  ]);
+  if (!user) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  res.json({
+    platformName: settings.platformName,
+    docFontSize: user.preferences?.docFontSize ?? settings.defaultDocFontSize,
+  });
+});
+
+// Change own password (any authed user). Verifies the current password before
+// overwriting the hash — reuses the same bcrypt helpers as auth.
+meRouter.post("/password", async (req: AuthedRequest, res) => {
+  const { currentPassword, newPassword } = req.body ?? {};
+  if (typeof newPassword !== "string" || newPassword.length < 8) {
+    res.status(400).json({ error: "password must be at least 8 characters" });
+    return;
+  }
+  const user = await UserModel.findById(req.user!.id);
+  if (!user) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  if (typeof currentPassword !== "string" || !(await verifyPassword(currentPassword, user.passwordHash))) {
+    res.status(400).json({ error: "current password is incorrect" });
+    return;
+  }
+  user.passwordHash = await hashPassword(newPassword);
+  await user.save();
+  res.status(204).end();
+});
+
+// Per-user lab-guide font size (px). Follows the user across devices.
+meRouter.patch("/preferences", async (req: AuthedRequest, res) => {
+  const { docFontSize } = req.body ?? {};
+  if (!isValidDocFontSize(docFontSize)) {
+    res.status(400).json({ error: `docFontSize must be an integer between ${DOC_FONT_MIN} and ${DOC_FONT_MAX}` });
+    return;
+  }
+  const user = await UserModel.findById(req.user!.id);
+  if (!user) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  user.set("preferences.docFontSize", docFontSize);
+  await user.save();
+  res.json({ docFontSize });
 });
 
 function labSummary(lab: { slug: string; title: string; summary: string; difficulty: string; duration: string }) {

@@ -293,16 +293,22 @@ sync with reality (it's the "current state" file).
 - [x] ✅ Gates: backend **155 tests** (+15 new in `presence-activity.test.ts`) + typecheck + lint green;
       frontend typecheck/lint clean on new code (`useHeartbeat.ts`, `AuthContext.tsx`).
 
-**6b — Settings page (mock → real)**
-- [ ] **Account & Security** — admin changes **their own** password (bcrypt; currently missing).
-- [ ] **Platform Identity** — editable **platform display name** (`Settings` singleton), shown in header/title.
-- [ ] **Learner Defaults** — **default lab-document font size** (platform default new users inherit).
-- [ ] **Web Application Endpoint** — read-only **"configured at deploy (nginx)"** display field,
-      clearly labelled — the **only** deliberately-mock item (fixed after nginx deployment).
-- [ ] **Font size = per-user preference** — **A− / A+ control in the lab-workshop toolbar**,
-      persisted **server-side on `User`** (follows the user across devices), inheriting the platform default.
-- [ ] Drop the mock **infra** cards (k8s version, node count, vCPU/mem defaults, Guacamole host,
-      session timeout, 2FA toggle, brand-color picker).
+**6b — Settings page (mock → real)** ✅ (built 2026-07-15; automated gates green — awaiting maintainer live check)
+- [x] **Account & Security** — admin changes **their own** password (bcrypt). _`POST /api/me/password`
+      verifies the current password via `verifyPassword`, re-hashes with `hashPassword`; any authed user._
+- [x] **Platform Identity** — editable **platform display name** (`Settings` singleton), shown in the
+      app header brand. _`GET/PATCH /api/admin/settings`; header reads it from `AuthContext` (`/me/settings`)._
+- [x] **Learner Defaults** — **default lab-document font size** (`Settings.defaultDocFontSize`, 12–24px).
+- [x] **Web Application Endpoint** — read-only **"configured at deploy (nginx)"** display field
+      (`window.location.origin`, disabled + "Read-only" chip) — the **only** deliberately-mock item.
+- [x] **Font size = per-user preference** — **A− / A+ control in the lab-workshop toolbar** (`GuidePane`),
+      persisted **server-side on `User.preferences.docFontSize`** via `PATCH /api/me/preferences` (follows the
+      user across devices), inheriting `Settings.defaultDocFontSize` when unset. Applied as `zoom` on the guide.
+- [x] Drop the mock **infra** cards (k8s version, node count, vCPU/mem defaults, Guacamole host,
+      session timeout, 2FA toggle, brand-color picker) — replaced with token-based cards (no inline hex).
+- [x] ✅ Gates: backend **176 tests** (+16 in `settings.test.ts`) + typecheck + lint green; frontend
+      typecheck/lint clean on new code + `guide-pane` tests green (`build` still blocked only by the
+      pre-existing `sonner.tsx` Toaster wart).
 
 **6c — Dashboard redesign (all real; keep richer look; built inline)** ✅ (built 2026-07-15; automated gates green — awaiting maintainer live check)
 - [x] **Hero band** — **concurrent-users-now** (gradient panel, live pulse) + **active-time-per-user-today
@@ -321,9 +327,9 @@ sync with reality (it's the "current state" file).
       the dashboard endpoint. Gates: backend **160 tests** (+4 in `dashboard-stats.test.ts`) + typecheck +
       lint green; frontend `AdminPortalPage` rewritten to real data — typecheck/lint clean on new code
       (`build` still blocked only by the pre-existing `sonner.tsx` Toaster wart).
-- [ ] ✅ Checkpoint: dashboard shows only real data (live concurrent count, real per-user daily
+- [x] ✅ Checkpoint: dashboard shows only real data (live concurrent count, real per-user daily
       active time, real counts, real activity feed) — **6c done**; Settings persist (password, platform
-      name, default font size) — **6b**; a participant's font-size choice persists across devices — **6b**.
+      name, default font size) — **6b done**; a participant's font-size choice persists across devices — **6b done**.
 
 ## Phase 7 — Dynamic provisioning (Terraform + Ansible + BullMQ)
 - [x] `Machine` model — **landed early in Phase 4a** (`Machine.ts`) as a static pool; admin

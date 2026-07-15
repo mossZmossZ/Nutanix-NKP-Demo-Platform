@@ -19,6 +19,15 @@ import { createMarkdownComponents } from "@/lib/markdown-components"
 
 type Page = { file: string; order: number; title: string }
 
+// Lab-guide font size is a per-user preference (px), owned by LabViewPage (from
+// useAuth) and passed in. Matches the backend bounds; 16px is the design body
+// size, so the guide body renders at `fontSize / 16` zoom — scaling the whole
+// rendered doc (headings, code, images) proportionally.
+const FONT_MIN = 12
+const FONT_MAX = 24
+const FONT_STEP = 2
+const FONT_DEFAULT = 16
+
 export function GuidePane({
   slug,
   pages,
@@ -26,6 +35,8 @@ export function GuidePane({
   onProgressChange,
   selectedFile,
   onSelectFile,
+  fontSize = FONT_DEFAULT,
+  onChangeFontSize,
 }: {
   slug: string
   pages: Page[]
@@ -33,6 +44,8 @@ export function GuidePane({
   onProgressChange: (completedPages: string[]) => void
   selectedFile: string | null
   onSelectFile: (file: string) => void
+  fontSize?: number
+  onChangeFontSize?: (size: number) => void
 }) {
   const [content, setContent] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -40,6 +53,12 @@ export function GuidePane({
   const [toggleError, setToggleError] = useState<string | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
   const markdownComponents = useMemo(() => createMarkdownComponents(slug), [slug])
+
+  function changeFontSize(next: number) {
+    const clamped = Math.min(FONT_MAX, Math.max(FONT_MIN, next))
+    if (clamped === fontSize) return
+    onChangeFontSize?.(clamped)
+  }
 
   useEffect(() => {
     if (!selectedFile) return
@@ -103,9 +122,31 @@ export function GuidePane({
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-          <span className="shrink-0 text-body-sm text-muted-foreground">
-            {completedCount} of {pages.length} done
-          </span>
+          <div className="flex shrink-0 items-center gap-sm">
+            <div className="flex items-center rounded-md border border-border" role="group" aria-label="Guide font size">
+              <button
+                type="button"
+                aria-label="Decrease font size"
+                disabled={fontSize <= FONT_MIN}
+                onClick={() => changeFontSize(fontSize - FONT_STEP)}
+                className="rounded-l-md px-sm py-xs text-body-sm font-medium text-muted-foreground outline-none transition-colors duration-[var(--duration-base)] ease-standard hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-40"
+              >
+                A<span className="text-label">−</span>
+              </button>
+              <button
+                type="button"
+                aria-label="Increase font size"
+                disabled={fontSize >= FONT_MAX}
+                onClick={() => changeFontSize(fontSize + FONT_STEP)}
+                className="rounded-r-md border-l border-border px-sm py-xs text-body font-medium text-muted-foreground outline-none transition-colors duration-[var(--duration-base)] ease-standard hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-40"
+              >
+                A<span className="text-body-sm">+</span>
+              </button>
+            </div>
+            <span className="text-body-sm text-muted-foreground">
+              {completedCount} of {pages.length} done
+            </span>
+          </div>
         </div>
         <div className="h-1 w-full bg-border">
           <div
@@ -117,6 +158,7 @@ export function GuidePane({
 
       <div
         key={selectedFile ?? ""}
+        style={{ zoom: fontSize / 16 }}
         className="@container min-w-0 px-lg py-lg duration-[var(--duration-base)] ease-standard animate-in fade-in slide-in-from-bottom-1 md:px-xl"
       >
         {error ? (
