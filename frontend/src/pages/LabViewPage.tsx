@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 import { FlaskConical } from "lucide-react"
 import { api, ApiError } from "@/lib/api"
+import { useAuth } from "@/auth/AuthContext"
 import { useMediaQuery } from "@/lib/useMediaQuery"
 import { useRemoteSession } from "@/lib/useRemoteSession"
 import { GuidePane } from "./lab-view/GuidePane"
@@ -49,6 +50,9 @@ export function LabViewPage() {
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
   const [sessionTab, setSessionTab] = useState<"remote" | "credentials">("remote")
   const isDesktop = useMediaQuery("(min-width: 1280px)")
+  // Per-user guide font size lives in auth state (follows the user across
+  // devices); the GuidePane toolbar A−/A+ writes back through updateDocFontSize.
+  const { docFontSize, updateDocFontSize } = useAuth()
   // One live RDP session for the lab. Slug is withheld until the assignment
   // loads so we only connect for labs the user actually has (a 403 otherwise).
   // Lives here (not in RemotePanel) so it survives the tab/breakpoint remounts.
@@ -105,6 +109,8 @@ export function LabViewPage() {
                 onProgressChange={handleProgressChange}
                 selectedFile={selectedFile ?? detail.pages[0]?.file ?? null}
                 onSelectFile={setSelectedFile}
+                fontSize={docFontSize}
+                onChangeFontSize={updateDocFontSize}
               />
             )
             // Remote Session pane: Credentials is a secondary switch inside it,

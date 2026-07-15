@@ -30,6 +30,9 @@ export const env = {
   // Filesystem root for lab guide content (wiki/<slug>/NN-*.md), resolved from this file's
   // location so it's stable regardless of process.cwd() (differs between `npm run dev` and tests).
   wikiDir: process.env.WIKI_DIR ?? path.resolve(__dirname, "../../../wiki"),
+  // IANA timezone that defines the "day" boundary for per-user active-time accounting, so
+  // "today" on the admin dashboard matches the admin's local midnight (not UTC's 07:00 here).
+  workshopTz: process.env.WORKSHOP_TZ ?? "Asia/Bangkok",
 };
 
 export const isProd = env.nodeEnv === "production";

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { UserModel } from "../models/User";
 import { requireAuth, type AuthedRequest } from "../middleware/auth";
 import { AUTH_COOKIE, cookieOptions, signToken, verifyPassword } from "../services/auth";
+import { recordAudit } from "../services/audit";
 
 export const authRouter = Router();
 
@@ -20,6 +21,7 @@ authRouter.post("/auth/login", async (req, res) => {
 
   const token = signToken({ id: user.id, role: user.role });
   res.cookie(AUTH_COOKIE, token, cookieOptions);
+  await recordAudit({ actorId: user.id, actorUsername: user.username, action: "login" });
   res.json({ id: user.id, username: user.username, role: user.role });
 });
 

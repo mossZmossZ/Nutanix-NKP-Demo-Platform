@@ -59,7 +59,10 @@ Route → service → model/infra. No controllers-as-classes, no decorators, no 
 
 ```
 User
-  _id, user (unique username), passwordHash, role: 'admin' | 'user', createdAt
+  _id, user (unique username), passwordHash, role: 'admin' | 'user',
+  preferences: { docFontSize? },              # per-user UI prefs (Phase 6) — follows the user
+  lastSeen?,                                   # presence heartbeat timestamp (Phase 6)
+  createdAt
 
 Lab                         # reusable guide template
   _id, slug, title, summary, mdxPath, variables: [{ key, label, required }]
@@ -80,6 +83,16 @@ Job                         # one Terraform -> Ansible provisioning run
   _id, machineId, type: 'provision'|'deprovision',
   state: 'pending'|'provisioning'|'configuring'|'ready'|'failed',
   logs: [ { ts, stream, line } ],  error?, createdAt, finishedAt
+
+UserActivity                # per-user per-day active-time accumulator (Phase 6)
+  _id, userId, dayKey,                        # dayKey = YYYY-MM-DD in WORKSHOP_TZ
+  activeSeconds, lastHeartbeatAt, createdAt   # unique (userId, dayKey); $inc by a capped delta
+
+AuditEvent                  # append-only admin activity log (Phase 6)
+  _id, actorId, action, targetType, targetId?, meta?, createdAt
+
+Settings                    # single-document platform settings (Phase 6)
+  _id, platformName, defaultDocFontSize, updatedAt      # singleton
 ```
 
 Notes:
@@ -120,6 +133,23 @@ Notes:
    `(rdpHost, rdpUser, rdpPassword)`, mints a short-lived token; the right pane embeds the
    Guacamole HTML5 client (RDP desktop in a `<canvas>`).
 4. **Credentials:** renders the assignment's RDP details + resolved lab variables.
+
+### 5. Presence, activity & settings (Phase 6)
+1. **Heartbeat:** while a tab is **visible** (`visibilitychange`-gated), the frontend pings the
+   backend every ~30s. The API updates `User.lastSeen` and upserts today's `UserActivity`
+   `(userId, dayKey)`, `$inc`-ing `activeSeconds` by `min(now − lastHeartbeatAt, ~60s cap)` (the
+   cap discards sleep/closed-lid gaps). `dayKey` is computed in `WORKSHOP_TZ` (env, default
+   `Asia/Bangkok`) so "today" matches the admin's local midnight; per-day docs keep history.
+2. **Dashboard** reads real data only: **concurrent users** = distinct `User.lastSeen` within a
+   ~60s window; **active-time-per-user-today** from `UserActivity`; user/machine/lab counts;
+   machine health (existing TCP checks); labs-by-enrollment + avg progress from `Assignment`;
+   the **Recent Activity** feed from the last N `AuditEvent`s.
+3. **Audit log:** mutating admin actions (assignment create/revoke, user create/delete, machine
+   import/delete, lab create/import, login) write an `AuditEvent`.
+4. **Settings:** admin edits the `Settings` singleton (platform display name, default doc font
+   size) + changes their own password. `defaultDocFontSize` is the inherited default; a
+   participant's own `User.preferences.docFontSize` (set via the lab-toolbar A−/A+ control)
+   overrides it and follows them across devices.
 
 ## Provisioning internals (`/infra`)
 

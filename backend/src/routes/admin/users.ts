@@ -3,6 +3,7 @@ import { isValidObjectId } from "mongoose";
 import { UserModel, type Role } from "../../models/User";
 import { requireAuth, requireAdmin, type AuthedRequest } from "../../middleware/auth";
 import { hashPassword } from "../../services/auth";
+import { recordAudit } from "../../services/audit";
 
 export const adminUsersRouter = Router();
 
@@ -19,7 +20,7 @@ adminUsersRouter.get("/", async (_req, res) => {
   res.json(users.map((u) => publicUser(u as never)));
 });
 
-adminUsersRouter.post("/", async (req, res) => {
+adminUsersRouter.post("/", async (req: AuthedRequest, res) => {
   const { username, password, role } = req.body ?? {};
   if (typeof username !== "string" || !username.trim()) {
     res.status(400).json({ error: "username is required" });
@@ -42,6 +43,7 @@ adminUsersRouter.post("/", async (req, res) => {
     passwordHash: await hashPassword(password),
     role,
   });
+  await recordAudit({ actorId: req.user!.id, action: "user.create", targetType: "user", targetLabel: user.username });
   res.status(201).json(publicUser(user as never));
 });
 
@@ -106,5 +108,6 @@ adminUsersRouter.delete("/:id", async (req: AuthedRequest, res) => {
     return;
   }
   await user.deleteOne();
+  await recordAudit({ actorId: req.user!.id, action: "user.delete", targetType: "user", targetLabel: user.username });
   res.status(204).end();
 });

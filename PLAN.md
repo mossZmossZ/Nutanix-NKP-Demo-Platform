@@ -73,7 +73,31 @@ Goal: user sees a live RDP desktop in the browser.
 - **Verify:** against a test RDP host, an assigned user connects to the desktop in-browser;
   an unassigned user cannot.
 
-## Phase 6 — Dynamic provisioning (Terraform + Ansible + BullMQ)
+## Phase 6 — Admin UI: web design + functional (Settings + Dashboard)
+Goal: turn the two remaining mock admin surfaces into real, data-backed pages, and add the
+presence/activity machinery they need. Independent of Phase 5 (remote-session troubleshooting) —
+can proceed in parallel.
+- **Presence & activity backend:** frontend heartbeat (~30s, only while the tab is visible);
+  `UserActivity` collection keyed `(userId, dayKey)` accumulating active seconds (`$inc` by a
+  capped delta), day boundary in `WORKSHOP_TZ` (default `Asia/Bangkok`); `AuditEvent` model +
+  write-hooks on key mutations (assignment create/revoke, user create/delete, machine
+  import/delete, lab create/import, login).
+- **Settings page (mock → real):** admin change-own-password; editable platform display name
+  (`Settings` singleton); default lab-document font size; Web App Endpoint stays a read-only
+  "configured at deploy (nginx)" field (the only labelled-mock item). Font size is a **per-user**
+  preference (A−/A+ in the lab toolbar, persisted on `User`, inheriting the platform default).
+  Drop the mock infra cards (k8s version, node count, vCPU/mem defaults, Guacamole host, session
+  timeout, 2FA, brand-color picker).
+- **Dashboard redesign (all real):** concurrent-users-now + per-user active-time-today table;
+  real user/machine/lab counts; machine health (UP/DOWN, free/assigned, summed vCPU/mem);
+  labs-by-enrollment + avg progress; real activity feed from `AuditEvent`; quick actions. Cut
+  trend deltas and the APM/performance bar (no data source / infra). Keep the existing richer
+  visual aesthetic (not re-paletted to violet-only).
+- **Verify:** dashboard shows only real data (live concurrent count, real per-user daily active
+  time, real counts/health, real activity feed); Settings persist (password, platform name,
+  default font size); a participant's font-size choice follows them across devices.
+
+## Phase 7 — Dynamic provisioning (Terraform + Ansible + BullMQ)
 Goal: the cloud-manage feature with live logs.
 - BullMQ queue + worker process; `Job` model.
 - Provisioning adapter: per-machine workdir, `execa` `terraform apply` → `ansible-playbook`,
@@ -84,7 +108,7 @@ Goal: the cloud-manage feature with live logs.
 - **Verify:** creating a dynamic machine provisions a real/mock Nutanix VM; logs stream live;
   status reaches `online`; outputs populate the detail panel.
 
-## Phase 7 — Prod hardening & ship
+## Phase 8 — Prod hardening & ship
 Goal: full stack runs behind nginx over TLS.
 - `docker-compose.prod.yml` (nginx + fe + be + worker + mongo + redis + guac).
 - nginx TLS + routing; secret handling per `SECURITY.md`; basic dashboards/counts.
@@ -96,6 +120,7 @@ Goal: full stack runs behind nginx over TLS.
   UI-first, thin vertical slice. Don't design further ahead than Phase 4 needs (e.g. no
   Machines list filtering/sorting/pagination — that's speculative surface Phase 4 doesn't
   call for).
-- Phases 4→5→6 are the spine; do them in order (assignment before remote before dynamic).
-- Phase 6 is the highest-risk (real infra). Mock the Nutanix provider early if hardware
+- Phases 4→5→7 are the spine; do them in order (assignment before remote before dynamic).
+  Phase 6 (admin UI real-data) is independent and can run in parallel with Phase 5.
+- Phase 7 is the highest-risk (real infra). Mock the Nutanix provider early if hardware
   isn't ready, so the queue/log/UI plumbing is proven independently.

@@ -2,8 +2,9 @@ import { createConnection } from "net";
 import { Router } from "express";
 import { isValidObjectId } from "mongoose";
 import { MachineModel } from "../../models/Machine";
-import { requireAuth, requireAdmin } from "../../middleware/auth";
+import { requireAuth, requireAdmin, type AuthedRequest } from "../../middleware/auth";
 import { encryptSecret, decryptSecret } from "../../lib/crypto";
+import { recordAudit } from "../../services/audit";
 
 export const adminMachinesRouter = Router();
 
@@ -62,7 +63,7 @@ adminMachinesRouter.get("/", async (_req, res) => {
   res.json(machines.map((m) => machineDTO(m as never)));
 });
 
-adminMachinesRouter.post("/", async (req, res) => {
+adminMachinesRouter.post("/", async (req: AuthedRequest, res) => {
   const { name, rdpHost, rdpPort, rdpUser, rdpPassword, vcpu, memory, os, drive, sshPort } = req.body ?? {};
   if (
     typeof rdpHost !== "string" ||
@@ -87,6 +88,12 @@ adminMachinesRouter.post("/", async (req, res) => {
     os,
     drive,
     sshPort,
+  });
+  await recordAudit({
+    actorId: req.user!.id,
+    action: "machine.create",
+    targetType: "machine",
+    targetLabel: machine.name || machine.rdpHost,
   });
   res.status(201).json(machineDTO(machine as never));
 });
@@ -116,7 +123,7 @@ adminMachinesRouter.patch("/:id", async (req, res) => {
   res.json(machineDTO(machine as never));
 });
 
-adminMachinesRouter.delete("/:id", async (req, res) => {
+adminMachinesRouter.delete("/:id", async (req: AuthedRequest, res) => {
   if (!isValidObjectId(req.params.id)) {
     res.status(404).json({ error: "machine not found" });
     return;
@@ -131,6 +138,12 @@ adminMachinesRouter.delete("/:id", async (req, res) => {
     return;
   }
   await machine.deleteOne();
+  await recordAudit({
+    actorId: req.user!.id,
+    action: "machine.delete",
+    targetType: "machine",
+    targetLabel: machine.name || machine.rdpHost,
+  });
   res.status(204).end();
 });
 

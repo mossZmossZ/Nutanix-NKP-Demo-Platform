@@ -36,7 +36,7 @@ export function AppShell({
   collapsible?: boolean
   lockViewport?: boolean
 }) {
-  const { user, logout } = useAuth()
+  const { user, logout, platformName } = useAuth()
   const navigate = useNavigate()
   const { pathname } = useLocation()
 
@@ -80,8 +80,8 @@ export function AppShell({
             to="/"
             className="flex items-center gap-xs text-h4 text-foreground transition-colors duration-[var(--duration-base)] ease-standard hover:text-violet-600"
           >
-            <Hexagon className="size-4 text-violet-600" strokeWidth={2.25} />
-            NKP Workshop
+            <Hexagon className="size-4 shrink-0 text-violet-600" strokeWidth={2.25} />
+            <span className="truncate">{platformName}</span>
           </Link>
         </div>
         <nav className="flex flex-col gap-xxs p-sm">

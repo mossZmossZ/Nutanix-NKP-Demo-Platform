@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { LabModel } from "../../models/Lab";
 import { AssignmentModel } from "../../models/Assignment";
-import { requireAuth, requireAdmin } from "../../middleware/auth";
+import { requireAuth, requireAdmin, type AuthedRequest } from "../../middleware/auth";
+import { recordAudit } from "../../services/audit";
 import { scaffoldLab, listPages, readPage, writePage, createPage, deletePage, removeLab } from "../../lib/wiki";
 import { serializeLab, parseLabArchive, ArchiveError } from "../../lib/labArchive";
 
@@ -18,7 +19,7 @@ adminLabsRouter.get("/", async (_req, res) => {
   );
 });
 
-adminLabsRouter.post("/", async (req, res) => {
+adminLabsRouter.post("/", async (req: AuthedRequest, res) => {
   const { slug, title, summary, difficulty, duration, order } = req.body ?? {};
   if (typeof slug !== "string" || !SLUG_PATTERN.test(slug)) {
     res.status(400).json({ error: "slug is required and must be kebab-case" });
@@ -34,6 +35,7 @@ adminLabsRouter.post("/", async (req, res) => {
   }
   const lab = await LabModel.create({ slug, title, summary, difficulty, duration, order });
   scaffoldLab(slug);
+  await recordAudit({ actorId: req.user!.id, action: "lab.create", targetType: "lab", targetLabel: lab.title });
   res.status(201).json(lab);
 });
 
@@ -42,7 +44,7 @@ adminLabsRouter.post("/", async (req, res) => {
 // counts so the UI can warn); with it, pages + metadata are replaced and
 // credentialVar _ids are reused so per-user values survive — vars dropped from
 // the file have their values unset from the lab's assignments.
-adminLabsRouter.post("/import", async (req, res) => {
+adminLabsRouter.post("/import", async (req: AuthedRequest, res) => {
   const { content, mode } = req.body ?? {};
   if (typeof content !== "string") {
     res.status(400).json({ error: "content must be a string" });
@@ -93,6 +95,7 @@ adminLabsRouter.post("/import", async (req, res) => {
       await AssignmentModel.updateMany({ labId: existing._id }, { $unset: unset });
     }
 
+    await recordAudit({ actorId: req.user!.id, action: "lab.import", targetType: "lab", targetLabel: existing.title });
     res.json({ ...existing.toObject(), pageCount: pages.length, mode: "overwrite" });
     return;
   }
@@ -108,6 +111,7 @@ adminLabsRouter.post("/import", async (req, res) => {
   });
   removeLab(lab.slug);
   for (const page of pages) writePage(lab.slug, page.file, page.content);
+  await recordAudit({ actorId: req.user!.id, action: "lab.import", targetType: "lab", targetLabel: lab.title });
   res.status(201).json({ ...lab.toObject(), pageCount: pages.length, mode: "create" });
 });
 
