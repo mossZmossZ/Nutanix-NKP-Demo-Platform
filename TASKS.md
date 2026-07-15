@@ -79,12 +79,12 @@ sync with reality (it's the "current state" file).
 > **Direction (2026-07-10):** perfect the *participant* experience before automating infra —
 > the admin can provision machines by hand, but the participant experience is what scales.
 > Admin provisions machines **manually** and pastes RDP creds; there is **no `Machine` model
-> yet** (deferred to Phase 6) — creds are typed straight into an `Assignment` (`ARCHITECTURE.md`
+> yet** (deferred to Phase 7) — creds are typed straight into an `Assignment` (`ARCHITECTURE.md`
 > allows "typed by admin"). **Each participant gets their own desktop** (killer.sh-style
 > isolation). Real data replaces the admin mock — **except Users, already real**.
 
 > **PIVOT (landed in `2fabd97`/`4a6925a`):** RDP creds are **not** typed into the Assignment.
-> The `Machine` model was **pulled forward from Phase 6** into a machine **pool** — creds live
+> The `Machine` model was **pulled forward from Phase 7** into a machine **pool** — creds live
 > encrypted on the Machine (`lib/crypto.ts`); an Assignment binds `userId+labId+machineId`. The
 > admin manages a pool of machines and picks one when assigning. This supersedes the "typed into
 > Assignment" wording below.
@@ -124,7 +124,7 @@ sync with reality (it's the "current state" file).
 > Scope is **only** the lab workshop surface (`LabViewPage` + `lab-view/GuidePane`,
 > `RemotePanel`, `CredentialsPanel`) — the page users live in. **Polish/repair, no new
 > features.** New features from the original list are split out: **4e** (credentials), **4f**
-> (lab authoring), and item 3 (Machine Pool + web terminal) → **Phase 6**.
+> (lab authoring), and item 3 (Machine Pool + web terminal) → **Phase 7**.
 >
 > **Design governance (decided):** keep `design.md` tokens/radii as-is — "sharp / formal /
 > minimal" means **tighter, denser, cleaner via spacing + typography**, NOT less-rounded
@@ -263,9 +263,55 @@ sync with reality (it's the "current state" file).
 - [ ] ✅ Checkpoint (real xrdp host): assigned user reaches their **own** live RDP desktop
       in-browser; unassigned cannot
 
-## Phase 6 — Dynamic provisioning (Terraform + Ansible + BullMQ)
+## Phase 6 — Admin UI: web design + functional (Settings + Dashboard)
+> **Grilled + planned 2026-07-15.** Split out from Phase 5 as an **independent** track (Phase 5
+> stays the remote-session blank-screen troubleshoot). Turns the two remaining **mock** admin
+> surfaces (`AdminPortalPage` dashboard, `SettingsPage`) into **real, data-backed** pages —
+> **no mockups** — plus the presence/activity machinery they need. Decisions locked below.
+>
+> **New backend machinery:** `UserActivity` (per-user per-day active-time), `AuditEvent` (audit
+> log), `Settings` (singleton), plus `User` preference fields. No presence/session/settings
+> tracking exists today — this is net-new.
+
+**6a — Presence & activity backend (net-new)**
+- [ ] **Heartbeat** — frontend pings `~30s` **only while** `document.visibilityState === 'visible'`
+      (`visibilitychange`-gated); backend updates `lastSeen` + accumulates active time.
+- [ ] **Concurrent users** — distinct users with `lastSeen` within a `~60s` window (ephemeral, live).
+- [ ] **Per-user active-time-today** (cumulative, **Option B**) — `UserActivity` collection keyed
+      `(userId, dayKey)`, upsert + `$inc activeSeconds` by `delta = min(now − lastHeartbeat, ~60s cap)`
+      (cap discards sleep/closed-lid gaps). `dayKey` = `YYYY-MM-DD` in **`WORKSHOP_TZ`** (env, default
+      `Asia/Bangkok`) so "today" matches admin local midnight. Per-day docs keep history for free.
+- [ ] **Audit log** — `AuditEvent` model + write-hooks on assignment create/revoke, user
+      create/delete, machine import/delete, lab create/import, login.
+
+**6b — Settings page (mock → real)**
+- [ ] **Account & Security** — admin changes **their own** password (bcrypt; currently missing).
+- [ ] **Platform Identity** — editable **platform display name** (`Settings` singleton), shown in header/title.
+- [ ] **Learner Defaults** — **default lab-document font size** (platform default new users inherit).
+- [ ] **Web Application Endpoint** — read-only **"configured at deploy (nginx)"** display field,
+      clearly labelled — the **only** deliberately-mock item (fixed after nginx deployment).
+- [ ] **Font size = per-user preference** — **A− / A+ control in the lab-workshop toolbar**,
+      persisted **server-side on `User`** (follows the user across devices), inheriting the platform default.
+- [ ] Drop the mock **infra** cards (k8s version, node count, vCPU/mem defaults, Guacamole host,
+      session timeout, 2FA toggle, brand-color picker).
+
+**6c — Dashboard redesign (all real; keep richer look; built inline)**
+- [ ] **Hero band** — **concurrent-users-now** + **active-time-per-user-today table**
+      (username · time today · last-seen) — the headline metric.
+- [ ] Real stat cards — total **users / machines / labs** (live counts).
+- [ ] **Machine health** — UP/DOWN, free/assigned, summed vCPU/mem (reuses existing TCP health checks).
+- [ ] **Labs by enrollment** + avg progress (reinterprets the mock "Active Workshops"; from Assignments).
+- [ ] **Recent Activity** feed — real, from `AuditEvent` (last N).
+- [ ] Keep Quick Actions.
+- [ ] **Cut** trend deltas (+12% etc.) and the APM/performance bar (Uptime/Response/CPU/Security)
+      — no data source / infra. Keep the current gradient/multicolor aesthetic (**not** re-paletted to violet-only).
+- [ ] ✅ Checkpoint: dashboard shows only real data (live concurrent count, real per-user daily
+      active time, real counts/health, real activity feed); Settings persist (password, platform
+      name, default font size); a participant's font-size choice persists across devices.
+
+## Phase 7 — Dynamic provisioning (Terraform + Ansible + BullMQ)
 - [x] `Machine` model — **landed early in Phase 4a** (`Machine.ts`) as a static pool; admin
-      assigns creds *from a machine*. Phase 6 adds `source: 'dynamic'` + provisioning status on top.
+      assigns creds *from a machine*. Phase 7 adds `source: 'dynamic'` + provisioning status on top.
       **Updated 2026-07-13:** added `vcpu`, `memory`, `os`, `drive` optional fields for rich dashboard.
 - [x] **Machine Pool console** (folded in from 4d item 3) — ✅ **COMPLETE (2026-07-13):**
 >       Merged mock `/admin/machines` + real `MachinePoolPage` into a single card-grid
@@ -300,7 +346,7 @@ sync with reality (it's the "current state" file).
 - [ ] Admin → Machines → Create (dynamic): job launch + SSE live logs + detail panel
 - [ ] ✅ Checkpoint: dynamic create provisions VM, logs stream, status `online`
 
-## Phase 7 — Prod hardening & ship
+## Phase 8 — Prod hardening & ship
 - [ ] `deploy/docker-compose.prod.yml` (nginx + fe + be + worker + mongo + redis + guac)
 - [ ] nginx TLS + routing
 - [ ] Secret handling per `SECURITY.md`
