@@ -33,7 +33,7 @@
     "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "^26.1.1",
     "@types/ssh2": "^1.15.4",
-    "@types/supertest": "^7.2.0",
+    "@types/supertest": "^7.2.1",
     "@types/ws": "^8.5.13",
     "mongodb-memory-server": "^11.2.0",
     "oxlint": "^1.71.0",
