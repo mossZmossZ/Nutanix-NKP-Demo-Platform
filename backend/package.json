@@ -23,7 +23,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.9.5",
     "ssh2": "^1.16.0",
-    "ws": "^8.18.0",
+    "ws": "^8.21.1",
     "yaml": "^2.9.0"
   },
   "devDependencies": {
