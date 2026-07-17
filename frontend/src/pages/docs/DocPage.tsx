@@ -27,6 +27,35 @@ export function DocPage() {
     )
   }
 
+  if (entry.meta.pdfUrl) {
+    return (
+      <div className="mx-auto max-w-[900px] px-lg py-section">
+        <Link to="/docs" className="text-body-sm text-primary">
+          ← All docs
+        </Link>
+        <h1 className="mt-md text-h1 text-foreground">{entry.meta.title}</h1>
+        {entry.meta.summary && (
+          <p className="mt-xs text-body text-muted-foreground">{entry.meta.summary}</p>
+        )}
+        <a
+          href={entry.meta.pdfUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-lg inline-block text-body-sm text-primary"
+        >
+          Open in new tab ↗
+        </a>
+        <div className="mt-sm overflow-hidden rounded-lg border border-border shadow">
+          <iframe
+            title={entry.meta.title}
+            src={entry.meta.pdfUrl}
+            className="h-[calc(100vh-320px)] min-h-[480px] w-full"
+          />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <article className="mx-auto max-w-[700px] px-lg py-section">
       <MDXProvider components={mdxComponents}>

@@ -12,7 +12,14 @@ export function DocsIndexPage() {
               to={`/docs/${doc.slug}`}
               className="block rounded-lg border border-border bg-surface p-lg transition-shadow duration-[var(--duration-fast)] ease-standard hover:shadow"
             >
-              <h2 className="text-h4 text-foreground">{doc.meta.title}</h2>
+              <div className="flex items-center gap-sm">
+                <h2 className="text-h4 text-foreground">{doc.meta.title}</h2>
+                {doc.meta.pdfUrl && (
+                  <span className="rounded-full bg-primary/10 px-sm py-xxs text-body-sm font-medium text-primary">
+                    PDF
+                  </span>
+                )}
+              </div>
               <p className="mt-xxs text-body-sm text-muted-foreground">{doc.meta.summary}</p>
             </Link>
           </li>

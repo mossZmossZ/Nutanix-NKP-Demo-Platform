@@ -1,6 +1,8 @@
 import type { ComponentType } from 'react'
 
-export type DocMeta = { title: string; summary: string; order: number }
+// `pdfUrl`, when present in a doc's frontmatter, makes the doc render as an
+// in-app PDF viewer (embedding that S3 URL) instead of its MDX body.
+export type DocMeta = { title: string; summary: string; order: number; pdfUrl?: string }
 export type DocEntry = {
   slug: string
   meta: DocMeta
