@@ -27,6 +27,37 @@ export function DocPage() {
     )
   }
 
+  if (entry.meta.pdfUrl) {
+    // Immersive full-window reader: a fixed overlay covers the whole viewport
+    // (site nav included). The slim top bar is the only chrome — the back link
+    // is the escape, the "open in new tab" link the fallback if an embed fails.
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col bg-surface">
+        <div className="flex items-center gap-lg border-b border-border px-lg py-sm">
+          <Link to="/docs" className="shrink-0 text-body-sm text-primary">
+            ← All docs
+          </Link>
+          <span className="min-w-0 flex-1 truncate text-body-sm font-medium text-foreground">
+            {entry.meta.title}
+          </span>
+          <a
+            href={entry.meta.pdfUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="shrink-0 text-body-sm text-primary"
+          >
+            Open in new tab ↗
+          </a>
+        </div>
+        <iframe
+          title={entry.meta.title}
+          src={entry.meta.pdfUrl}
+          className="min-h-0 w-full flex-1"
+        />
+      </div>
+    )
+  }
+
   return (
     <article className="mx-auto max-w-[700px] px-lg py-section">
       <MDXProvider components={mdxComponents}>

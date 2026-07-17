@@ -20,7 +20,7 @@ export function GlobalNav() {
     navigate('/login', { replace: true })
   }
 
-  const portalHref = user?.role === 'admin' ? '/admin' : '/lab-access'
+  const isAdmin = user?.role === 'admin'
 
   return (
     <header className="sticky top-0 z-50 h-16 border-b border-border bg-surface">
@@ -45,8 +45,13 @@ export function GlobalNav() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
-                  <Link to={portalHref}>{user.role === 'admin' ? 'Admin portal' : 'Lab access'}</Link>
+                  <Link to="/lab-access">Lab access</Link>
                 </DropdownMenuItem>
+                {isAdmin && (
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin">Admin portal</Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={onLogout}>Logout</DropdownMenuItem>
               </DropdownMenuContent>
