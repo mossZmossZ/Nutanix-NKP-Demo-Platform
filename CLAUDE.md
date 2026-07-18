@@ -41,8 +41,9 @@ it to a user are two separate steps bridged by the admin. Don't auto-wire them.
 /infra         terraform/ + ansible/ templates (Nutanix)
 /docs-content  .mdx lab guides + doc pages
 /deploy        docker-compose.dev.yml, docker-compose.prod.yml, nginx/
-design.md      design-system source of truth (violet SaaS) — see "Design" below
-design/        per-page layout references (homepage/login/admin/users) — refs only, tokens live in design.md
+design-v2.md   design-system source of truth (Nutanix-branded) — see "Design" below
+design.md      LEGACY violet SaaS spec — reference only, superseded by design-v2.md
+design/        per-page layout references (homepage/login/admin/users) — refs only, tokens live in design-v2.md
 ARCHITECTURE.md, PLAN.md, TASKS.md, SECURITY.md
 ```
 
@@ -52,12 +53,14 @@ ARCHITECTURE.md, PLAN.md, TASKS.md, SECURITY.md
   reviewing, or refactoring code, and follow it: minimum code that solves the task, surgical
   changes, surface assumptions/tradeoffs, define verifiable success criteria. Don't add
   speculative abstraction/config/error-handling.
-- **Design is a spec, not a suggestion.** All UI follows `design.md`: violet `#702DFF`
-  is the *only* accent (status colors are functional-only), **Inter** type ladder
-  (400/500/600/700), radius 8px default / 12px panels / pill for chips+avatars+hero CTAs, one
-  product-shadow style only, light-only on semantic tokens. Map tokens into the Tailwind theme;
-  theme shadcn components from those tokens. Never inline hex. Files in `design/` are layout
-  references only — their token values are superseded by `design.md`.
+- **Design is a spec, not a suggestion.** All UI follows `design-v2.md` (Nutanix
+  Prism-aligned): iris `#7855FA` is the primary accent with interactive blue `#1B6EC5`
+  for links, the prism gradient has exactly four sanctioned uses, status colors are
+  functional-only, single typeface Mulish (Nutanix Soft stand-in) + Menlo mono, Prism
+  density (14px body), radius 4px controls / 8px cards / 12px modals, light-first on
+  `#ECF0F3` with midnight-navy dark surfaces. Map tokens into the Tailwind theme; theme
+  shadcn components from those tokens. Never inline hex. `design.md` and files in
+  `design/` are legacy references only — superseded by `design-v2.md`.
 - **Never run Terraform/Ansible inside an HTTP request.** Provisioning is always a BullMQ
   job; the API enqueues and returns a `jobId`; the worker streams logs.
 - **Secrets never touch the repo or client logs.** RDP passwords, JWT secret, Nutanix creds
@@ -86,7 +89,7 @@ ARCHITECTURE.md, PLAN.md, TASKS.md, SECURITY.md
 - **What to build and in what order** → `PLAN.md`
 - **Concrete checklist / current state** → `TASKS.md`
 - **Handling secrets, RDP creds, provisioning safety** → `SECURITY.md`
-- **Any UI decision** → `design.md`
+- **Any UI decision** → `design-v2.md`
 
 ## Working style (this maintainer)
 

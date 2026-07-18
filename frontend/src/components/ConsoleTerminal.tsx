@@ -37,9 +37,9 @@ export function ConsoleTerminal({ machineId, onDisconnected }: Props) {
       fontSize: 13,
       fontFamily: "'Menlo', 'Monaco', 'Courier New', monospace",
       theme: {
-        background: "#1a1b26",
-        foreground: "#c0caf5",
-        cursor: "#c0caf5",
+        background: "#14192E",
+        foreground: "#C9CFE8",
+        cursor: "#7855FA",
       },
       allowProposedApi: true,
     });
@@ -159,9 +159,9 @@ export function ConsoleTerminal({ machineId, onDisconnected }: Props) {
   return (
     <div className="relative h-full w-full">
       {status === "connecting" && (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-[#1a1b26]">
-          <Loader2 className="size-6 animate-spin text-violet-400" />
-          <p className="text-sm text-violet-300/80">Connecting to {machineId}…</p>
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-navy-900">
+          <Loader2 className="size-6 animate-spin text-iris-600" />
+          <p className="text-sm text-navy-fg/80">Connecting to {machineId}…</p>
         </div>
       )}
       <div ref={containerRef} className="h-full w-full" />

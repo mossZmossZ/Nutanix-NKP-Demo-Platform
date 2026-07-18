@@ -181,16 +181,16 @@ export function AdminPortalPage() {
             <Card className="overflow-hidden border-border/40 shadow-sm">
               <div className="grid gap-0 lg:grid-cols-[280px_1fr]">
                 {/* Concurrent-now */}
-                <div className="relative flex flex-col justify-center gap-2 bg-gradient-to-br from-violet-600 to-purple-600 p-6 text-white">
-                  <div className="flex items-center gap-2 text-sm font-medium text-white/80">
+                <div className="relative flex flex-col justify-center gap-2 bg-navy-900 p-6 text-white">
+                  <div className="flex items-center gap-2 text-sm font-medium text-navy-fg">
                     <span className="relative flex size-2">
-                      <span className="absolute inline-flex size-full animate-ping rounded-full bg-white opacity-75" />
-                      <span className="relative inline-flex size-2 rounded-full bg-white" />
+                      <span className="absolute inline-flex size-full animate-ping rounded-full bg-iris-600 opacity-75" />
+                      <span className="relative inline-flex size-2 rounded-full bg-iris-600" />
                     </span>
                     Concurrent users now
                   </div>
-                  <p className="font-mono text-6xl font-bold tabular-nums">{data.concurrentUsers}</p>
-                  <p className="text-sm text-white/70">
+                  <p className="text-6xl font-bold tabular-nums">{data.concurrentUsers}</p>
+                  <p className="text-sm text-navy-fg/80">
                     {data.activeToday.length} active on the platform today
                   </p>
                 </div>
@@ -234,7 +234,7 @@ export function AdminPortalPage() {
               {stats.map((stat) => (
                 <Card
                   key={stat.id}
-                  className="group relative overflow-hidden border-border/40 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-lg"
+                  className="group relative overflow-hidden border-border/40 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-iris-100 hover:shadow-lg"
                 >
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
@@ -243,12 +243,12 @@ export function AdminPortalPage() {
                         <h3 className="mt-2 font-mono text-3xl font-bold tabular-nums text-foreground">{stat.value}</h3>
                         <p className="mt-2 text-sm text-muted-foreground">{stat.sub}</p>
                       </div>
-                      <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-100 to-violet-50 text-violet-600 transition-transform duration-300 group-hover:scale-110">
+                      <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-iris-100 text-iris-600 transition-transform duration-300 group-hover:scale-110">
                         <stat.icon className="size-6" strokeWidth={2} />
                       </div>
                     </div>
                   </CardContent>
-                  <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-violet-500 to-purple-500 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                  <div className="absolute inset-x-0 bottom-0 h-1 bg-iris-600 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                 </Card>
               ))}
             </div>
@@ -276,7 +276,7 @@ export function AdminPortalPage() {
                     <>
                       <div className="mb-2 flex items-center justify-between text-sm">
                         <span className="flex items-center gap-2">
-                          <span className="size-2.5 rounded-full bg-violet-500" />
+                          <span className="size-2.5 rounded-full bg-iris-600" />
                           <span className="font-medium text-foreground">Assigned</span>
                         </span>
                         <span className="font-mono tabular-nums text-muted-foreground">
@@ -284,11 +284,11 @@ export function AdminPortalPage() {
                         </span>
                       </div>
                       <div className="h-2 overflow-hidden rounded-full bg-muted">
-                        <div className="h-full rounded-full bg-gradient-to-r from-violet-500 to-purple-500 transition-all duration-500" style={{ width: `${assignedPct}%` }} />
+                        <div className="h-full rounded-full [background:var(--gradient-prism)] transition-all duration-500" style={{ width: `${assignedPct}%` }} />
                       </div>
                       <div className="mt-6 grid grid-cols-3 gap-4">
                         <PoolStat label="Free" value={data.machineSummary.free} tone="text-emerald-600" />
-                        <PoolStat label="Assigned" value={data.machineSummary.assigned} tone="text-violet-600" />
+                        <PoolStat label="Assigned" value={data.machineSummary.assigned} tone="text-iris-600" />
                         <PoolStat label="Total vCPU" value={data.machineSummary.totalVcpu} tone="text-foreground" icon={Cpu} />
                       </div>
                     </>
@@ -323,7 +323,7 @@ export function AdminPortalPage() {
                               <span className="font-medium text-foreground">{Math.round(lab.avgProgress * 100)}%</span>
                             </div>
                             <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
-                              <div className="h-full rounded-full bg-violet-500 transition-all duration-500" style={{ width: `${Math.round(lab.avgProgress * 100)}%` }} />
+                              <div className="h-full rounded-full [background:var(--gradient-prism)] transition-all duration-500" style={{ width: `${Math.round(lab.avgProgress * 100)}%` }} />
                             </div>
                           </div>
                         </div>

@@ -191,7 +191,7 @@ export function MachinePoolPage() {
         <div className="grid gap-4 md:grid-cols-3">
           <div className="rounded-lg border border-border/40 bg-card p-4 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-lg bg-violet-100 text-violet-600">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-iris-100 text-iris-600">
                 <Boxes className="size-5" />
               </div>
               <div>
@@ -240,7 +240,7 @@ export function MachinePoolPage() {
         {/* List */}
         {total === 0 ? (
           <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border/60 bg-card px-6 py-16 text-center shadow-sm">
-            <div className="flex size-12 items-center justify-center rounded-full bg-violet-100 text-violet-600">
+            <div className="flex size-12 items-center justify-center rounded-full bg-iris-100 text-iris-600">
               <Boxes className="size-6" />
             </div>
             <div>
@@ -276,7 +276,7 @@ export function MachinePoolPage() {
                       <tr className="transition-colors duration-200 ease-standard hover:bg-muted/30">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-sm">
+                            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-iris-600 text-white shadow-sm">
                               <HardDrive className="size-4" />
                             </div>
                             <span className="font-medium text-foreground">{m.name || m.rdpHost}</span>

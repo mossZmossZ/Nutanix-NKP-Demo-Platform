@@ -12,7 +12,7 @@ test('h1 maps to the display token classes', () => {
 test('anchor maps to the single Action Blue text-link', () => {
   const A = mdxComponents.a!
   render(<A href="/x">link</A>)
-  expect(screen.getByRole('link', { name: 'link' }).className).toContain('text-primary')
+  expect(screen.getByRole('link', { name: 'link' }).className).toContain('text-blue-600')
 })
 
 test('Callout defaults to note and renders its children', () => {

@@ -6,8 +6,8 @@ export function Footer() {
     <footer className="border-t border-border bg-surface px-lg py-[64px] text-muted-foreground">
       <div className="mx-auto flex max-w-[1440px] flex-col gap-lg">
         <div className="flex gap-lg text-body-sm">
-          <Link to="/docs" className="text-primary">Docs</Link>
-          <Link to="/login" className="text-primary">Sign in</Link>
+          <Link to="/docs" className="text-blue-600">Docs</Link>
+          <Link to="/login" className="text-blue-600">Sign in</Link>
         </div>
         <div className="flex flex-col gap-xs text-body-sm text-muted-foreground">
           <p>

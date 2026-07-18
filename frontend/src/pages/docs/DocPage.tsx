@@ -20,7 +20,7 @@ export function DocPage() {
         <p className="mt-md text-body text-muted-foreground">
           No document matches "{slug}".
         </p>
-        <Link to="/docs" className="mt-lg inline-block text-body text-primary">
+        <Link to="/docs" className="mt-lg inline-block text-body text-blue-600">
           ← All docs
         </Link>
       </div>
@@ -33,18 +33,18 @@ export function DocPage() {
     // is the escape, the "open in new tab" link the fallback if an embed fails.
     return (
       <div className="fixed inset-0 z-50 flex flex-col bg-surface">
-        <div className="flex items-center gap-lg border-b border-border px-lg py-sm">
-          <Link to="/docs" className="shrink-0 text-body-sm text-primary">
+        <div className="flex items-center gap-lg bg-navy-900 px-lg py-sm">
+          <Link to="/docs" className="shrink-0 text-body-sm text-navy-fg hover:text-white">
             ← All docs
           </Link>
-          <span className="min-w-0 flex-1 truncate text-body-sm font-medium text-foreground">
+          <span className="min-w-0 flex-1 truncate text-body-sm font-medium text-white">
             {entry.meta.title}
           </span>
           <a
             href={entry.meta.pdfUrl}
             target="_blank"
             rel="noreferrer"
-            className="shrink-0 text-body-sm text-primary"
+            className="shrink-0 text-body-sm text-navy-fg hover:text-white"
           >
             Open in new tab ↗
           </a>

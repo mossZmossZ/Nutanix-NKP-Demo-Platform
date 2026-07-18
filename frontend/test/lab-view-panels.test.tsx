@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
 import { CredentialsPanel } from '@/pages/lab-view/CredentialsPanel'
 import { RemotePanel } from '@/pages/lab-view/RemotePanel'
+import type { RemoteSession } from '@/lib/useRemoteSession'
 
 test('CredentialsPanel shows lab credentials and copies a value on click', async () => {
   const writeText = vi.fn().mockResolvedValue(undefined)
@@ -36,6 +37,12 @@ test('CredentialsPanel shows an empty state when there are no credentials', () =
 })
 
 test('RemotePanel shows the connecting placeholder', () => {
-  render(<RemotePanel />)
+  const session = {
+    state: 'connecting',
+    attach: () => {},
+    disconnect: vi.fn(),
+    reconnect: vi.fn(),
+  } as unknown as RemoteSession
+  render(<RemotePanel session={session} label="nkp-lab" />)
   expect(screen.getByText(/connecting to your desktop/i)).toBeInTheDocument()
 })

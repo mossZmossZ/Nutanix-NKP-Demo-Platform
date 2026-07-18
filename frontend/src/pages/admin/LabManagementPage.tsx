@@ -390,7 +390,7 @@ export function LabManagementPage() {
         <div className="grid gap-4 md:grid-cols-2">
           <div className="rounded-md border border-border bg-card p-4 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-md bg-violet-100 text-violet-600">
+              <div className="flex size-10 items-center justify-center rounded-md bg-iris-100 text-iris-600">
                 <BookOpen className="size-5" />
               </div>
               <div>
@@ -401,7 +401,7 @@ export function LabManagementPage() {
           </div>
           <div className="rounded-md border border-border bg-card p-4 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-md bg-violet-100 text-violet-600">
+              <div className="flex size-10 items-center justify-center rounded-md bg-iris-100 text-iris-600">
                 <FileText className="size-5" />
               </div>
               <div>
@@ -421,7 +421,7 @@ export function LabManagementPage() {
         {/* Labs list */}
         {!loading && labs.length === 0 && !error ? (
           <div className="flex flex-col items-center justify-center gap-3 rounded-md border border-dashed border-border bg-card px-lg py-xxl text-center">
-            <div className="flex size-12 items-center justify-center rounded-full bg-violet-100 text-violet-600">
+            <div className="flex size-12 items-center justify-center rounded-full bg-iris-100 text-iris-600">
               <BookOpen className="size-6" />
             </div>
             <div>
@@ -723,7 +723,7 @@ export function LabManagementPage() {
                     key={p.file}
                     className={`group flex items-center rounded-md transition-colors duration-[var(--duration-fast)] ease-standard ${
                       activeFile === p.file
-                        ? "bg-violet-100 text-violet-600"
+                        ? "bg-iris-100 text-iris-600"
                         : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                     }`}
                   >

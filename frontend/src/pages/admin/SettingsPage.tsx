@@ -44,7 +44,7 @@ function SectionCard({
   return (
     <Card className="overflow-hidden border-border/40 shadow-sm">
       <div className="flex items-start gap-3 border-b border-border/40 p-5">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-100 to-violet-50 text-violet-600">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-iris-100 text-iris-600">
           <Icon className="size-5" />
         </div>
         <div className="min-w-0">
@@ -142,13 +142,13 @@ export function SettingsPage() {
       <div className="mx-auto flex max-w-4xl flex-col gap-6 pb-24">
         {/* Hero band */}
         <div className="overflow-hidden rounded-xl border border-border/40 shadow-sm">
-          <div className="flex items-center gap-4 bg-gradient-to-br from-violet-600 to-purple-600 p-6 text-white">
+          <div className="flex items-center gap-4 bg-navy-900 p-6 text-white">
             <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-white/15 backdrop-blur">
               <Settings className="size-6" />
             </div>
             <div className="min-w-0">
               <h1 className="text-2xl font-bold">Settings</h1>
-              <p className="mt-1 text-sm text-white/70">
+              <p className="mt-1 text-sm text-navy-fg/80">
                 Manage platform configuration and your admin account.
               </p>
             </div>

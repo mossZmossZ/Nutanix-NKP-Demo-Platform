@@ -87,7 +87,7 @@ export function LabViewPage() {
             <p className="mt-xs text-body text-muted-foreground">
               You aren't assigned to this lab, or it doesn't exist.
             </p>
-            <Link to="/lab-access" className="mt-lg inline-block text-body text-primary">
+            <Link to="/lab-access" className="mt-lg inline-block text-body text-blue-600">
               ← Back to My Labs
             </Link>
           </div>

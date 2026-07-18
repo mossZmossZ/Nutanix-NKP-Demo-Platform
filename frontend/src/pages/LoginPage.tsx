@@ -37,10 +37,14 @@ export function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-lg bg-violet-50 px-lg">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-lg bg-canvas px-lg">
       <div className="flex items-center gap-xs">
-        <span className="size-2 rounded-full bg-primary" aria-hidden="true" />
-        <span className="text-label uppercase tracking-wide text-primary">
+        <span
+          className="size-2 rounded-sm"
+          style={{ background: 'var(--gradient-prism)' }}
+          aria-hidden="true"
+        />
+        <span className="text-label uppercase tracking-wide text-foreground">
           NKP Workshop Platform
         </span>
       </div>
@@ -96,7 +100,7 @@ export function LoginPage() {
         </CardContent>
       </Card>
 
-      <Link to="/" className="text-body-sm text-primary hover:underline">
+      <Link to="/" className="text-body-sm text-blue-600 hover:underline">
         ← Return to home
       </Link>
     </main>

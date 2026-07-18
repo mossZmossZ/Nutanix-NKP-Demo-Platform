@@ -152,7 +152,7 @@ export function LabMachinesPage() {
         <div className="grid gap-4 md:grid-cols-2">
           <div className="rounded-lg border border-border/40 bg-card p-4 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-lg bg-violet-100 text-violet-600">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-iris-100 text-iris-600">
                 <KeyRound className="size-5" />
               </div>
               <div>
@@ -208,7 +208,7 @@ export function LabMachinesPage() {
                     <tr className="transition-colors hover:bg-muted/30">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <div className="flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-purple-600 text-xs font-semibold text-white uppercase">
+                          <div className="flex size-8 items-center justify-center rounded-full bg-iris-600 text-xs font-semibold text-white uppercase">
                             {a.user.username.charAt(0)}
                           </div>
                           <span className="font-medium text-foreground">{a.user.username}</span>

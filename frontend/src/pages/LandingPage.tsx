@@ -17,52 +17,52 @@ export function LandingPage() {
 
   return (
     <>
-      {/* Hero — dark stage: the terminal demo IS the pitch */}
-      <section className="bg-ink-900 px-lg py-section text-center">
-        <div className="mx-auto max-w-[820px]">
-          <p
-            ref={eyebrow.ref}
-            style={revealDelay(0)}
-            className={`text-label uppercase tracking-[0.08em] text-primary-foreground/70 ${revealClass(eyebrow.visible)}`}
-          >
-            Nutanix NKP · Hands-on Workshop
-          </p>
-          <h1
-            ref={heroTitle.ref}
-            style={revealDelay(1)}
-            className={`mt-sm text-display text-primary-foreground ${revealClass(heroTitle.visible)}`}
-          >
-            Production-Grade Kubernetes.
-            <br />
-            <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
-              Zero Setup Required.
-            </span>
-          </h1>
-          <p
-            ref={heroLead.ref}
-            style={revealDelay(2)}
-            className={`mt-md text-body-lg text-primary-foreground/70 ${revealClass(heroLead.visible)}`}
-          >
-            Experience enterprise Kubernetes on <strong className="text-primary-foreground">real Nutanix infrastructure</strong>.
-            Full multi-node NKP clusters, live terminals, and complete RDP desktops —
-            all streaming to your browser in seconds.
-          </p>
-          <div
-            ref={heroCta.ref}
-            style={revealDelay(3)}
-            className={`mt-xl flex items-center justify-center gap-md ${revealClass(heroCta.visible)}`}
-          >
-            <Button asChild variant="primary" className="rounded-full">
-              <Link to="/lab-access">Lab access</Link>
-            </Button>
-            <Button asChild variant="secondary-dark">
-              <Link to="/docs">Read the docs →</Link>
-            </Button>
+      {/* Hero — light stage: copy left, the terminal demo artifact right */}
+      <section className="bg-canvas px-lg py-section">
+        <div className="mx-auto grid max-w-[1100px] items-center gap-xl lg:grid-cols-2">
+          <div className="text-center lg:text-left">
+            <p
+              ref={eyebrow.ref}
+              style={revealDelay(0)}
+              className={`text-label uppercase tracking-[0.08em] text-iris-600 ${revealClass(eyebrow.visible)}`}
+            >
+              Nutanix NKP · Hands-on Workshop
+            </p>
+            <h1
+              ref={heroTitle.ref}
+              style={revealDelay(1)}
+              className={`mt-sm text-display text-foreground ${revealClass(heroTitle.visible)}`}
+            >
+              Production-grade Kubernetes.
+              <br />
+              <span className="text-iris-600">Zero setup required.</span>
+            </h1>
+            <p
+              ref={heroLead.ref}
+              style={revealDelay(2)}
+              className={`mt-md text-body-lg text-muted-foreground ${revealClass(heroLead.visible)}`}
+            >
+              Run enterprise Kubernetes on <strong className="text-foreground">real Nutanix infrastructure</strong>.
+              Full multi-node NKP clusters, live terminals, and complete RDP desktops —
+              all streaming to your browser in seconds.
+            </p>
+            <div
+              ref={heroCta.ref}
+              style={revealDelay(3)}
+              className={`mt-xl flex items-center justify-center gap-md lg:justify-start ${revealClass(heroCta.visible)}`}
+            >
+              <Button asChild variant="primary" className="rounded-full">
+                <Link to="/lab-access">Lab access</Link>
+              </Button>
+              <Button asChild variant="secondary" className="rounded-full">
+                <Link to="/docs">Read the docs →</Link>
+              </Button>
+            </div>
           </div>
           <div
             ref={heroMockup.ref}
             style={revealDelay(4)}
-            className={`mt-section ${revealClass(heroMockup.visible)}`}
+            className={`${revealClass(heroMockup.visible)}`}
           >
             <BrowserMockup />
           </div>
@@ -70,7 +70,7 @@ export function LandingPage() {
       </section>
 
       {/* Tile 2 — white: the remote desktop story */}
-      <section className="bg-white px-lg py-section text-center">
+      <section className="bg-surface px-lg py-section text-center">
         <div className="mx-auto max-w-[820px]">
           <h2
             ref={tile2Title.ref}

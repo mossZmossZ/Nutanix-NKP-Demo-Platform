@@ -14,7 +14,7 @@ export function Callout({
   return (
     <div
       role="note"
-      className={`my-lg ${border} border-primary bg-violet-50 rounded-sm px-lg py-md text-body text-foreground`}
+      className={`my-lg ${border} border-primary bg-iris-50 rounded-sm px-lg py-md text-body text-foreground`}
     >
       {children}
     </div>
@@ -43,7 +43,7 @@ export const mdxComponents = {
     <p className="my-md text-body text-foreground" {...p} />
   ),
   a: (p: ComponentPropsWithoutRef<'a'>) => (
-    <a className="text-primary underline-offset-2 hover:underline" {...p} />
+    <a className="text-blue-600 underline-offset-2 hover:underline" {...p} />
   ),
   ul: (p: ComponentPropsWithoutRef<'ul'>) => (
     <ul className="my-md list-disc pl-lg text-body text-foreground [&_li]:mt-xs" {...p} />
@@ -55,7 +55,7 @@ export const mdxComponents = {
     <strong className="text-body font-semibold text-foreground" {...p} />
   ),
   code: (p: ComponentPropsWithoutRef<'code'>) => (
-    <code className="rounded-sm bg-violet-50 px-xxs py-[2px] font-mono text-body-sm text-foreground" {...p} />
+    <code className="rounded-sm bg-iris-50 px-xxs py-[2px] font-mono text-body-sm text-foreground" {...p} />
   ),
   // Fenced blocks compile to <pre><code>, so both entries apply, nested.
   // Neutralize the inline-code chip styling on the nested `code` so the

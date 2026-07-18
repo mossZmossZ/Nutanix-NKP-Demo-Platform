@@ -30,4 +30,5 @@ function Toaster({ ...props }: ToasterProps) {
   );
 }
 
-export { Toaster, toast } from "sonner";
+export { Toaster };
+export { toast } from "sonner";

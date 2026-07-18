@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ChevronDown } from 'lucide-react'
 import { useAuth } from '@/auth/AuthContext'
 import {
@@ -14,6 +14,8 @@ import {
 export function GlobalNav() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const docsActive = pathname.startsWith('/docs')
 
   async function onLogout() {
     await logout()
@@ -30,7 +32,14 @@ export function GlobalNav() {
         </Link>
 
         <div className="flex items-center gap-lg">
-          <Link to="/docs" className="text-button text-foreground hover:text-primary">
+          <Link
+            to="/docs"
+            className={`relative text-button text-foreground hover:text-primary ${
+              docsActive
+                ? 'after:absolute after:-bottom-[6px] after:left-0 after:right-0 after:h-[2px] after:content-[""] after:[background:var(--gradient-prism)]'
+                : ''
+            }`}
+          >
             Docs
           </Link>
 

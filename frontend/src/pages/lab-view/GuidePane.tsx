@@ -110,7 +110,7 @@ export function GuidePane({
                 <DropdownMenuItem
                   key={page.file}
                   onSelect={() => onSelectFile(page.file)}
-                  className={`gap-xs ${page.file === selectedFile ? "text-violet-600" : ""}`}
+                  className={`gap-xs ${page.file === selectedFile ? "text-iris-600" : ""}`}
                 >
                   {completedPages.includes(page.file) ? (
                     <Check className="size-3.5 shrink-0 text-success" />
@@ -150,7 +150,7 @@ export function GuidePane({
         </div>
         <div className="h-1 w-full bg-border">
           <div
-            className="h-full bg-violet-600 transition-[width] duration-[var(--duration-base)] ease-standard"
+            className="h-full transition-[width] duration-[var(--duration-base)] ease-standard [background:var(--gradient-prism)]"
             style={{ width: `${completionPct}%` }}
           />
         </div>
