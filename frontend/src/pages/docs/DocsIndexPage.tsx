@@ -10,12 +10,12 @@ export function DocsIndexPage() {
           <li key={doc.slug}>
             <Link
               to={`/docs/${doc.slug}`}
-              className="block rounded-lg border border-border bg-surface p-lg transition-shadow duration-[var(--duration-fast)] ease-standard hover:shadow"
+              className="block rounded-lg border border-border bg-surface p-lg transition-[box-shadow,transform] duration-[var(--duration-fast)] ease-standard hover:-translate-y-px hover:shadow-md"
             >
               <div className="flex items-center gap-sm">
                 <h2 className="text-h4 text-foreground">{doc.meta.title}</h2>
                 {doc.meta.pdfUrl && (
-                  <span className="rounded-full bg-primary/10 px-sm py-xxs text-body-sm font-medium text-primary">
+                  <span className="rounded-sm bg-blue-100 px-sm py-xxs text-body-sm font-medium text-blue-600">
                     PDF
                   </span>
                 )}

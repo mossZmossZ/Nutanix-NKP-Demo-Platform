@@ -37,7 +37,7 @@ export function createMarkdownComponents(slug: string): Components {
     h2: ({ node, ...props }) => <h2 className="mt-xl mb-md text-h2 text-foreground" {...props} />,
     h3: ({ node, ...props }) => <h3 className="mt-lg mb-sm text-h3 text-foreground" {...props} />,
     p: ({ node, ...props }) => <p className="my-md text-body text-foreground" {...props} />,
-    a: ({ node, ...props }) => <a className="text-primary underline-offset-2 hover:underline" {...props} />,
+    a: ({ node, ...props }) => <a className="text-blue-600 underline-offset-2 hover:underline" {...props} />,
     ul: ({ node, ...props }) => <ul className="my-md list-disc pl-lg text-body text-foreground [&_li]:mt-xs" {...props} />,
     ol: ({ node, ...props }) => <ol className="my-md list-decimal pl-lg text-body text-foreground [&_li]:mt-xs" {...props} />,
     strong: ({ node, ...props }) => <strong className="text-body font-semibold text-foreground" {...props} />,
@@ -62,7 +62,7 @@ export function createMarkdownComponents(slug: string): Components {
     },
     code: ({ node, className, ...props }) => (
       <code
-        className={`rounded-sm bg-violet-50 px-xxs py-[2px] font-mono text-body-sm text-foreground ${className ?? ""}`}
+        className={`rounded-sm bg-iris-50 px-xxs py-[2px] font-mono text-body-sm text-foreground ${className ?? ""}`}
         {...props}
       />
     ),

@@ -389,7 +389,7 @@ export function MachinesPage() {
                 <p className="text-xs font-medium text-muted-foreground">Total Machines</p>
                 <p className="mt-1 font-mono text-2xl font-bold tabular-nums text-foreground">{total}</p>
               </div>
-              <div className="flex size-10 items-center justify-center rounded-lg bg-violet-100 text-violet-600">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-iris-100 text-iris-600">
                 <Server className="size-5" />
               </div>
             </div>
@@ -454,7 +454,7 @@ export function MachinesPage() {
         {/* Empty state */}
         {total === 0 ? (
           <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border/60 bg-card px-6 py-16 text-center shadow-sm">
-            <div className="flex size-12 items-center justify-center rounded-full bg-violet-100 text-violet-600">
+            <div className="flex size-12 items-center justify-center rounded-full bg-iris-100 text-iris-600">
               <Server className="size-6" />
             </div>
             <div>
@@ -481,7 +481,7 @@ export function MachinesPage() {
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-violet-600">
+                        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-iris-100 text-iris-600">
                           <Server className="size-5" />
                         </div>
                         <div className="min-w-0">
@@ -586,7 +586,7 @@ export function MachinesPage() {
                       <p className="text-xs font-medium text-destructive">Machine is assigned — unassign before deleting</p>
                     </div>
                   )}
-                  <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-violet-500 to-purple-500 opacity-0 transition-opacity duration-[var(--duration-fast)] ease-standard group-hover:opacity-100" />
+                  <div className="absolute inset-x-0 bottom-0 h-0.5 bg-iris-600 opacity-0 transition-opacity duration-[var(--duration-fast)] ease-standard group-hover:opacity-100" />
                 </Card>
               );
             })}
@@ -599,7 +599,7 @@ export function MachinesPage() {
         <DialogContent className="max-w-5xl gap-0 p-0">
           {/* Terminal chrome header */}
           {consoleMachine && (
-            <div className="flex items-center justify-between rounded-t-lg bg-ink-900 px-5 py-3.5">
+            <div className="flex items-center justify-between rounded-t-lg bg-navy-900 px-5 py-3.5">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="flex size-9 items-center justify-center rounded-lg bg-primary/15 shrink-0">
                   <Terminal className="size-4 text-primary" />
@@ -643,7 +643,7 @@ export function MachinesPage() {
             </div>
           )}
           {/* Terminal body */}
-          <div className="h-[500px] rounded-b-lg overflow-hidden bg-[#1a1b26]">
+          <div className="h-[500px] rounded-b-lg overflow-hidden bg-navy-900">
             {consoleMachine && (
               <ConsoleTerminal
                 machineId={consoleMachine.id}

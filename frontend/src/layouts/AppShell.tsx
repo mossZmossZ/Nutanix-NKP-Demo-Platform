@@ -78,14 +78,14 @@ export function AppShell({
         <div className="flex h-16 shrink-0 items-center gap-xs border-b border-border px-lg">
           <Link
             to="/"
-            className="flex items-center gap-xs text-h4 text-foreground transition-colors duration-[var(--duration-base)] ease-standard hover:text-violet-600"
+            className="flex items-center gap-xs text-h4 text-foreground transition-colors duration-[var(--duration-base)] ease-standard hover:text-iris-600"
           >
-            <Hexagon className="size-4 shrink-0 text-violet-600" strokeWidth={2.25} />
+            <Hexagon className="size-4 shrink-0 text-iris-600" strokeWidth={2.25} />
             <span className="truncate">{platformName}</span>
           </Link>
         </div>
         <nav className="flex flex-col gap-xxs p-sm">
-          <span className="px-sm pt-xs pb-xxs text-label uppercase tracking-wide text-muted-foreground">
+          <span className="px-sm pt-xs pb-xxs text-label uppercase tracking-[0.08em] text-muted-foreground">
             Workspace
           </span>
           {nav.map((item) => {
@@ -109,14 +109,14 @@ export function AppShell({
               <Link
                 key={item.to}
                 to={item.to}
-                className={`flex items-center gap-xs rounded-md px-sm py-xs text-body-sm font-medium transition-colors duration-[var(--duration-base)] ease-standard ${
+                className={`relative flex items-center gap-xs rounded-md px-sm py-xs text-body-sm font-medium transition-colors duration-[var(--duration-base)] ease-standard ${
                   active
-                    ? 'bg-violet-100 text-violet-600'
+                    ? 'bg-iris-100 text-iris-600 before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:rounded-l-md before:content-[""] before:[background:var(--gradient-prism)]'
                     : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                 }`}
               >
                 {item.icon ? (
-                  <span className={`[&_svg]:size-4 ${active ? 'text-violet-600' : 'text-muted-foreground'}`}>
+                  <span className={`[&_svg]:size-4 ${active ? 'text-iris-600' : 'text-muted-foreground'}`}>
                     {item.icon}
                   </span>
                 ) : null}
@@ -141,7 +141,7 @@ export function AppShell({
                 {sidebarHidden ? <PanelLeft className="size-5" /> : <PanelLeftClose className="size-5" />}
               </button>
             ) : null}
-            <span className="text-h3 text-foreground">{title}</span>
+            <span className="text-h4 text-foreground">{title}</span>
           </div>
 
           {user ? (

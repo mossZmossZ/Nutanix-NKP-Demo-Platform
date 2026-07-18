@@ -2,34 +2,44 @@
 @import "tw-animate-css";
 
 /*
- * Design tokens sourced from /design.md (violet SaaS design system).
+ * Design tokens sourced from /design-v2.md (Nutanix Prism design system).
  * Never inline hex values in components — reference these tokens instead
  * (as Tailwind utilities, e.g. bg-primary, text-foreground, rounded-md).
  */
 :root {
-  /* Colors — design.md §1 raw palette */
-  --color-violet-600: #702dff;
-  --color-violet-700: #6529e6;
-  --color-violet-100: #f0e5fc;
-  --color-violet-50: #f7f2ff;
-  --color-ink-900: #1c1c24;
-  --color-ink-500: #6b6b78;
-  --color-line-200: #e4e4ea;
-  --color-canvas: #f4f5f9;
+  /* Colors — design-v2.md §1.1 raw palette (Prism) */
+  --color-iris-600: #7855fa;
+  --color-iris-700: #6344d6;
+  --color-iris-100: #eae4fe;
+  --color-iris-50: #f5f2ff;
+  --color-blue-600: #1b6ec5;
+  --color-blue-100: #e1edf9;
+  --color-ink-900: #1f2532;
+  --color-ink-500: #5f6b7e;
+  --color-line-200: #dce1e8;
+  --color-canvas: #ecf0f3;
   --color-surface: #ffffff;
+  --color-navy-900: #14192e;
+  --color-navy-800: #1d2440;
+  --color-navy-fg: #c9cfe8;
 
-  /* Status — functional only, never a second accent (design.md §0/§1) */
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
-  --color-danger: #ef4444;
+  /* Status — functional only, never a second accent (design-v2.md §1.1) */
+  --color-success: #188a42;
+  --color-warning: #f4b324;
+  --color-danger: #af2549;
 
-  /* Border radius — design.md §3 */
-  --radius-sm: 6px;
+  /* The prism edge — signature gradient (design-v2.md §1.3).
+     Four sanctioned uses only: active nav indicator, hero artifact edge,
+     progress bars, live status accent. Never text/button/card fills. */
+  --gradient-prism: linear-gradient(90deg, #1b6ec5 0%, #7855fa 100%);
+
+  /* Border radius — design-v2.md §3 (Prism-compact) */
+  --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
   --radius-full: 9999px;
 
-  /* Spacing — 8px base */
+  /* Spacing — 8px base (unchanged) */
   --spacing-xxs: 4px;
   --spacing-xs: 8px;
   --spacing-sm: 12px;
@@ -39,26 +49,26 @@
   --spacing-xxl: 48px;
   --spacing-section: 80px;
 
-  /* shadcn/ui semantic tokens, wired to the design.md tokens above
-     (never re-introduce the generic shadcn oklch neutral palette here) */
+  /* shadcn/ui semantic tokens, wired to the design-v2.md tokens above.
+     Same semantic names as before — only the values change (design-v2.md §1.2). */
   --background: var(--color-canvas);
   --foreground: var(--color-ink-900);
   --card: var(--color-surface);
   --card-foreground: var(--color-ink-900);
   --popover: var(--color-surface);
   --popover-foreground: var(--color-ink-900);
-  --primary: var(--color-violet-600);
+  --primary: var(--color-iris-600);
   --primary-foreground: #ffffff;
   --muted-foreground: var(--color-ink-500);
-  --accent: var(--color-violet-100);
-  --accent-foreground: var(--color-violet-600);
+  --accent: var(--color-iris-100);
+  --accent-foreground: var(--color-iris-600);
   --destructive: var(--color-danger);
   --destructive-foreground: #ffffff;
   --border: var(--color-line-200);
   --input: var(--color-line-200);
-  --ring: var(--color-violet-600);
+  --ring: var(--color-iris-600);
 
-  /* Motion — named durations (design.md §6). Plain CSS vars: Tailwind's
+  /* Motion — named durations (design-v2.md §3). Plain CSS vars: Tailwind's
      `duration-*` utility takes a bare number, it isn't a themable namespace
      (unlike `ease-*`/`shadow-*`), so these aren't meant to back a `duration-fast`
      utility class — consume them via `duration-[var(--duration-fast)]` or plain CSS. */
@@ -69,19 +79,24 @@
 }
 
 /* Tailwind v4 CSS-first theme config — the v4 equivalent of tailwind.config.js.
-   Maps design.md tokens into Tailwind's theme so utilities like bg-primary,
+   Maps design-v2.md tokens into Tailwind's theme so utilities like bg-primary,
    text-foreground, rounded-lg, p-section, text-h1 are generated. */
 @theme inline {
-  /* Colors — raw palette utilities (bg-violet-600, text-ink-500, ...) */
-  --color-violet-600: var(--color-violet-600);
-  --color-violet-700: var(--color-violet-700);
-  --color-violet-100: var(--color-violet-100);
-  --color-violet-50: var(--color-violet-50);
+  /* Colors — raw palette utilities (bg-iris-600, text-blue-600, bg-navy-900, ...) */
+  --color-iris-600: var(--color-iris-600);
+  --color-iris-700: var(--color-iris-700);
+  --color-iris-100: var(--color-iris-100);
+  --color-iris-50: var(--color-iris-50);
+  --color-blue-600: var(--color-blue-600);
+  --color-blue-100: var(--color-blue-100);
   --color-ink-900: var(--color-ink-900);
   --color-ink-500: var(--color-ink-500);
   --color-line-200: var(--color-line-200);
   --color-canvas: var(--color-canvas);
   --color-surface: var(--color-surface);
+  --color-navy-900: var(--color-navy-900);
+  --color-navy-800: var(--color-navy-800);
+  --color-navy-fg: var(--color-navy-fg);
   --color-success: var(--color-success);
   --color-warning: var(--color-warning);
   --color-danger: var(--color-danger);
@@ -104,51 +119,65 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  /* Font families — Inter is primary (design.md §2); mono for code/credentials */
-  --font-sans: "Inter Variable", "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: ui-monospace, "JetBrains Mono", monospace;
+  /* Font families — Mulish is primary (design-v2.md §2, Proxima Nova stand-in
+     for Nutanix Soft); Menlo system stack for code/credentials (no package). */
+  --font-sans: "Mulish Variable", "Mulish", system-ui, -apple-system, sans-serif;
+  --font-mono: Menlo, ui-monospace, "SF Mono", monospace;
 
-  /* Type ladder — design.md §2 (size / line-height / weight) */
-  --text-display: 48px;
-  --text-display--line-height: 56px;
+  /* Type ladder — design-v2.md §2 Prism scale (size / line-height / weight).
+     Default UI text (text-body) is now 14/21 for Prism density. */
+  --text-display: 40px;
+  --text-display--line-height: 48px;
   --text-display--font-weight: 700;
 
-  --text-h1: 40px;
-  --text-h1--line-height: 48px;
-  --text-h1--font-weight: 700;
+  --text-h1: 32px;
+  --text-h1--line-height: 40px;
+  --text-h1--font-weight: 600;
 
-  --text-h2: 32px;
-  --text-h2--line-height: 40px;
-  --text-h2--font-weight: 700;
+  --text-h2: 24px;
+  --text-h2--line-height: 32px;
+  --text-h2--font-weight: 600;
 
-  --text-h3: 24px;
-  --text-h3--line-height: 32px;
-  --text-h3--font-weight: 600;
+  --text-h3: 20px;
+  --text-h3--line-height: 28px;
+  --text-h3--font-weight: 500;
 
-  --text-h4: 20px;
-  --text-h4--line-height: 28px;
-  --text-h4--font-weight: 600;
+  --text-h4: 16px;
+  --text-h4--line-height: 24px;
+  --text-h4--font-weight: 500;
 
-  --text-body-lg: 18px;
-  --text-body-lg--line-height: 28px;
+  --text-h5: 14px;
+  --text-h5--line-height: 20px;
+  --text-h5--font-weight: 600;
+
+  --text-body-lg: 16px;
+  --text-body-lg--line-height: 24px;
   --text-body-lg--font-weight: 400;
 
-  --text-body: 16px;
-  --text-body--line-height: 24px;
+  --text-body: 14px;
+  --text-body--line-height: 21px;
   --text-body--font-weight: 400;
 
-  --text-body-sm: 14px;
-  --text-body-sm--line-height: 20px;
+  --text-body-sm: 12px;
+  --text-body-sm--line-height: 18px;
   --text-body-sm--font-weight: 400;
 
-  --text-label: 13px;
+  --text-label: 12px;
   --text-label--line-height: 16px;
   --text-label--font-weight: 500;
   --text-label--letter-spacing: 0.02em;
 
-  --text-button: 16px;
+  --text-caption: 10px;
+  --text-caption--line-height: 14px;
+  --text-caption--font-weight: 400;
+
+  --text-button: 14px;
   --text-button--line-height: 20px;
   --text-button--font-weight: 500;
+
+  --text-code: 13px;
+  --text-code--line-height: 20px;
+  --text-code--font-weight: 400;
 
   /* Border radius */
   --radius-sm: var(--radius-sm);
@@ -166,13 +195,13 @@
   --spacing-xxl: var(--spacing-xxl);
   --spacing-section: var(--spacing-section);
 
-  /* Elevation — one diffused shadow family, do not mix (design.md §3) */
+  /* Elevation — one diffused shadow family, do not mix (design-v2.md §3) */
   --shadow-sm: 0 1px 2px 0 rgb(28 28 36 / 0.06);
   --shadow: 0 2px 8px 0 rgb(28 28 36 / 0.08);
   --shadow-md: 0 4px 16px -2px rgb(28 28 36 / 0.1);
   --shadow-lg: 0 12px 32px -4px rgb(28 28 36 / 0.14);
 
-  /* Motion — named easing (design.md §6); durations live in :root above */
+  /* Motion — named easing (design-v2.md §3); durations live in :root above */
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ease-exit: cubic-bezier(0.4, 0, 1, 1);
   --ease-emphasized: cubic-bezier(0.2, 0, 0, 1.2);
@@ -208,7 +237,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* design.md §6: motion is a quality floor, not optional — collapse every
+/* design-v2.md §3: motion is a quality floor, not optional — collapse every
    transition/animation to near-instant when the user asks for reduced motion. */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -221,9 +250,8 @@ body {
   }
 }
 
-/* Phase 4c guide reader — rehype-highlight token colors. design.md is
-   violet-only; syntax highlighting stays within primary/foreground/
-   muted-foreground so it never reads as a second accent. */
+/* Guide reader — rehype-highlight token colors. Stays within primary/foreground/
+   muted-foreground so syntax highlighting never reads as a second accent. */
 .hljs-keyword,
 .hljs-selector-tag,
 .hljs-literal,

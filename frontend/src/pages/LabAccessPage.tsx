@@ -90,15 +90,15 @@ export function LabAccessPage() {
                       <Clock className="size-3.5 text-muted-foreground" />
                       {lab.duration}
                     </span>
-                    <span className="flex items-center gap-xxs">
-                      <Gauge className="size-3.5 text-muted-foreground" />
+                    <Badge variant="neutral">
+                      <Gauge className="size-3.5" />
                       {lab.difficulty}
-                    </span>
+                    </Badge>
                   </div>
                   <div className="flex flex-col gap-xxs">
                     <div className="h-1.5 w-full overflow-hidden rounded-full bg-accent">
                       <div
-                        className="h-full rounded-full bg-primary"
+                        className="h-full rounded-full [background:var(--gradient-prism)]"
                         style={{ width: pageCount === 0 ? "0%" : `${(completedCount / pageCount) * 100}%` }}
                       />
                     </div>

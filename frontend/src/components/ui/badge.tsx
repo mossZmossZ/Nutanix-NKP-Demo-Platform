@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 // uses the violet accent tint; status variants use their color @12% background
 // with the solid color as text (functional state only — never decoration).
 const badgeVariants = cva(
-  "inline-flex items-center gap-xxs rounded-full px-xs py-xxs text-label tabular-nums",
+  "inline-flex items-center gap-xxs rounded-sm px-xs py-xxs text-label tabular-nums",
   {
     variants: {
       variant: {

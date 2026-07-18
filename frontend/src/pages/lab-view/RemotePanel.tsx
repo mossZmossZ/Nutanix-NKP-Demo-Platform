@@ -20,21 +20,26 @@ export function RemotePanel({ session, label }: { session: RemoteSession; label:
   const isLive = session.state === "connected"
 
   return (
-    <div className="flex h-full flex-col bg-ink-900">
-      {/* Status strip */}
-      <div className="flex shrink-0 items-center justify-between gap-sm border-b border-white/10 px-md py-xs">
+    <div className="flex h-full flex-col bg-navy-900">
+      {/* Status strip. Connected state gets the prism top edge (design-v2.md §1.3.4). */}
+      <div
+        className={`relative flex shrink-0 items-center justify-between gap-sm border-b border-white/10 bg-navy-800 px-md py-xs ${
+          isLive
+            ? 'before:absolute before:inset-x-0 before:top-0 before:h-[2px] before:content-[""] before:[background:var(--gradient-prism)]'
+            : ""
+        }`}
+      >
         <span className="flex items-center gap-xs text-body-sm text-white/80">
           <span
             className={`size-2 rounded-full ${status.dot} ${status.pulse ? "animate-pulse" : ""}`}
           />
           <span className="font-medium">{status.label}</span>
           <span className="text-white/40">·</span>
-          <span className="truncate text-white/50">{label}</span>
+          <span className="truncate font-mono text-white/50">{label}</span>
         </span>
         <span className="flex items-center gap-xs">
           {isLive ? (
             <Button
-              size="sm"
               variant="ghost"
               onClick={session.disconnect}
               className="h-7 gap-xs text-white/70 hover:bg-white/10 hover:text-white"
@@ -44,7 +49,6 @@ export function RemotePanel({ session, label }: { session: RemoteSession; label:
             </Button>
           ) : (
             <Button
-              size="sm"
               variant="ghost"
               onClick={session.reconnect}
               className="h-7 gap-xs text-white/70 hover:bg-white/10 hover:text-white"
@@ -62,19 +66,19 @@ export function RemotePanel({ session, label }: { session: RemoteSession; label:
         <div ref={session.attach} className="absolute inset-0 flex items-center justify-center" />
 
         {session.state === "connecting" && (
-          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-sm bg-ink-900/80 text-center duration-[var(--duration-base)] ease-standard animate-in fade-in">
-            <Loader2 className="size-8 animate-spin text-violet-600" />
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-sm bg-navy-900/80 text-center duration-[var(--duration-base)] ease-standard animate-in fade-in">
+            <Loader2 className="size-8 animate-spin text-iris-600" />
             <p className="text-body-sm text-white/70">Connecting to your desktop…</p>
           </div>
         )}
 
         {session.state === "error" && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-sm bg-ink-900/90 px-xl text-center duration-[var(--duration-base)] ease-standard animate-in fade-in">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-sm bg-navy-900/90 px-xl text-center duration-[var(--duration-base)] ease-standard animate-in fade-in">
             <span className="flex size-14 items-center justify-center rounded-full bg-danger/15 text-danger">
               <TriangleAlert className="size-7" />
             </span>
             <h3 className="text-h4 text-white">Lost connection to your desktop</h3>
-            <p className="max-w-sm text-body-sm text-white/60">
+            <p className="max-w-[24rem] text-body-sm text-white/60">
               Your desktop may still be starting up. Try reconnecting in a moment.
             </p>
             <Button onClick={session.reconnect} className="mt-xs gap-xs">
@@ -85,7 +89,7 @@ export function RemotePanel({ session, label }: { session: RemoteSession; label:
         )}
 
         {session.state === "disconnected" && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-sm bg-ink-900/90 px-xl text-center duration-[var(--duration-base)] ease-standard animate-in fade-in">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-sm bg-navy-900/90 px-xl text-center duration-[var(--duration-base)] ease-standard animate-in fade-in">
             <span className="flex size-14 items-center justify-center rounded-full bg-white/10 text-white/70">
               <Power className="size-7" />
             </span>
