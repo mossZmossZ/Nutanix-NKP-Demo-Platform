@@ -96,6 +96,7 @@ export async function handleRdpUpgrade(
     "color-depth": "24",
     // Live fit-to-pane where the RDP server supports it (Phase 5 decision 5).
     "resize-method": "display-update",
+    "enable-clipboard": "true",
   };
   const width = dim(url.searchParams, "width");
   const height = dim(url.searchParams, "height");

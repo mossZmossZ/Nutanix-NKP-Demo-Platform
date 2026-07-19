@@ -28,6 +28,7 @@ export function useRemoteSession(slug: string | undefined): RemoteSession {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const hostRef = useRef<HTMLDivElement | null>(null)
   const clientRef = useRef<Guacamole.Client | null>(null)
+  const remoteClipboardRef = useRef("")
 
   // Create the persistent host node once (synchronously, before first attach).
   if (hostRef.current === null && typeof document !== "undefined") {
@@ -43,6 +44,26 @@ export function useRemoteSession(slug: string | undefined): RemoteSession {
     el.style.cursor = "none" // guacd draws the remote cursor
     el.tabIndex = 0
     hostRef.current = el
+  }
+
+  function bufferRemoteClipboard(stream: Guacamole.InputStream) {
+    let data = ""
+    stream.onblob = (data64: string) => {
+      data += atob(data64)
+    }
+    stream.onend = () => {
+      remoteClipboardRef.current = data
+      navigator.clipboard.writeText(data).catch(() => {})
+    }
+  }
+
+  function sendLocalClipboardToRemote(client: Guacamole.Client) {
+    navigator.clipboard.readText().then((text) => {
+      if (!text) return
+      const stream = client.createClipboardStream("text/plain")
+      stream.sendBlob(btoa(text))
+      stream.sendEnd()
+    }).catch(() => {})
   }
 
   const connect = useCallback(() => {
@@ -74,6 +95,9 @@ export function useRemoteSession(slug: string | undefined): RemoteSession {
       setState("error")
       client.disconnect()
     }
+    client.onclipboard = (clipboardStream: Guacamole.InputStream) => {
+      bufferRemoteClipboard(clipboardStream)
+    }
 
     host.replaceChildren(client.getDisplay().getElement())
     // Query is appended to the tunnel URL; the backend reads lab/size and mints
@@ -97,11 +121,30 @@ export function useRemoteSession(slug: string | undefined): RemoteSession {
     keyboard.onkeyup = (keysym) => {
       clientRef.current?.sendKeyEvent(0, keysym)
     }
+    const onClipboardKey = (e: KeyboardEvent) => {
+      if (!e.ctrlKey || !e.shiftKey) return
+      const client = clientRef.current
+      if (!client) return
+      if (e.code === "KeyV") {
+        e.preventDefault()
+        e.stopPropagation()
+        sendLocalClipboardToRemote(client)
+      } else if (e.code === "KeyC") {
+        e.preventDefault()
+        e.stopPropagation()
+        const text = remoteClipboardRef.current
+        if (text) navigator.clipboard.writeText(text).catch(() => {})
+      }
+    }
+    host.addEventListener("keydown", onClipboardKey, { capture: true })
     // Focus the canvas on pointer-down so key events reach the scoped Keyboard
     // (and NOT the document — nothing leaks while on the Credentials tab).
     const focus = () => host.focus()
     host.addEventListener("pointerdown", focus)
-    return () => host.removeEventListener("pointerdown", focus)
+    return () => {
+      host.removeEventListener("pointerdown", focus)
+      host.removeEventListener("keydown", onClipboardKey, { capture: true })
+    }
   }, [])
 
   // Auto-connect once; reconnect on lab change; tear down on unmount.

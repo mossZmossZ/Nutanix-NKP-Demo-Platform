@@ -248,20 +248,32 @@ sync with reality (it's the "current state" file).
       code touched; verified the file parses via the real `parseLabArchive` (4 pages, 3 cred vars,
       filenames valid, round-trips) + backend typecheck/lint green.
 
-## Phase 5 — In-browser RDP (Guacamole, lightweight & in-app)  ◀◀◀ NEXT
+## Phase 5 — In-browser RDP (Guacamole, lightweight & in-app)  ✅ DONE 2026-07-19
 > **Lightweight, in-app canvas** (not the Java webapp): only `guacd` + a `guacamole-lite` Node
 > WS tunnel + `guacamole-common-js` rendering the raw desktop **inside the Remote tab** — no
 > Guacamole login/chrome. Token is minted server-side from the user's Assignment; the RDP
 > password never reaches the client. **Needs a reachable xrdp host to verify.**
-- [*] `guacd` in **dev** compose + `guacamole-lite` tunnel wired to the backend
-- [*] Backend token endpoint — AES-encrypted connection token from the requesting user's
+- [x] `guacd` in **dev** compose + `guacamole-lite` tunnel wired to the backend
+- [x] Backend token endpoint — AES-encrypted connection token from the requesting user's
       Assignment (RBAC: only the assignee)
-- [*] Frontend — `guacamole-common-js` canvas mounts in the **Remote** tab of the in-lab page
-> Remark the frontend and guacd has developed but it's cannot Use the Remote desktop to windows client and define
-> windows client is testing environment and Linux RDP is production use
-> Pending task to find the issue connected but blank screen only seen the cursor
-- [ ] ✅ Checkpoint (real xrdp host): assigned user reaches their **own** live RDP desktop
+- [x] Frontend — `guacamole-common-js` canvas mounts in the **Remote** tab of the in-lab page
+> **Blank-screen-with-cursor RESOLVED 2026-07-19** — root cause was frontend CSS, not RDP:
+> guacamole-common-js layers carry `z-index: -1` and painted behind the panel's `bg-navy-900`
+> background (cursor escaped via its transform's stacking context). Fixed with
+> `isolation: isolate` on the display host div in `frontend/src/lib/useRemoteSession.ts`.
+> All RDP params stay at their originals (24-bit, GFX/bitmap-cache defaults) — verified
+> end-to-end in-browser against Ubuntu 22.04 + xrdp + XFCE (desktop renders, cursor tracks,
+> menus/dialogs clickable). Ops note: an abrupt disconnect can wedge xrdp's listener
+> (port 3389 times out while ping/SSH work) — `sudo systemctl restart xrdp xrdp-sesman` fixes.
+- [x] ✅ Checkpoint (real xrdp host): assigned user reaches their **own** live RDP desktop
       in-browser; unassigned cannot
+- [x] **Clipboard sync (bidirectional)** — copied inside RDP pane (focused on remote) auto-syncs
+      remote clipboard to the local machine via `navigator.clipboard.writeText()` on `onclipboard`.
+      **Ctrl+Shift+V** (inside RDP pane) reads local clipboard and sends to the remote via
+      `client.createClipboardStream()`. **Ctrl+Shift+C** (inside RDP pane) explicitly flushes the
+      buffered remote clipboard to local. Backend RDP connection settings include
+      `enable-clipboard: true` (FreeRDP flag). Changes in `frontend/src/lib/useRemoteSession.ts`
+      and `backend/src/ws/rdp.ts`.
 
 ## Phase 6 — Admin UI: web design + functional (Settings + Dashboard)
 > **Grilled + planned 2026-07-15.** Split out from Phase 5 as an **independent** track (Phase 5
