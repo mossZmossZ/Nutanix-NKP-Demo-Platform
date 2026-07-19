@@ -36,6 +36,10 @@ export function useRemoteSession(slug: string | undefined): RemoteSession {
     el.style.height = "100%"
     el.style.overflow = "hidden"
     el.style.outline = "none"
+    // Guacamole layers carry z-index:-1; without a local stacking context they
+    // paint BEHIND ancestor backgrounds (invisible desktop, cursor still shows
+    // because its transform isolates it). Contain them here.
+    el.style.isolation = "isolate"
     el.style.cursor = "none" // guacd draws the remote cursor
     el.tabIndex = 0
     hostRef.current = el
