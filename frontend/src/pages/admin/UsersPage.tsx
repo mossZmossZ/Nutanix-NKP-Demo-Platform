@@ -47,6 +47,11 @@ export function UsersPage() {
   const [newPassword, setNewPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
 
+  // Edit-details dialog (username + email)
+  const [editUser, setEditUser] = useState<User | null>(null);
+  const [editUsername, setEditUsername] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+
   async function load() {
     try {
       setUsers(await api<User[]>("/admin/users"));
@@ -196,6 +201,58 @@ export function UsersPage() {
     });
   }
 
+  async function onSaveEdit(id: string, originalUsername: string) {
+    const nextUsername = editUsername.trim();
+    const nextEmail = editEmail.trim();
+
+    // Same fix as onSavePassword: close the Dialog first so the Radix inert
+    // trap doesn't block clicks on the SweetAlert popup.
+    setEditUser(null);
+
+    function reopen() {
+      const u = users.find((x) => x.id === id);
+      if (u) setEditUser(u);
+      setEditUsername(nextUsername);
+      setEditEmail(nextEmail);
+    }
+
+    const result = await Swal.fire({
+      title: 'Save Changes?',
+      html: `Update account details for <strong>${originalUsername}</strong>?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#7855FA',
+      cancelButtonColor: '#5F6B7E',
+      confirmButtonText: 'Yes, save changes',
+      cancelButtonText: 'Cancel'
+    });
+
+    if (!result.isConfirmed) {
+      reopen();
+      return;
+    }
+
+    run(async () => {
+      try {
+        await api(`/admin/users/${id}`, {
+          method: "PATCH",
+          body: JSON.stringify({ username: nextUsername, email: nextEmail || null }),
+        });
+      } catch (err) {
+        reopen();
+        throw err;
+      }
+
+      await Swal.fire({
+        title: 'Success!',
+        text: 'User details have been updated.',
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false
+      });
+    });
+  }
+
   async function onDelete(id: string, username: string) {
     const result = await Swal.fire({
       title: 'Delete User?',
@@ -220,6 +277,20 @@ export function UsersPage() {
         showConfirmButton: false
       });
     });
+  }
+
+  function openEdit(u: User) {
+    setEditUser(u);
+    setEditUsername(u.username);
+    setEditEmail(u.email ?? "");
+  }
+
+  function closeEdit(open: boolean) {
+    if (!open) {
+      setEditUser(null);
+      setEditUsername("");
+      setEditEmail("");
+    }
   }
 
   function openReset(u: User) {
@@ -357,6 +428,50 @@ export function UsersPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Edit details dialog */}
+      <Dialog open={editUser !== null} onOpenChange={closeEdit}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit user — {editUser?.username}</DialogTitle>
+            <DialogDescription>Update this user's username and email.</DialogDescription>
+          </DialogHeader>
+          <label className="flex flex-col gap-xs">
+            <span className="text-label text-muted-foreground">Username</span>
+            <Input
+              value={editUsername}
+              onChange={(e) => setEditUsername(e.target.value)}
+              disabled={editUser?.username === "admin"}
+              required
+            />
+            {editUser?.username === "admin" && (
+              <span className="text-xs text-muted-foreground">The root admin username can't be changed.</span>
+            )}
+          </label>
+          <label className="flex flex-col gap-xs">
+            <span className="text-label text-muted-foreground">Email</span>
+            <Input
+              type="email"
+              value={editEmail}
+              onChange={(e) => setEditEmail(e.target.value)}
+              placeholder="user@example.com"
+            />
+          </label>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => closeEdit(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              disabled={editUsername.trim().length === 0}
+              onClick={() => editUser && onSaveEdit(editUser.id, editUser.username)}
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Reset password dialog */}
       <Dialog open={resetUser !== null} onOpenChange={closeReset}>
         <DialogContent>
@@ -466,6 +581,9 @@ export function UsersPage() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
+                      <Button variant="secondary" onClick={() => openEdit(u)} className="text-xs">
+                        Edit
+                      </Button>
                       <Button variant="secondary" onClick={() => openReset(u)} className="text-xs">
                         Reset Password
                       </Button>

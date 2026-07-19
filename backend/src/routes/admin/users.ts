@@ -66,8 +66,25 @@ adminUsersRouter.patch("/:id", async (req: AuthedRequest, res) => {
     return;
   }
 
-  const { email, password, role } = req.body ?? {};
-  const update: { email?: string | null; passwordHash?: string; labPassword?: string; role?: Role } = {};
+  const { username, email, password, role } = req.body ?? {};
+  const update: { username?: string; email?: string | null; passwordHash?: string; labPassword?: string; role?: Role } = {};
+
+  if (username !== undefined) {
+    if (typeof username !== "string" || !username.trim()) {
+      res.status(400).json({ error: "username is required" });
+      return;
+    }
+    // The root admin is the RBAC anchor the UI keys off — don't let it be renamed.
+    if (user.username === "admin" && username.trim() !== "admin") {
+      res.status(409).json({ error: "cannot rename the root admin" });
+      return;
+    }
+    if (await UserModel.exists({ username: username.trim(), _id: { $ne: user._id } })) {
+      res.status(409).json({ error: "username already exists" });
+      return;
+    }
+    update.username = username.trim();
+  }
 
   if (email !== undefined) {
     if (typeof email === "string" && email.trim()) {

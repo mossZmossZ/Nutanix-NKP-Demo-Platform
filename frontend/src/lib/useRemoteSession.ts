@@ -147,6 +147,38 @@ export function useRemoteSession(slug: string | undefined): RemoteSession {
     }
   }, [])
 
+  // Keep the remote desktop 1:1 with the visible pane. When the pane resizes
+  // (window resize, splitter drag, responsive breakpoint flip) guacd would keep
+  // rendering at the connect-time resolution; ask it to re-render at the new
+  // pixel size instead. Debounced so a drag doesn't spam guacd.
+  useEffect(() => {
+    const host = hostRef.current
+    if (!host || typeof ResizeObserver === "undefined") return
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const observer = new ResizeObserver(() => {
+      clearTimeout(timer)
+      timer = setTimeout(() => {
+        const client = clientRef.current
+        if (!client) return
+        // 0×0 means the host is detached (Credentials tab / breakpoint remount) —
+        // don't shrink the live desktop while it's hidden; keep the last size.
+        if (host.clientWidth < 1 || host.clientHeight < 1) return
+        const w = Math.max(Math.round(host.clientWidth), 320)
+        const h = Math.max(Math.round(host.clientHeight), 240)
+        try {
+          client.sendSize(w, h)
+        } catch {
+          // Tunnel not open yet (still connecting) — the connect-time size stands.
+        }
+      }, 200)
+    })
+    observer.observe(host)
+    return () => {
+      clearTimeout(timer)
+      observer.disconnect()
+    }
+  }, [])
+
   // Auto-connect once; reconnect on lab change; tear down on unmount.
   useEffect(() => {
     connect()
