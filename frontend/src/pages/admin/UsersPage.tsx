@@ -38,6 +38,7 @@ export function UsersPage() {
   // Create dialog
   const [createOpen, setCreateOpen] = useState(false);
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<Role>("user");
 
@@ -93,7 +94,7 @@ export function UsersPage() {
       try {
         await api("/admin/users", {
           method: "POST",
-          body: JSON.stringify({ username, password, role }),
+          body: JSON.stringify({ username, email: email || undefined, password, role }),
         });
       } catch (err) {
         setCreateOpen(true);
@@ -101,6 +102,7 @@ export function UsersPage() {
       }
 
       setUsername("");
+      setEmail("");
       setPassword("");
       setRole("user");
 
@@ -318,6 +320,15 @@ export function UsersPage() {
               <Input value={username} onChange={(e) => setUsername(e.target.value)} required />
             </label>
             <label className="flex flex-col gap-xs">
+              <span className="text-label text-muted-foreground">Email</span>
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="user@example.com"
+              />
+            </label>
+            <label className="flex flex-col gap-xs">
               <span className="text-label text-muted-foreground">Password</span>
               <Input
                 type="password"
@@ -409,6 +420,7 @@ export function UsersPage() {
             <thead className="bg-muted/50">
               <tr className="border-b border-border/40">
                 <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">User</th>
+                <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Email</th>
                 <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Role</th>
                 <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</th>
                 <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Actions</th>
@@ -430,6 +442,9 @@ export function UsersPage() {
                         <p className="text-xs text-muted-foreground">{u.id.slice(0, 8)}...</p>
                       </div>
                     </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="text-sm text-muted-foreground">{u.email || "—"}</span>
                   </td>
                   <td className="px-6 py-4">
                     <select
