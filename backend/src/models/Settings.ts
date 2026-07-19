@@ -6,6 +6,9 @@ const settingsSchema = new Schema(
   {
     platformName: { type: String, required: true, default: "NKP Workshop", trim: true },
     defaultDocFontSize: { type: Number, required: true, default: 16 },
+    // Shared passphrase the instructor gives the room; gates the public lab-find
+    // credential lookup. Empty = lookup disabled (fail-closed).
+    workshopCode: { type: String, default: "", trim: true },
   },
   { timestamps: true },
 );

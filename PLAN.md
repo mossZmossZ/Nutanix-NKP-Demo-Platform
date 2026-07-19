@@ -97,8 +97,12 @@ can proceed in parallel.
   time, real counts/health, real activity feed); Settings persist (password, platform name,
   default font size); a participant's font-size choice follows them across devices.
 
-## Phase 7 — Dynamic provisioning (Terraform + Ansible + BullMQ)
-Goal: the cloud-manage feature with live logs.
+## Phase 7 — Dynamic provisioning (Terraform + Ansible + BullMQ) — ❌ DECLINED 2026-07-19
+> **Cut by the maintainer:** workshop VMs are created **manually** and added to the Machine
+> pool; the Machine model / pool console / SSH terminal already built in earlier phases cover
+> the manual workflow. The BullMQ/Terraform/Ansible plumbing below is **not** being built.
+
+Goal (not pursued): the cloud-manage feature with live logs.
 - BullMQ queue + worker process; `Job` model.
 - Provisioning adapter: per-machine workdir, `execa` `terraform apply` → `ansible-playbook`,
   stream logs to job doc; parse `terraform output`.
@@ -109,18 +113,34 @@ Goal: the cloud-manage feature with live logs.
   status reaches `online`; outputs populate the detail panel.
 
 ## Phase 8 — Prod hardening & ship
-Goal: full stack runs behind nginx over TLS.
-- `docker-compose.prod.yml` (nginx + fe + be + worker + mongo + redis + guac).
-- nginx TLS + routing; secret handling per `SECURITY.md`; basic dashboards/counts.
-- **Verify:** `docker compose -f deploy/docker-compose.prod.yml up -d` serves the full flow
-  end-to-end over HTTPS on a clean host.
+Goal: full stack runs on one host behind a single public nginx, images pulled from Docker Hub.
+> **Grilled + locked 2026-07-20.** CI (GitHub Actions) builds+pushes multi-stage images to
+> **public** Docker Hub on push to `main`; a human runs `deploy.sh` on the host (CI, not auto-CD).
+> **No worker/redis** (declined Phase-7 stubs). See `TASKS.md` Phase 8 for the itemised checklist.
+- **Images:** multi-stage, non-root — `backend` (`node:alpine` runtime, `dist` + prod deps) and
+  `frontend` (`nginx:alpine` serving the build). Repos:
+  `mosszmossz/nutanix-nkp-workshop-{frontend,backend}`, tagged `:latest` + `:<short-sha>`.
+- **Topology:** the **frontend nginx is the only public container**; it serves static + reverse-
+  proxies `/api` + `/api/ws/*` to `backend` internally. `backend`/`mongo`/`guacd` publish no ports.
+- **Compose (`deploy/docker-compose.prod.yml`):** bind-mounts `./data/mongo` + `./data/wiki`
+  (`WIKI_DIR`); healthchecks; resource limits; `guacd` pinned `1.6.0`.
+- **nginx:** two swappable mounted configs — `app.http.conf` (HTTP on local IP, behind the
+  external CF tunnel) and `app.https.conf` (HTTPS with the maintainer's cert). Both do WebSocket
+  upgrade + long read-timeouts for the RDP/SSH tunnels.
+- **CI gate:** typecheck + lint + build (not `npm test` — 7 documented frozen-surface failures).
+- **Prod-correctness (backend):** `trust proxy` (real client IP for the limiter/audit + `Secure`
+  cookie), lab-find limit 10→60/10min, boot-time guard rejecting default/unset crypto secrets.
+- **Secrets:** `deploy/.env.prod.example` cleaned of dead vars (`REDIS_URL`, `NUTANIX_*`,
+  `CREDENTIAL_ENCRYPTION_KEY`, `LOG_LEVEL`); crypto secrets generate-once-never-change.
+- **Verify:** on the prod host, an assigned user reaches their RDP desktop + guide + creds through
+  the single public nginx (HTTP-behind-CF-tunnel and HTTPS-cert configs both); a pinned `<sha>`
+  deploy + rollback works; DB/wiki/secrets persist across a redeploy.
 
 ## Sequencing notes
 - Phase 3 (design) intentionally runs on mock data before Phase 4 (real models/APIs) —
   UI-first, thin vertical slice. Don't design further ahead than Phase 4 needs (e.g. no
   Machines list filtering/sorting/pagination — that's speculative surface Phase 4 doesn't
   call for).
-- Phases 4→5→7 are the spine; do them in order (assignment before remote before dynamic).
-  Phase 6 (admin UI real-data) is independent and can run in parallel with Phase 5.
-- Phase 7 is the highest-risk (real infra). Mock the Nutanix provider early if hardware
-  isn't ready, so the queue/log/UI plumbing is proven independently.
+- Phases 4→5 are the spine (assignment before remote). Phase 6 (admin UI real-data) is
+  independent and ran in parallel with Phase 5. **Phase 7 (dynamic provisioning) is declined**
+  — VMs are created manually — so the spine ends at Phase 5 + manual Machine-pool management.

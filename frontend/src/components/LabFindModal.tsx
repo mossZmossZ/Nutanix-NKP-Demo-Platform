@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { api, ApiError } from "@/lib/api";
-import { Search, Mail, User, Key, Copy, Check, ArrowRight, Shield, AlertCircle, Loader2 } from "lucide-react";
+import { Search, Mail, User, Key, Copy, Check, ArrowRight, Shield, AlertCircle, Loader2, KeyRound } from "lucide-react";
 
 type LookupResult = { username: string; password: string };
 
@@ -55,12 +55,14 @@ interface LabFindModalProps {
 
 export function LabFindModal({ open, onOpenChange }: LabFindModalProps) {
   const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
   const [result, setResult] = useState<LookupResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   function reset() {
     setEmail("");
+    setCode("");
     setResult(null);
     setError(null);
     setLoading(false);
@@ -80,7 +82,7 @@ export function LabFindModal({ open, onOpenChange }: LabFindModalProps) {
     try {
       const data = await api<LookupResult>("/lab-find", {
         method: "POST",
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ email: email.trim(), code: code.trim() }),
       });
       setResult(data);
     } catch (err) {
@@ -98,7 +100,7 @@ export function LabFindModal({ open, onOpenChange }: LabFindModalProps) {
             <DialogHeader>
               <DialogTitle>Find your credentials</DialogTitle>
               <DialogDescription>
-                Enter the email your instructor registered for your account.
+                Enter your registered email and the workshop code your instructor gave you.
               </DialogDescription>
             </DialogHeader>
 
@@ -117,6 +119,26 @@ export function LabFindModal({ open, onOpenChange }: LabFindModalProps) {
                     placeholder="you@example.com"
                     autoComplete="email"
                     autoFocus
+                    required
+                    aria-invalid={!!error}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-xs">
+                <label htmlFor="lab-find-code" className="text-label text-muted-foreground">
+                  Workshop code
+                </label>
+                <div className="relative">
+                  <KeyRound className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-500" />
+                  <Input
+                    id="lab-find-code"
+                    type="text"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    placeholder="e.g. nkp-july-2026"
+                    autoComplete="off"
                     required
                     aria-invalid={!!error}
                     className="pl-10"
@@ -182,6 +204,7 @@ export function LabFindModal({ open, onOpenChange }: LabFindModalProps) {
                   setResult(null);
                   setError(null);
                   setEmail("");
+                  setCode("");
                 }}
               >
                 Look up another

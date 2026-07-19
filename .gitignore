@@ -23,3 +23,8 @@ Thumbs.db
 .idea/
 .vscode/
 /.claude
+
+# Production runtime state — bind-mounted DB + lab content and TLS material.
+# Never commit these; they hold data and secrets.
+/deploy/data/
+/deploy/certs/

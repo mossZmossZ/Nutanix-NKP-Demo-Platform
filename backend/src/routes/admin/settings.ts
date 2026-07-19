@@ -6,8 +6,12 @@ export const adminSettingsRouter = Router();
 
 adminSettingsRouter.use(requireAuth, requireAdmin);
 
-function publicSettings(s: { platformName: string; defaultDocFontSize: number }) {
-  return { platformName: s.platformName, defaultDocFontSize: s.defaultDocFontSize };
+function publicSettings(s: { platformName: string; defaultDocFontSize: number; workshopCode: string }) {
+  return {
+    platformName: s.platformName,
+    defaultDocFontSize: s.defaultDocFontSize,
+    workshopCode: s.workshopCode ?? "",
+  };
 }
 
 adminSettingsRouter.get("/", async (_req, res) => {
@@ -16,8 +20,8 @@ adminSettingsRouter.get("/", async (_req, res) => {
 });
 
 adminSettingsRouter.patch("/", async (req, res) => {
-  const { platformName, defaultDocFontSize } = req.body ?? {};
-  const update: { platformName?: string; defaultDocFontSize?: number } = {};
+  const { platformName, defaultDocFontSize, workshopCode } = req.body ?? {};
+  const update: { platformName?: string; defaultDocFontSize?: number; workshopCode?: string } = {};
 
   if (platformName !== undefined) {
     if (typeof platformName !== "string" || !platformName.trim()) {
@@ -33,6 +37,14 @@ adminSettingsRouter.patch("/", async (req, res) => {
       return;
     }
     update.defaultDocFontSize = defaultDocFontSize;
+  }
+
+  if (workshopCode !== undefined) {
+    if (typeof workshopCode !== "string") {
+      res.status(400).json({ error: "workshopCode must be a string" });
+      return;
+    }
+    update.workshopCode = workshopCode.trim();
   }
 
   const settings = await getSettings();

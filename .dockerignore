@@ -1,0 +1,15 @@
+# Applies to the FRONTEND image build only (context = repo root, file =
+# frontend/Dockerfile), which needs frontend/ + docs-content/ as siblings. The
+# backend image builds from its own ./backend context (see backend/.dockerignore).
+# Keeps the context lean and secret-free; the Dockerfile COPYs only the dirs it needs.
+**/node_modules
+**/dist
+**/build
+**/.env
+**/.env.*
+**/*.log
+**/coverage
+.git
+.claude
+wiki
+deploy/xrdp-test

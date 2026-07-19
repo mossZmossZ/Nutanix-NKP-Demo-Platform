@@ -36,3 +36,17 @@ export function decryptSecret(payload: string): string {
   const plain = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
   return plain.toString("utf8");
 }
+
+/**
+ * Decrypt a payload, tolerating legacy plaintext. Values written before
+ * encryption-at-rest was added aren't in the `iv:tag:ct` format, so decryption
+ * throws — in that case we return the input unchanged (it's plaintext). New
+ * writes always encrypt, so those rows heal on the next password reset.
+ */
+export function safeDecryptSecret(payload: string): string {
+  try {
+    return decryptSecret(payload);
+  } catch {
+    return payload;
+  }
+}
