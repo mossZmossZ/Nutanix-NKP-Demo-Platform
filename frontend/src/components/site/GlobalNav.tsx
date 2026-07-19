@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ChevronDown } from 'lucide-react'
 import { useAuth } from '@/auth/AuthContext'
@@ -8,14 +9,14 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
+import { LabFindModal } from '@/components/LabFindModal'
 
-// design.md §4 App shell: standard SaaS header height (64px), surface fill,
-// 1px bottom border — violet is the only accent (sign-in CTA / hover states).
 export function GlobalNav() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const docsActive = pathname.startsWith('/docs')
+  const [labFindOpen, setLabFindOpen] = useState(false)
 
   async function onLogout() {
     await logout()
@@ -42,6 +43,16 @@ export function GlobalNav() {
           >
             Docs
           </Link>
+
+          <button
+            type="button"
+            onClick={() => setLabFindOpen(true)}
+            className="relative text-button text-foreground hover:text-primary cursor-pointer bg-transparent border-0 p-0"
+          >
+            Lab Finder
+          </button>
+
+          <LabFindModal open={labFindOpen} onOpenChange={setLabFindOpen} />
 
           {user ? (
             <DropdownMenu>

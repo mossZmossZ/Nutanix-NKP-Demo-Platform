@@ -343,6 +343,32 @@ sync with reality (it's the "current state" file).
       active time, real counts, real activity feed) — **6c done**; Settings persist (password, platform
       name, default font size) — **6b done**; a participant's font-size choice persists across devices — **6b done**.
 
+**6d — Lab Finder (credential lookup for participants)** ✅ COMPLETE (2026-07-19)
+> Public-facing credential-recovery modal. A participant enters the email their
+> instructor registered on their account; the system looks up the user and returns
+> the original password set by the admin. Email is a new optional field on the User
+> model, managed by the admin in the Users page. The UI is a popup modal triggered
+> from the "Lab Find" button in the GlobalNav.
+
+- [x] **User model** — added `email` (unique, sparse) and `labPassword` (plaintext, for
+      credential lookup) fields to `backend/src/models/User.ts`
+- [x] **Admin users CRUD** — `POST` and `PATCH` save `labPassword` alongside `passwordHash`
+      when creating/resetting a user's password; `publicUser()` includes `email`;
+      duplicate-email guard on create/update
+- [x] **Public lookup endpoint** — `POST /api/lab-find` (`backend/src/routes/labFind.ts`):
+      accepts `{ email }`, finds user, returns `{ username, password: user.labPassword }`.
+      No password regeneration — returns the real admin-set password. No auth required.
+- [x] **LabFindModal** (`frontend/src/components/LabFindModal.tsx`) — Prism-aligned Radix
+      Dialog: search form (email input with Mail icon inset, error banner, loading spinner)
+      → result view (Shield icon, CredentialRow components with per-row copy-to-clipboard,
+      "Sign in now" CTA linking to `/login`, "Look up another" reset). Resets state on close.
+- [x] **GlobalNav** — "Lab Find" is a `<button>` that opens `LabFindModal` (was a `<Link>` to
+      `/lab-find` page). Removed the page route + lazy import from `App.tsx`.
+- [x] **Admin UsersPage** — added Email column to users table; email field in create dialog
+- [x] **Frontend `User` type** — added `email?: string`
+- [x] ✅ Gates: backend typecheck + lint green; frontend typecheck + lint green (zero new
+      warnings). Old `LabFindPage.tsx` removed (replaced by modal).
+
 ## Phase 7 — Dynamic provisioning (Terraform + Ansible + BullMQ)
 - [x] `Machine` model — **landed early in Phase 4a** (`Machine.ts`) as a static pool; admin
       assigns creds *from a machine*. Phase 7 adds `source: 'dynamic'` + provisioning status on top.

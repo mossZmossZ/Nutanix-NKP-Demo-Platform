@@ -10,6 +10,7 @@ import { adminDashboardRouter } from "./routes/admin/dashboard";
 import { adminSettingsRouter } from "./routes/admin/settings";
 import { authRouter } from "./routes/auth";
 import { healthRouter } from "./routes/health";
+import { labFindRouter } from "./routes/labFind";
 import { meRouter } from "./routes/me";
 
 export function createApp(): Express {
@@ -21,6 +22,7 @@ export function createApp(): Express {
 
   app.use("/api", healthRouter);
   app.use("/api", authRouter);
+  app.use("/api", labFindRouter);
   app.use("/api/admin/users", adminUsersRouter);
   app.use("/api/admin/labs", adminLabsRouter);
   app.use("/api/admin/assignments", adminAssignmentsRouter);

@@ -11,8 +11,8 @@ adminUsersRouter.use(requireAuth, requireAdmin);
 
 const isRole = (v: unknown): v is Role => v === "admin" || v === "user";
 
-function publicUser(u: { id: string; username: string; role: Role; createdAt?: Date }) {
-  return { id: u.id, username: u.username, role: u.role, createdAt: u.createdAt };
+function publicUser(u: { id: string; username: string; email?: string; role: Role; createdAt?: Date }) {
+  return { id: u.id, username: u.username, email: u.email, role: u.role, createdAt: u.createdAt };
 }
 
 adminUsersRouter.get("/", async (_req, res) => {
@@ -21,7 +21,7 @@ adminUsersRouter.get("/", async (_req, res) => {
 });
 
 adminUsersRouter.post("/", async (req: AuthedRequest, res) => {
-  const { username, password, role } = req.body ?? {};
+  const { username, email, password, role } = req.body ?? {};
   if (typeof username !== "string" || !username.trim()) {
     res.status(400).json({ error: "username is required" });
     return;
@@ -38,9 +38,17 @@ adminUsersRouter.post("/", async (req: AuthedRequest, res) => {
     res.status(409).json({ error: "username already exists" });
     return;
   }
+  if (email && typeof email === "string" && email.trim()) {
+    if (await UserModel.exists({ email: email.trim().toLowerCase() })) {
+      res.status(409).json({ error: "email already exists" });
+      return;
+    }
+  }
   const user = await UserModel.create({
     username: username.trim(),
+    email: email && typeof email === "string" && email.trim() ? email.trim().toLowerCase() : undefined,
     passwordHash: await hashPassword(password),
+    labPassword: password,
     role,
   });
   await recordAudit({ actorId: req.user!.id, action: "user.create", targetType: "user", targetLabel: user.username });
@@ -58,8 +66,20 @@ adminUsersRouter.patch("/:id", async (req: AuthedRequest, res) => {
     return;
   }
 
-  const { password, role } = req.body ?? {};
-  const update: { passwordHash?: string; role?: Role } = {};
+  const { email, password, role } = req.body ?? {};
+  const update: { email?: string | null; passwordHash?: string; labPassword?: string; role?: Role } = {};
+
+  if (email !== undefined) {
+    if (typeof email === "string" && email.trim()) {
+      if (await UserModel.exists({ email: email.trim().toLowerCase(), _id: { $ne: user._id } })) {
+        res.status(409).json({ error: "email already exists" });
+        return;
+      }
+      update.email = email.trim().toLowerCase();
+    } else {
+      update.email = null;
+    }
+  }
 
   if (password !== undefined) {
     if (typeof password !== "string" || password.length < 8) {
@@ -67,6 +87,7 @@ adminUsersRouter.patch("/:id", async (req: AuthedRequest, res) => {
       return;
     }
     update.passwordHash = await hashPassword(password);
+    update.labPassword = password;
   }
 
   if (role !== undefined) {
