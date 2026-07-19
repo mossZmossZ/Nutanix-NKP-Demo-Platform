@@ -21,7 +21,7 @@ describe("Settings singleton defaults", () => {
   it("GET /api/admin/settings returns seeded defaults", async () => {
     const res = await adminAgent.get("/api/admin/settings");
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ platformName: "NKP Workshop", defaultDocFontSize: 16 });
+    expect(res.body).toEqual({ platformName: "NKP Workshop", defaultDocFontSize: 16, workshopCode: "" });
   });
 
   it("keeps a single settings document", async () => {
@@ -37,10 +37,10 @@ describe("PATCH /api/admin/settings", () => {
       .patch("/api/admin/settings")
       .send({ platformName: "Acme Labs", defaultDocFontSize: 20 });
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ platformName: "Acme Labs", defaultDocFontSize: 20 });
+    expect(res.body).toEqual({ platformName: "Acme Labs", defaultDocFontSize: 20, workshopCode: "" });
 
     const reread = await adminAgent.get("/api/admin/settings");
-    expect(reread.body).toEqual({ platformName: "Acme Labs", defaultDocFontSize: 20 });
+    expect(reread.body).toEqual({ platformName: "Acme Labs", defaultDocFontSize: 20, workshopCode: "" });
   });
 
   it("rejects an empty platformName -> 400", async () => {

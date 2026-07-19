@@ -15,9 +15,12 @@ export function ConsoleTerminal({ machineId, onDisconnected }: Props) {
   const termRef = useRef<Terminal | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
-  const [status, setStatus] = useState<"connecting" | "connected" | "error" | "disconnected">("connecting");
+  const [status, setStatus] = useState<"connecting" | "connected" | "error">("connecting");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const connectingRef = useRef(true);
+  const erroredRef = useRef(false);
+  const onDisconnectedRef = useRef(onDisconnected);
+  onDisconnectedRef.current = onDisconnected;
 
   const disconnect = useCallback(() => {
     if (wsRef.current) {
@@ -49,6 +52,19 @@ export function ConsoleTerminal({ machineId, onDisconnected }: Props) {
     termRef.current = term;
     fitAddonRef.current = fitAddon;
 
+    // Ctrl+Shift+C copies the selection. Without this the browser grabs the
+    // combo for its "inspect element" DevTools shortcut. (Ctrl+Shift+V paste
+    // already rides the native paste event.)
+    term.attachCustomKeyEventHandler((event) => {
+      if (event.type === "keydown" && event.ctrlKey && event.shiftKey && event.code === "KeyC") {
+        event.preventDefault();
+        const selection = term.getSelection();
+        if (selection) navigator.clipboard.writeText(selection).catch(() => {});
+        return false;
+      }
+      return true;
+    });
+
     const container = containerRef.current!;
 
     const sizeObserver = new ResizeObserver(() => {
@@ -66,6 +82,7 @@ export function ConsoleTerminal({ machineId, onDisconnected }: Props) {
     );
     wsRef.current = ws;
     connectingRef.current = true;
+    erroredRef.current = false;
 
     ws.onopen = () => {
       connectingRef.current = false;
@@ -80,6 +97,7 @@ export function ConsoleTerminal({ machineId, onDisconnected }: Props) {
       try {
         const msg = JSON.parse(e.data);
         if (msg.type === "error") {
+          erroredRef.current = true;
           setStatus("error");
           setErrorMsg(msg.message as string);
           return;
@@ -91,14 +109,16 @@ export function ConsoleTerminal({ machineId, onDisconnected }: Props) {
 
     ws.onerror = () => {
       if (connectingRef.current) {
+        erroredRef.current = true;
         setStatus("error");
         setErrorMsg("WebSocket connection failed");
       }
     };
 
     ws.onclose = () => {
-      setStatus("disconnected");
-      term.write("\r\n\x1b[31m\x1b[1mSession closed\x1b[0m\r\n");
+      // Normal session end (e.g. `exit`) → dismiss the modal. Keep the error
+      // screen open on failures so the admin can read the reason.
+      if (!erroredRef.current) onDisconnectedRef.current();
     };
 
     term.onData((data) => {
@@ -131,23 +151,6 @@ export function ConsoleTerminal({ machineId, onDisconnected }: Props) {
         <div>
           <p className="text-base font-semibold text-foreground">Connection failed</p>
           <p className="mt-1 text-sm text-muted-foreground">{errorMsg || "Unknown error"}</p>
-        </div>
-        <Button variant="secondary" onClick={disconnect}>
-          Close
-        </Button>
-      </div>
-    );
-  }
-
-  if (status === "disconnected") {
-    return (
-      <div className="flex h-full flex-col items-center justify-center gap-4 p-6 text-center">
-        <div className="flex size-14 items-center justify-center rounded-full bg-muted-foreground/10 text-muted-foreground">
-          <AlertTriangle className="size-7" />
-        </div>
-        <div>
-          <p className="text-base font-semibold text-foreground">Session ended</p>
-          <p className="mt-1 text-sm text-muted-foreground">The SSH connection was closed.</p>
         </div>
         <Button variant="secondary" onClick={disconnect}>
           Close

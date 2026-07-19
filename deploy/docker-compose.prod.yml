@@ -1,0 +1,138 @@
+# Production stack — one host, images pulled from public Docker Hub.
+#
+#   Only `frontend` (nginx) publishes a port. backend / mongo / guacd are
+#   internal-only on nkp-network. Run via deploy/deploy.sh, which sets IMAGE_TAG
+#   and loads deploy/.env (copy from .env.prod.example).
+#
+#   Relative paths (./data, ./nginx) resolve against this file's directory (deploy/).
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  # --- Public edge: serves the SPA + reverse-proxies /api + /api/ws to backend ---
+  frontend:
+    image: mosszmossz/nutanix-nkp-workshop-frontend:${IMAGE_TAG:-latest}
+    container_name: nkp-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      # HTTPS mode: also publish 443 (see the cert mounts below).
+      # - "${HTTPS_PORT:-443}:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      # Default = HTTP (TLS terminated upstream, e.g. a Cloudflare tunnel).
+      - ./nginx/app.http.conf:/etc/nginx/conf.d/default.conf:ro
+      # HTTPS mode: comment the line above, uncomment these two, publish 443,
+      # and point the cert path at your PEM files (fullchain.pem + privkey.pem):
+      # - ./nginx/app.https.conf:/etc/nginx/conf.d/default.conf:ro
+      # - ${TLS_CERT_DIR:-./certs}:/etc/nginx/certs:ro
+    networks:
+      - nkp-network
+    logging: *default-logging
+    healthcheck:
+      # HTTP-mode probe. In HTTPS mode port 80 only redirects — change this to
+      # `wget --no-check-certificate -qO /dev/null https://127.0.0.1/`.
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 256M
+
+  # --- API (internal only; no published port) ---
+  backend:
+    image: mosszmossz/nutanix-nkp-workshop-backend:${IMAGE_TAG:-latest}
+    container_name: nkp-backend
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+      guacd:
+        condition: service_started
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+      # Built from parts so the DB password is defined once (below + mongo service).
+      MONGO_URI: mongodb://${MONGO_ROOT_USER:?set MONGO_ROOT_USER in .env}:${MONGO_ROOT_PASSWORD:?set MONGO_ROOT_PASSWORD in .env}@mongo:27017/${MONGO_DB:-nkp}?authSource=admin
+      # Crypto secrets — generate once, never change (see .env.prod.example).
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      CREDENTIAL_SECRET: ${CREDENTIAL_SECRET:?set CREDENTIAL_SECRET in .env}
+      GUAC_TOKEN_SECRET: ${GUAC_TOKEN_SECRET:?set GUAC_TOKEN_SECRET in .env}
+      # guacd reached by service name over the internal network.
+      GUACD_HOST: guacd
+      GUACD_PORT: "4822"
+      ADMIN_USER: ${ADMIN_USER:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env}
+      WORKSHOP_TZ: ${WORKSHOP_TZ:-Asia/Bangkok}
+      # File-backed lab guides live on the bind-mounted volume below.
+      WIKI_DIR: /data/wiki
+    volumes:
+      - ./data/wiki:/data/wiki
+    networks:
+      - nkp-network
+    logging: *default-logging
+    # HEALTHCHECK is baked into the backend image (Node fetch on /api/health).
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 1G
+
+  # --- MongoDB (internal only; bind-mounted data) ---
+  mongo:
+    image: mongo:7.0
+    container_name: nkp-mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:?set MONGO_ROOT_USER in .env}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?set MONGO_ROOT_PASSWORD in .env}
+    volumes:
+      - ./data/mongo:/data/db
+    networks:
+      - nkp-network
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 1G
+
+  # --- guacd: renders RDP for the in-browser desktop (internal only) ---
+  guacd:
+    image: guacamole/guacd:1.6.0
+    container_name: nkp-guacd
+    restart: unless-stopped
+    networks:
+      - nkp-network
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 512M
+
+networks:
+  nkp-network:
+    driver: bridge
+    # Pin a subnet clear of the Nutanix lab range (172.18.x) so guacd can reach
+    # RDP targets on the real lab network — same rationale as the dev compose.
+    ipam:
+      config:
+        - subnet: 172.99.0.0/24

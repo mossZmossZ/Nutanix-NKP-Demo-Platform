@@ -4,6 +4,7 @@ import { UserModel, type Role } from "../../models/User";
 import { requireAuth, requireAdmin, type AuthedRequest } from "../../middleware/auth";
 import { hashPassword } from "../../services/auth";
 import { recordAudit } from "../../services/audit";
+import { encryptSecret } from "../../lib/crypto";
 
 export const adminUsersRouter = Router();
 
@@ -48,7 +49,7 @@ adminUsersRouter.post("/", async (req: AuthedRequest, res) => {
     username: username.trim(),
     email: email && typeof email === "string" && email.trim() ? email.trim().toLowerCase() : undefined,
     passwordHash: await hashPassword(password),
-    labPassword: password,
+    labPassword: encryptSecret(password),
     role,
   });
   await recordAudit({ actorId: req.user!.id, action: "user.create", targetType: "user", targetLabel: user.username });
@@ -104,7 +105,7 @@ adminUsersRouter.patch("/:id", async (req: AuthedRequest, res) => {
       return;
     }
     update.passwordHash = await hashPassword(password);
-    update.labPassword = password;
+    update.labPassword = encryptSecret(password);
   }
 
   if (role !== undefined) {

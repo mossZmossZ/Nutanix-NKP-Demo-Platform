@@ -18,6 +18,7 @@ import {
   Type,
   Globe,
   Check,
+  ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
@@ -26,7 +27,7 @@ import { cn } from "@/lib/utils";
 
 const FONT_SIZES = [12, 14, 16, 18, 20, 22, 24];
 
-type SettingsData = { platformName: string; defaultDocFontSize: number };
+type SettingsData = { platformName: string; defaultDocFontSize: number; workshopCode: string };
 
 // Repeated settings-card chrome — a gradient icon tile + title/description
 // header over a bordered, softly-elevated card (matches the 6c dashboard look).
@@ -73,7 +74,8 @@ export function SettingsPage() {
     if (!savedSettings || !draftSettings) return false;
     return (
       savedSettings.platformName !== draftSettings.platformName ||
-      savedSettings.defaultDocFontSize !== draftSettings.defaultDocFontSize
+      savedSettings.defaultDocFontSize !== draftSettings.defaultDocFontSize ||
+      savedSettings.workshopCode !== draftSettings.workshopCode
     );
   }, [savedSettings, draftSettings]);
 
@@ -231,6 +233,30 @@ export function SettingsPage() {
             </div>
             <p className="mt-3 text-sm text-muted-foreground">
               Learners can override this with their own preference at any time.
+            </p>
+          </SectionCard>
+
+          <SectionCard
+            icon={ShieldCheck}
+            title="Lab Find code"
+            description="Shared code participants must enter to look up their credentials. Leave blank to disable credential lookup."
+          >
+            <label className="flex flex-col gap-1.5">
+              <span className="text-label text-muted-foreground">Workshop code</span>
+              <Input
+                value={draftSettings?.workshopCode ?? ""}
+                disabled={!draftSettings}
+                onChange={(e) =>
+                  draftSettings &&
+                  setDraftSettings({ ...draftSettings, workshopCode: e.target.value })
+                }
+                placeholder="e.g. nkp-july-2026"
+                aria-label="Workshop code for credential lookup"
+                className="max-w-[24rem] font-mono"
+              />
+            </label>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Give this to the room. When empty, the Lab Find lookup is turned off entirely.
             </p>
           </SectionCard>
 

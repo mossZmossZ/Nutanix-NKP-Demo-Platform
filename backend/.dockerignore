@@ -1,0 +1,17 @@
+# Never ship secrets or host state into the image / build context.
+.env
+.env.*
+
+# Reinstalled cleanly via `npm ci` inside the build; never copy host copies.
+node_modules
+dist
+
+# Not needed at build or runtime.
+test
+coverage
+*.md
+.git
+.gitignore
+Dockerfile
+.dockerignore
+npm-debug.log*

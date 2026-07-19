@@ -36,3 +36,28 @@ export const env = {
 };
 
 export const isProd = env.nodeEnv === "production";
+
+// Fail fast in production if any secret protecting data at rest or in transit is
+// unset or still a dev placeholder. CREDENTIAL_SECRET is especially load-bearing:
+// it derives the AES key for stored passwords, so if it changes (or silently falls
+// back to the dev default) every encrypted value becomes undecryptable. A
+// misconfigured prod must never boot silently. See SECURITY.md.
+if (isProd) {
+  const devDefaults: Record<string, string> = {
+    JWT_SECRET: "dev-secret-change-me",
+    CREDENTIAL_SECRET: "dev-credential-secret-change-me",
+    GUAC_TOKEN_SECRET: "dev-guac-token-secret-change-me",
+  };
+  const insecure = Object.entries(devDefaults)
+    .filter(([name, devDefault]) => {
+      const value = process.env[name];
+      return !value || value.trim() === "" || value === devDefault;
+    })
+    .map(([name]) => name);
+  if (insecure.length > 0) {
+    throw new Error(
+      `Refusing to start in production: ${insecure.join(", ")} is unset or a dev default. ` +
+        `Set a strong unique value for each (generate with: openssl rand -base64 32).`,
+    );
+  }
+}

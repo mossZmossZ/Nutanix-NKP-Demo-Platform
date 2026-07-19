@@ -224,8 +224,8 @@ sync with reality (it's the "current state" file).
 > From item 6 + item 7. Export/Import a lab as a single `.md` file (backup + continue dev), and
 > a `backend/script` lab generator producing guide markdown with yaml support, credential-copy,
 > pictures, and highlighting.
-- [~] **Export / Import (single-file `.md`)** — **BUILT (2026-07-13, grilled first) pending maintainer
-      functional check.** Format (locked): YAML frontmatter (all Lab fields + `credentialVars` **with
+- [x] **Export / Import (single-file `.md`)** — **BUILT (2026-07-13, grilled first); maintainer
+      sign-off 2026-07-19.** Format (locked): YAML frontmatter (all Lab fields + `credentialVars` **with
       `_id`s**) then guide pages delimited by `<!-- page: NN-name.md -->` markers. Images are S3 URLs in
       the page markdown → round-trip as text (no binary handling). New `lib/labArchive.ts`
       (`serializeLab`/`parseLabArchive` + validation). `GET /admin/labs/:slug/export` (downloads
@@ -237,8 +237,8 @@ sync with reality (it's the "current state" file).
       `sonner` toasts. Backend **140 tests** (+11: round-trip, create, dup-409, overwrite-reconcile,
       malformed-400, RBAC-403) + lint green; frontend typecheck/lint clean on new code (build blocked
       only by the pre-existing `sonner.tsx` Toaster wart).
-- [~] **Reference/example lab** — **BUILT (2026-07-13, grilled first) pending maintainer
-      functional check.** Resolved (grilling): the "generator" is not a script — Import already
+- [x] **Reference/example lab** — **BUILT (2026-07-13, grilled first); maintainer sign-off
+      2026-07-19.** Resolved (grilling): the "generator" is not a script — Import already
       exists, so the deliverable is a single checked-in archive `backend/examples/example-lab.md`
       (+ `README.md`) that an admin imports via **Lab management → Import** to see every guide
       feature and copy as an authoring template. Content: 4 pages (markdown basics + GFM table /
@@ -369,7 +369,27 @@ sync with reality (it's the "current state" file).
 - [x] ✅ Gates: backend typecheck + lint green; frontend typecheck + lint green (zero new
       warnings). Old `LabFindPage.tsx` removed (replaced by modal).
 
-## Phase 7 — Dynamic provisioning (Terraform + Ansible + BullMQ)
+**6d-hardening — Lab Finder security (2026-07-19)** ✅ COMPLETE (maintainer sign-off 2026-07-19)
+> Kept the self-serve email lookup (internal use) but closed the credential-exposure gap:
+> - **Workshop code gate** — `Settings.workshopCode` (admin sets it on the Settings page,
+>   "Lab Find code" card). `POST /api/lab-find` now requires `{email, code}`; wrong code OR
+>   unknown email returns one generic 404 (no email enumeration). **Fail-closed:** empty code
+>   ⇒ lookup disabled for everyone.
+> - **Encryption at rest** — `User.labPassword` is now AES-256-GCM encrypted via `lib/crypto.ts`
+>   (`encryptSecret` on admin create/reset). Lookup serves it through `safeDecryptSecret`, which
+>   falls back to raw for legacy plaintext rows (they re-encrypt on next password reset). No migration.
+> - **Rate limit** — hand-rolled in-memory per-IP limiter (`lib/rateLimit.ts`, 10 / 10 min) on the
+>   endpoint; no new dependency (prod should also use nginx `limit_req`).
+> - **Audit** — each successful lookup writes an `AuditEvent` (`lab-find.lookup`).
+> - Tests: new `test/lab-find.test.ts` (6 cases: 400s, fail-closed, wrong code, decrypt round-trip,
+>   unknown email); `settings.test.ts` updated for the new `workshopCode` field.
+
+## Phase 7 — Dynamic provisioning (Terraform + Ansible + BullMQ) — ❌ DECLINED 2026-07-19
+> **Maintainer decision (2026-07-19):** dynamic provisioning is **cut**. Workshop VMs are
+> created **manually** by the admin and added to the Machine pool. The Machine model, the
+> Machine Pool console, and the SSH web terminal below **stay** (they support the manual
+> workflow); the BullMQ/Terraform/Ansible items are **descoped** — no `/infra`, no worker.
+
 - [x] `Machine` model — **landed early in Phase 4a** (`Machine.ts`) as a static pool; admin
       assigns creds *from a machine*. Phase 7 adds `source: 'dynamic'` + provisioning status on top.
       **Updated 2026-07-13:** added `vcpu`, `memory`, `os`, `drive` optional fields for rich dashboard.
@@ -382,7 +402,8 @@ sync with reality (it's the "current state" file).
 >       success toasts (`sonner`). `vcpu`/`memory`/`os`/`drive` fields added to backend
 >       Machine model. Nav consolidated — "Machine Pool" entry removed.
 >       Backend + frontend typecheck/lint green. **User signoff received.**
-> - [~] SSH web terminal (xterm.js) — **BUILT (2026-07-13) pending maintainer review/signoff:**
+> - [x] SSH web terminal (xterm.js) — **BUILT (2026-07-13); maintainer sign-off 2026-07-20**
+>       (the 2026-07-19 fixes — auto-close on exit + Ctrl+Shift+C copy — verified on Windows):
 >       Replaced "coming soon" placeholder with live SSH console modal (`max-w-5xl`, 500px
 >       terminal). Admin clicks "Open Console" → modal opens with a dark terminal-chrome header
 >       (machine name, live SSH health status badge, hardware specs, host:port) + xterm.js
@@ -399,19 +420,77 @@ sync with reality (it's the "current state" file).
 >       crash). Added deps: `ssh2`, `ws`, `@xterm/xterm`, `@xterm/addon-fit` + type stubs.
 >       Backend + frontend typecheck/lint green. Vite proxy configured for WebSocket upgrade
 >       (`ws: true`). Build green modulo pre-existing sonner.tsx `Toaster` issue.
+>       **Fixes 2026-07-19 (pending Windows verify):** (1) **auto-close on exit** — `ws.onclose`
+>       now calls `onDisconnected()` to dismiss the modal on a normal session end (`exit`); the
+>       manual error screen is preserved via `erroredRef` so connection failures still show the
+>       reason. Removed the now-dead "Session ended" (`disconnected`) screen. (2) **Ctrl+Shift+C
+>       copy** — `attachCustomKeyEventHandler` intercepts Ctrl+Shift+C (`event.code === "KeyC"`),
+>       `preventDefault()`s the browser's inspect-element shortcut, and copies the terminal
+>       selection via `navigator.clipboard.writeText`. Both changes in `ConsoleTerminal.tsx`.
 
-- [ ] BullMQ queue + worker process; `Job` model
-- [ ] Provisioning adapter: workdir + `execa` terraform → ansible + log streaming
-- [ ] Nutanix Terraform template + Ansible playbook (NKP tooling + xrdp) in `/infra`
-- [ ] Admin → Machines → Create (dynamic): job launch + SSE live logs + detail panel
-- [ ] ✅ Checkpoint: dynamic create provisions VM, logs stream, status `online`
+- [~] ~~BullMQ queue + worker process; `Job` model~~ — **DECLINED** (manual VM creation)
+- [~] ~~Provisioning adapter: workdir + `execa` terraform → ansible + log streaming~~ — **DECLINED**
+- [~] ~~Nutanix Terraform template + Ansible playbook (NKP tooling + xrdp) in `/infra`~~ — **DECLINED**
+- [~] ~~Admin → Machines → Create (dynamic): job launch + SSE live logs + detail panel~~ — **DECLINED**
+- [~] ~~Checkpoint: dynamic create provisions VM, logs stream, status `online`~~ — **DECLINED**
 
 ## Phase 8 — Prod hardening & ship
-- [ ] `deploy/docker-compose.prod.yml` (nginx + fe + be + worker + mongo + redis + guac)
-- [ ] nginx TLS + routing
-- [ ] Secret handling per `SECURITY.md`
-- [ ] Admin dashboard counts
-- [ ] ✅ Checkpoint: full flow end-to-end over HTTPS on a clean host
+> **Grilled + locked 2026-07-20.** Dev stays as-is (`docker-compose.dev.yml`). Prod = **one
+> Linux host** running `docker-compose.prod.yml` that **pulls** pre-built images from **public**
+> Docker Hub (`mosszmossz/nutanix-nkp-workshop-frontend` / `-backend`). CI builds+pushes; a human
+> runs `deploy.sh`. **No worker, no redis** (declined Phase-7 stubs — never wired in code).
+>
+> **Topology (locked):** the **frontend nginx is the only public container**; it serves the
+> static build **and** reverse-proxies `/api` + `/api/ws/*` to `backend` over the internal docker
+> network. `backend`, `mongo`, `guacd` publish **no ports**. Single origin → the httpOnly cookie
+> works same-origin (as dev's Vite proxy does).
+
+**8a — Images (multi-stage, lean, non-root)**
+- [ ] `backend/Dockerfile` — deps → `tsc` build → slim `node:alpine` runtime (prod deps + `dist`
+      only), runs as non-root.
+- [ ] `frontend/Dockerfile` — `node` build → `nginx:alpine` serving `dist`. This nginx is the
+      public edge; the **server config is mounted** (not baked) so http↔https swaps without rebuild.
+
+**8b — Prod compose + persistence**
+- [ ] `deploy/docker-compose.prod.yml` — `frontend` (only published port) · `backend`/`mongo`/
+      `guacd` internal-only · `guacd` pinned `1.6.0`, log level `info` · healthchecks ·
+      `restart: unless-stopped` · resource limits.
+- [ ] **Bind-mounts to host paths** — `./data/mongo` (DB) and `./data/wiki` → backend
+      `WIKI_DIR=/data/wiki` (file-backed lab guides survive redeploys).
+
+**8c — nginx (two swappable configs)**
+- [ ] `deploy/nginx/app.http.conf` — HTTP on the local IP (behind the external CF-tunnel proxy).
+- [ ] `deploy/nginx/app.https.conf` — HTTPS with the maintainer's existing cert + HTTP→HTTPS redirect.
+- [ ] Both: static + `/api` proxy + `/api/ws/*` **WebSocket upgrade + long `proxy_read_timeout`**
+      (RDP/SSH sessions don't drop at 60s) + `X-Forwarded-*` + raised `worker_connections`.
+
+**8d — CI/CD**
+- [ ] `.github/workflows/build.yml` (push to `main`) — gate: **typecheck + lint + build** (both
+      apps; **not** `npm test` — 7 documented frozen-surface failures). Then `docker login`
+      (`DOCKERHUB_USERNAME`/`DOCKERHUB_TOKEN` secrets) → buildx build+push both images tagged
+      `:latest` + `:<short-sha>`, with layer cache.
+- [ ] `deploy/deploy.sh` — pull `IMAGE_TAG` (default `latest`) → `up -d` → prune old images.
+- [ ] `deploy/.env.prod.example` — `JWT_SECRET`, `CREDENTIAL_SECRET`, `GUAC_TOKEN_SECRET`,
+      `ADMIN_*`, Mongo creds, `WORKSHOP_TZ`, `IMAGE_TAG`. **Stripped dead vars:** `REDIS_URL`,
+      `NUTANIX_*`, `CREDENTIAL_ENCRYPTION_KEY`, `LOG_LEVEL`. Loud "generate once, never change"
+      note on the crypto secrets (changing `CREDENTIAL_SECRET` ⇒ all stored passwords undecryptable).
+
+**8e — Backend prod-correctness (minimal code)**
+- [ ] `app.set('trust proxy', true)` — real client IP for the rate limiter + audit; fixes `req.secure`.
+- [ ] Auth cookie `Secure` in production.
+- [ ] Lab-find rate limit 10 → **60 / 10 min** (shared-NAT workshop rooms; workshop-code gate stays
+      the real defense).
+- [ ] **Prod secret guard** — backend throws on boot if `NODE_ENV=production` and any of
+      `JWT_SECRET`/`CREDENTIAL_SECRET`/`GUAC_TOKEN_SECRET` is unset or a dev default.
+
+**8f — Docs**
+- [ ] README deploy section + manual backup one-liners (`mongodump` + `tar` the bind-mounts).
+- [ ] ~~Admin dashboard counts~~ — **already delivered in Phase 6c** (real user/machine/lab counts).
+
+- [ ] ✅ Checkpoint: full flow end-to-end on the prod host — assigned user reaches their RDP
+      desktop + guide + creds through the single public nginx; behind CF tunnel (HTTP) and via the
+      HTTPS-cert config; a specific `<sha>` deploy + rollback works; secrets/wiki/DB persist across
+      a redeploy.
 
 ## Backlog / later (explicit non-goals for v1)
 - [ ] Lab task auto-grading / verification

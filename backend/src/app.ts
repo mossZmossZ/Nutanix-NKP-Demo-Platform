@@ -16,6 +16,13 @@ import { meRouter } from "./routes/me";
 export function createApp(): Express {
   const app = express();
 
+  // In prod the backend is only reachable through our own nginx over the internal
+  // docker network (no published port), which sets X-Forwarded-For/Proto. Trust it
+  // so `req.ip` is the real client (per-IP rate limiter + audit) and `req.secure`
+  // reflects the external TLS scheme. Safe here precisely because the backend is
+  // never directly exposed, so forwarded headers can't be spoofed by a client.
+  app.set("trust proxy", true);
+
   app.use(cors());
   app.use(express.json({ limit: "2mb" }));
   app.use(cookieParser());
