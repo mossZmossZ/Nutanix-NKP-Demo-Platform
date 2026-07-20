@@ -36,6 +36,7 @@ type LabDetail = {
   lab: { slug: string; title: string; summary: string; difficulty: string; duration: string }
   pages: { file: string; order: number; title: string }[]
   completedPages: string[]
+  groups: { id: string; name: string }[]
   credentials: LabCredential[]
   // Still returned for the Phase-5 Remote/Guacamole token; no longer shown here.
   connection: { rdpHost: string; rdpPort: number; rdpUser: string; rdpPassword: string }
@@ -158,7 +159,7 @@ export function LabViewPage() {
                   value="credentials"
                   className="min-h-0 flex-1 overflow-y-auto duration-[var(--duration-base)] ease-standard animate-in fade-in"
                 >
-                  <CredentialsPanel credentials={detail.credentials} />
+                  <CredentialsPanel credentials={detail.credentials} groups={detail.groups} />
                 </TabsContent>
               </Tabs>
             )
