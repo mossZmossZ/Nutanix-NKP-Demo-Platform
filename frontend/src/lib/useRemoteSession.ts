@@ -8,6 +8,13 @@ export type RemoteState = "connecting" | "connected" | "disconnected" | "error"
 const STATE_CONNECTED = 3
 const STATE_DISCONNECTED = 5
 
+// RDP negotiates the desktop on aligned pixel dimensions, so an unaligned
+// request can round *up* — making the framebuffer taller/wider than the pane so
+// its bottom edge (the Linux taskbar) is clipped by the host's overflow:hidden.
+// Floor to a 4px boundary so the negotiated size never exceeds the pane; the
+// desktop sits top-left with at most a ~3px inert margin instead of clipping.
+const fitRemote = (px: number) => Math.floor(px / 4) * 4
+
 export interface RemoteSession {
   state: RemoteState
   errorMessage: string | null
@@ -72,10 +79,11 @@ export function useRemoteSession(slug: string | undefined): RemoteSession {
 
     clientRef.current?.disconnect()
 
-    // 1:1 fit-to-pane: ask guacd for the current pane's pixel size. Fallback to
-    // a sane default if the host is momentarily detached (0×0).
-    const w = Math.max(Math.round(host.clientWidth) || 1280, 320)
-    const h = Math.max(Math.round(host.clientHeight) || 720, 240)
+    // 1:1 fit-to-pane: ask guacd for the current pane's pixel size (floored to a
+    // 4px boundary — see fitRemote). Fallback to a sane default if the host is
+    // momentarily detached (0×0).
+    const w = Math.max(fitRemote(host.clientWidth) || 1280, 320)
+    const h = Math.max(fitRemote(host.clientHeight) || 720, 240)
 
     const proto = window.location.protocol === "https:" ? "wss" : "ws"
     const tunnel = new Guacamole.WebSocketTunnel(`${proto}://${window.location.host}/api/ws/rdp`)
@@ -163,8 +171,8 @@ export function useRemoteSession(slug: string | undefined): RemoteSession {
         // 0×0 means the host is detached (Credentials tab / breakpoint remount) —
         // don't shrink the live desktop while it's hidden; keep the last size.
         if (host.clientWidth < 1 || host.clientHeight < 1) return
-        const w = Math.max(Math.round(host.clientWidth), 320)
-        const h = Math.max(Math.round(host.clientHeight), 240)
+        const w = Math.max(fitRemote(host.clientWidth), 320)
+        const h = Math.max(fitRemote(host.clientHeight), 240)
         try {
           client.sendSize(w, h)
         } catch {
