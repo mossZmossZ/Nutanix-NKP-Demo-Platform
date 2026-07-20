@@ -7,6 +7,7 @@ import {
   listPages,
   readPage,
   writePage,
+  movePage,
   removeLab,
 } from "../src/lib/wiki";
 
@@ -68,6 +69,32 @@ describe("wiki fs helper", () => {
     expect(() => readPage("my-lab", "../secrets.md", root)).toThrow();
     expect(() => readPage("my-lab", "sub/dir.md", root)).toThrow();
     expect(() => writePage("my-lab", "../../evil.md", "x", root)).toThrow();
+  });
+
+  it("movePage swaps a page's prefix with its neighbour and preserves content", () => {
+    scaffoldLab("my-lab", root); // 01-intro.md
+    writePage("my-lab", "02-setup.md", "# Setup\n\nsetup body", root);
+    writePage("my-lab", "03-cleanup.md", "# Cleanup\n\ncleanup body", root);
+
+    // Move setup up: it should trade places with intro.
+    const afterUp = movePage("my-lab", "02-setup.md", "up", root);
+    expect(afterUp.map((p) => p.title)).toEqual(["Setup", "Introduction", "Cleanup"]);
+    expect(readPage("my-lab", "01-setup.md", root)).toBe("# Setup\n\nsetup body");
+
+    // Move the same page (now first) down again: order returns to the start.
+    const afterDown = movePage("my-lab", "01-setup.md", "down", root);
+    expect(afterDown.map((p) => p.title)).toEqual(["Introduction", "Setup", "Cleanup"]);
+  });
+
+  it("movePage is a no-op at the edge and rejects unknown files", () => {
+    scaffoldLab("my-lab", root); // 01-intro.md
+    writePage("my-lab", "02-setup.md", "# Setup", root);
+
+    expect(movePage("my-lab", "01-intro.md", "up", root).map((p) => p.file)).toEqual([
+      "01-intro.md",
+      "02-setup.md",
+    ]);
+    expect(() => movePage("my-lab", "99-missing.md", "up", root)).toThrow();
   });
 
   it("removeLab recursively deletes the lab dir", () => {

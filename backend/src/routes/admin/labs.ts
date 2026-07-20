@@ -3,7 +3,7 @@ import { LabModel } from "../../models/Lab";
 import { AssignmentModel } from "../../models/Assignment";
 import { requireAuth, requireAdmin, type AuthedRequest } from "../../middleware/auth";
 import { recordAudit } from "../../services/audit";
-import { scaffoldLab, listPages, readPage, writePage, createPage, deletePage, removeLab } from "../../lib/wiki";
+import { scaffoldLab, listPages, readPage, writePage, createPage, movePage, deletePage, removeLab } from "../../lib/wiki";
 import { serializeLab, parseLabArchive, ArchiveError } from "../../lib/labArchive";
 
 export const adminLabsRouter = Router();
@@ -273,6 +273,26 @@ adminLabsRouter.post("/:slug/pages", async (req, res) => {
   }
   const page = createPage(lab.slug, title.trim());
   res.status(201).json(page);
+});
+
+// Reorder a guide page up or down among its siblings by swapping its NN-
+// filename prefix with the neighbour's. Returns the updated ordered page list.
+adminLabsRouter.post("/:slug/pages/:file/move", async (req, res) => {
+  const lab = await LabModel.findOne({ slug: req.params.slug });
+  if (!lab) {
+    res.status(404).json({ error: "lab not found" });
+    return;
+  }
+  const { direction } = req.body ?? {};
+  if (direction !== "up" && direction !== "down") {
+    res.status(400).json({ error: "direction must be up or down" });
+    return;
+  }
+  try {
+    res.json(movePage(lab.slug, req.params.file, direction));
+  } catch {
+    res.status(404).json({ error: "page not found" });
+  }
 });
 
 // Delete a guide page. A lab must keep at least one page, so the final page
