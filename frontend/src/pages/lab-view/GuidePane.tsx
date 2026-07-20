@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeHighlight from "rehype-highlight"
-import { Check, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react"
+import { Check, ChevronDown, ChevronLeft, ChevronRight, PanelLeft, PanelLeftClose } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -37,6 +37,8 @@ export function GuidePane({
   onSelectFile,
   fontSize = FONT_DEFAULT,
   onChangeFontSize,
+  sidebarHidden,
+  onToggleSidebar,
 }: {
   slug: string
   pages: Page[]
@@ -46,6 +48,10 @@ export function GuidePane({
   onSelectFile: (file: string) => void
   fontSize?: number
   onChangeFontSize?: (size: number) => void
+  // The lab view hides the global top bar, so its Workspace-sidebar toggle lives
+  // here, just before the section selector. Omitted → no toggle rendered.
+  sidebarHidden?: boolean
+  onToggleSidebar?: () => void
 }) {
   const [content, setContent] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -97,6 +103,18 @@ export function GuidePane({
     <div className="h-full min-w-0 overflow-y-auto">
       <div className="sticky top-0 z-10 border-b border-border bg-surface">
         <div className="flex items-center justify-between gap-sm px-lg py-sm md:px-xl">
+          <div className="flex min-w-0 items-center gap-sm">
+          {onToggleSidebar ? (
+            <button
+              type="button"
+              onClick={onToggleSidebar}
+              aria-label={sidebarHidden ? "Show sidebar" : "Hide sidebar"}
+              aria-expanded={!sidebarHidden}
+              className="shrink-0 rounded-md p-xs text-muted-foreground outline-none transition-colors duration-[var(--duration-base)] ease-standard hover:bg-accent hover:text-accent-foreground"
+            >
+              {sidebarHidden ? <PanelLeft className="size-5" /> : <PanelLeftClose className="size-5" />}
+            </button>
+          ) : null}
           <DropdownMenu>
             <DropdownMenuTrigger className="flex min-w-0 items-center gap-xs rounded-md border border-border bg-surface px-sm py-xs text-body-sm font-medium text-foreground outline-none transition-colors duration-[var(--duration-base)] ease-standard hover:bg-accent">
               <span className="truncate">{currentTitle}</span>
@@ -122,6 +140,7 @@ export function GuidePane({
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+          </div>
           <div className="flex shrink-0 items-center gap-sm">
             <div className="flex items-center rounded-md border border-border" role="group" aria-label="Guide font size">
               <button
