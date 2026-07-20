@@ -1,4 +1,12 @@
 import type { ComponentPropsWithoutRef, ReactNode } from 'react'
+import {
+  TwelveFactorsGrid,
+  ConfigInEnvironment,
+  BuildReleaseRun,
+  MonolithVsMicroservices,
+  StatelessScaling,
+  TwelveFactorToKubernetes,
+} from './diagrams'
 
 // Every element maps to a design.md token — no inline hex, no weight 500.
 export function Callout({
@@ -69,4 +77,10 @@ export const mdxComponents = {
   ),
   Callout,
   Steps,
+  TwelveFactorsGrid,
+  ConfigInEnvironment,
+  BuildReleaseRun,
+  MonolithVsMicroservices,
+  StatelessScaling,
+  TwelveFactorToKubernetes,
 }

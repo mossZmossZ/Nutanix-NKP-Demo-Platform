@@ -1,0 +1,158 @@
+---
+title: The Twelve-Factor App
+summary: How the twelve-factor methodology reshaped the way we build apps — and paved the road to microservices and Kubernetes.
+order: 2
+---
+
+# The Twelve-Factor App
+
+Twenty years ago, most software shipped as a single, large program. Today the same
+work is often spread across many small services that scale and update on their own.
+That shift didn't happen by accident — it grew out of a set of ideas published in
+2011 called the **twelve-factor app**.
+
+This guide tells that story: what changed, why, and how those twelve rules lead
+straight to the microservices and Kubernetes world your NKP labs run in.
+
+## Why apps are built differently now
+
+Software used to live on servers a team owned and rarely rebuilt. Deploys were slow
+and manual, so we made them *big and infrequent*. As apps moved to the cloud, that
+model broke down: cloud machines come and go, traffic swings wildly, and teams want
+to ship many times a day. The app itself had to become **portable, disposable, and
+easy to run in many copies** — and that required a new discipline.
+
+## The monolith era and its limits
+
+A **monolith** is one program that does everything — user interface, business rules,
+and data access — built and deployed as a single unit.
+
+For a small team it's wonderfully simple: one codebase, one thing to run. But as it
+grows, the simplicity turns into friction:
+
+- **Ship-it-all-or-nothing.** A one-line change means redeploying the whole app.
+- **Scale-it-all-or-nothing.** If only checkout is busy, you still must clone the
+  *entire* app to add capacity.
+- **Tight coupling.** One slow or crashing corner can drag the whole process down.
+- **Hard to move.** Local files, machine-specific config, and long-lived state make
+  the app cling to the exact server it grew up on.
+
+<Callout type="note">
+The problem was never that monoliths are "bad." It's that the *habits* that make a
+monolith comfortable — local state, config baked into the code, treating servers as
+pets — are exactly the habits that make an app hard to run in the cloud.
+</Callout>
+
+## Enter the twelve-factor app
+
+In 2011, engineers at Heroku distilled what they'd learned running thousands of apps
+into twelve rules — the [**twelve-factor app**](https://12factor.net/). Here they are
+at a glance, then one at a time.
+
+<TwelveFactorsGrid />
+
+**1. Codebase.** One app is tracked in **one repository**, and that same codebase is
+deployed to every environment. One repo, many deploys — never a separate copy of the
+code per server.
+
+**2. Dependencies.** The app **declares every dependency explicitly** (in a manifest
+like `package.json`) and installs them into an isolated environment. It never assumes a
+library "just happens" to be present on the machine.
+
+**3. Config.** Anything that differs between environments — database URLs, credentials,
+feature toggles — lives in the **environment**, not in the code. The same build then
+runs anywhere; only the injected values change.
+
+<ConfigInEnvironment />
+
+**4. Backing services.** Databases, queues, caches, and mail services are treated as
+**attached resources** reached over the network. Swapping a local database for a managed
+one should be a config change, not a code change.
+
+**5. Build, release, run.** Turning code into a running app happens in **three strictly
+separate stages**: *build* compiles the code and dependencies into an artifact, *release*
+combines that artifact with config, and *run* executes it. A release is immutable — you
+can roll back to an earlier one exactly as it was.
+
+<BuildReleaseRun />
+
+**6. Processes.** The app runs as **one or more stateless processes**. Anything that must
+persist goes to a backing service (factor 4), never to local memory or the local disk
+between requests.
+
+**7. Port binding.** The app is **self-contained**: it starts its own web server and
+exports itself by binding to a port. It doesn't rely on a separate web server being
+injected around it at runtime.
+
+**8. Concurrency.** You **scale out by running more processes**, not by making one
+process bigger. Because processes are stateless (factor 6), adding copies is safe and
+simple.
+
+**9. Disposability.** Processes are **disposable** — they start fast and shut down
+gracefully. This makes deploys, scaling, and recovery from crashes quick and reliable.
+
+**10. Dev/prod parity.** Keep **development, staging, and production as similar as
+possible** — same backing services, same dependencies — so "it worked on my machine"
+stops being a surprise in production.
+
+**11. Logs.** Treat logs as a **stream of events written to the screen** (stdout). The
+app doesn't manage log files; the platform captures the stream and routes it wherever
+it's needed.
+
+**12. Admin processes.** Run one-off tasks — database migrations, maintenance scripts —
+as **short-lived processes in the same environment** as the app, using the same code and
+config.
+
+Strip all twelve down and they're one instruction: **build an app that doesn't care
+which machine it runs on.**
+
+## From twelve-factor to microservices
+
+Here's the quiet consequence. Once an app is stateless, config-driven, and disposable,
+the monolith's walls start to feel optional. If no single piece hoards local state,
+you can **cut the big program into smaller ones** — each owning its data, each built,
+shipped, and scaled independently.
+
+<MonolithVsMicroservices />
+
+That's the leap to **microservices**: not a rule from the twelve factors, but what they
+*make possible*. The billing team can deploy at noon without touching orders. And
+because each service is a stateless process, scaling it is almost boring — you just run
+more copies behind a load balancer.
+
+<StatelessScaling />
+
+Twelve-factor didn't *require* microservices — plenty of good twelve-factor apps are
+still a single service. But it removed the friction that made splitting an app painful,
+so the industry walked through the door.
+
+## Where Kubernetes and NKP fit
+
+If you design apps to be portable, stateless, and disposable, you eventually want a
+system that runs them that way *for* you — starting copies, restarting crashed ones,
+routing traffic, injecting config. That system is **Kubernetes**, and **NKP (Nutanix
+Kubernetes Platform)** is a production-ready distribution of it.
+
+The fit is almost suspiciously neat. Nearly every twelve-factor rule has a matching
+Kubernetes primitive:
+
+<TwelveFactorToKubernetes />
+
+<Callout type="note">
+This is why the labs on this platform lean so heavily on twelve-factor habits: an app
+that follows the rules drops into NKP with very little glue. An app that ignores them —
+writing to local disk, baking in config — fights Kubernetes at every turn.
+</Callout>
+
+## Recap
+
+- Cloud infrastructure made **big, machine-bound monoliths** a poor fit.
+- The **twelve-factor app** answered with one idea: make apps portable, stateless, and
+  disposable.
+- Those same properties are what let teams split a monolith into **microservices** that
+  deploy and scale on their own.
+- **Kubernetes / NKP** is the platform built to run twelve-factor apps at scale — which
+  is exactly what you'll practice in these labs.
+
+**Further reading:** the original [twelve-factor manifesto](https://12factor.net/) — short,
+readable, and worth the twenty minutes.
