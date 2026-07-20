@@ -15,6 +15,19 @@ const STATE_DISCONNECTED = 5
 // desktop sits top-left with at most a ~3px inert margin instead of clipping.
 const fitRemote = (px: number) => Math.floor(px / 4) * 4
 
+// Guacamole clipboard blobs are base64. btoa/atob are Latin1-only — raw btoa
+// THROWS on any non-ASCII char (curly quotes, em-dashes, accents), which would
+// silently drop a paste and leave stale text on the remote. Round-trip through
+// UTF-8 bytes on both sides so multibyte content survives intact.
+const encodeClipboard = (text: string) => {
+  const bytes = new TextEncoder().encode(text)
+  let binary = ""
+  for (const byte of bytes) binary += String.fromCharCode(byte)
+  return btoa(binary)
+}
+const decodeClipboard = (binary: string) =>
+  new TextDecoder().decode(Uint8Array.from(binary, (c) => c.charCodeAt(0)))
+
 export interface RemoteSession {
   state: RemoteState
   errorMessage: string | null
@@ -53,14 +66,25 @@ export function useRemoteSession(slug: string | undefined): RemoteSession {
     hostRef.current = el
   }
 
+  // Remote → local: mirror the remote's clipboard to the OS clipboard so a copy
+  // inside the desktop is available locally. Best-effort: the browser may reject
+  // writeText when the tab isn't focused. Guarded to only write on a GENUINE
+  // change — RDP re-broadcasts its clipboard on focus/reconnect, and writing an
+  // unchanged value on those events would clobber whatever the user just copied
+  // locally. Empty values are skipped so a blank remote clipboard never clears
+  // the local one.
   function bufferRemoteClipboard(stream: Guacamole.InputStream) {
-    let data = ""
+    // Accumulate raw bytes across blobs, then UTF-8 decode once — a multibyte
+    // char can straddle a blob boundary, so decoding per-blob would mangle it.
+    let binary = ""
     stream.onblob = (data64: string) => {
-      data += atob(data64)
+      binary += atob(data64)
     }
     stream.onend = () => {
-      remoteClipboardRef.current = data
-      navigator.clipboard.writeText(data).catch(() => {})
+      const text = decodeClipboard(binary)
+      if (!text || text === remoteClipboardRef.current) return
+      remoteClipboardRef.current = text
+      navigator.clipboard.writeText(text).catch(() => {})
     }
   }
 
@@ -68,7 +92,7 @@ export function useRemoteSession(slug: string | undefined): RemoteSession {
     navigator.clipboard.readText().then((text) => {
       if (!text) return
       const stream = client.createClipboardStream("text/plain")
-      stream.sendBlob(btoa(text))
+      stream.sendBlob(encodeClipboard(text))
       stream.sendEnd()
     }).catch(() => {})
   }
@@ -129,29 +153,25 @@ export function useRemoteSession(slug: string | undefined): RemoteSession {
     keyboard.onkeyup = (keysym) => {
       clientRef.current?.sendKeyEvent(0, keysym)
     }
-    const onClipboardKey = (e: KeyboardEvent) => {
-      if (!e.ctrlKey || !e.shiftKey) return
+    // Local → remote paste: on right-click, push the local clipboard to the
+    // remote BEFORE its native context menu's "Paste" is chosen. We don't
+    // preventDefault — the right-click still flows to guacd (Guacamole blocks
+    // the browser's own context menu) so the remote menu opens as usual. Using
+    // a keyboard shortcut here is unsafe: the keystrokes also reach the remote
+    // and, in a terminal, Ctrl+Shift+V is itself paste — racing a stale value.
+    const onRightMouseDown = (e: MouseEvent) => {
+      if (e.button !== 2) return
       const client = clientRef.current
-      if (!client) return
-      if (e.code === "KeyV") {
-        e.preventDefault()
-        e.stopPropagation()
-        sendLocalClipboardToRemote(client)
-      } else if (e.code === "KeyC") {
-        e.preventDefault()
-        e.stopPropagation()
-        const text = remoteClipboardRef.current
-        if (text) navigator.clipboard.writeText(text).catch(() => {})
-      }
+      if (client) sendLocalClipboardToRemote(client)
     }
-    host.addEventListener("keydown", onClipboardKey, { capture: true })
+    host.addEventListener("mousedown", onRightMouseDown)
     // Focus the canvas on pointer-down so key events reach the scoped Keyboard
     // (and NOT the document — nothing leaks while on the Credentials tab).
     const focus = () => host.focus()
     host.addEventListener("pointerdown", focus)
     return () => {
       host.removeEventListener("pointerdown", focus)
-      host.removeEventListener("keydown", onClipboardKey, { capture: true })
+      host.removeEventListener("mousedown", onRightMouseDown)
     }
   }, [])
 
