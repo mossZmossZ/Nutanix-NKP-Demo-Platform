@@ -114,6 +114,42 @@ export function createPage(
   return { file, order, title };
 }
 
+/**
+ * Reorder a page by swapping its NN- filename prefix with its neighbour in the
+ * given direction. Renaming is done via a temp name so pages that share a name
+ * part never collide mid-swap. A move at the first/last edge is a no-op.
+ * Returns the updated ordered page list.
+ */
+export function movePage(
+  slug: string,
+  file: string,
+  direction: "up" | "down",
+  root: string = env.wikiDir,
+): WikiPage[] {
+  assertSafeFile(file);
+  const pages = listPages(slug, root);
+  const idx = pages.findIndex((p) => p.file === file);
+  if (idx === -1) throw new Error(`Wiki page not found: ${file}`);
+
+  const neighborIdx = direction === "up" ? idx - 1 : idx + 1;
+  if (neighborIdx < 0 || neighborIdx >= pages.length) return pages; // already at the edge
+
+  const dir = labDir(slug, root);
+  const a = pages[idx].file;
+  const b = pages[neighborIdx].file;
+  const prefix = (f: string) => f.slice(0, f.indexOf("-"));
+  const rest = (f: string) => f.slice(f.indexOf("-") + 1);
+  const aNew = `${prefix(b)}-${rest(a)}`; // a takes b's position (prefix)
+  const bNew = `${prefix(a)}-${rest(b)}`; // b takes a's position (prefix)
+
+  const tmp = path.join(dir, `.tmp-${a}`);
+  fs.renameSync(path.join(dir, a), tmp);
+  fs.renameSync(path.join(dir, b), path.join(dir, bNew));
+  fs.renameSync(tmp, path.join(dir, aNew));
+
+  return listPages(slug, root);
+}
+
 /** Delete one page file. Caller enforces the "keep at least one page" rule. */
 export function deletePage(slug: string, file: string, root: string = env.wikiDir): void {
   assertSafeFile(file);

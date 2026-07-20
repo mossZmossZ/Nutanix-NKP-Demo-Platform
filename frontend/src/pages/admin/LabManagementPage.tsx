@@ -11,7 +11,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { BookOpen, FileText, Layers, Pencil, Trash2, BarChart3, Download, Upload, Plus } from "lucide-react";
+import { BookOpen, FileText, Layers, Pencil, Trash2, BarChart3, Download, Upload, Plus, ChevronUp, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 
@@ -318,6 +318,29 @@ export function LabManagementPage() {
       setNewPageError(err instanceof ApiError ? err.message : "Failed to create page");
     } finally {
       setCreatingPage(false);
+    }
+  }
+
+  // Reorder a page; the swap renames files, so re-point activeFile at the same
+  // page by its name part (everything after the NN- prefix, stable across moves).
+  async function onMovePage(file: string, direction: "up" | "down") {
+    if (!pagesLab) return;
+    setPagesError(null);
+    try {
+      const updated = await api<WikiPage[]>(`/admin/labs/${pagesLab.slug}/pages/${file}/move`, {
+        method: "POST",
+        body: JSON.stringify({ direction }),
+      });
+      setPages(updated);
+      if (activeFile) {
+        const stem = (f: string) => f.replace(/^\d+-/, "");
+        const next =
+          updated.find((p) => p.file === activeFile) ??
+          updated.find((p) => stem(p.file) === stem(activeFile));
+        if (next) setActiveFile(next.file);
+      }
+    } catch (err) {
+      setPagesError(err instanceof ApiError ? err.message : "Failed to reorder page");
     }
   }
 
@@ -718,7 +741,7 @@ export function LabManagementPage() {
               {pages.length === 0 ? (
                 <p className="text-body-sm text-muted-foreground">No pages found.</p>
               ) : (
-                pages.map((p) => (
+                pages.map((p, i) => (
                   <div
                     key={p.file}
                     className={`group flex items-center rounded-md transition-colors duration-[var(--duration-fast)] ease-standard ${
@@ -733,6 +756,24 @@ export function LabManagementPage() {
                       className="min-w-0 flex-1 truncate px-sm py-xs text-left text-body-sm font-medium"
                     >
                       {p.title}
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Move ${p.title} up`}
+                      disabled={i === 0}
+                      onClick={() => onMovePage(p.file, "up")}
+                      className="shrink-0 rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-accent-foreground focus-visible:opacity-100 group-hover:opacity-100 disabled:pointer-events-none disabled:text-muted-foreground/40 disabled:hover:bg-transparent"
+                    >
+                      <ChevronUp className="size-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Move ${p.title} down`}
+                      disabled={i === pages.length - 1}
+                      onClick={() => onMovePage(p.file, "down")}
+                      className="shrink-0 rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-accent-foreground focus-visible:opacity-100 group-hover:opacity-100 disabled:pointer-events-none disabled:text-muted-foreground/40 disabled:hover:bg-transparent"
+                    >
+                      <ChevronDown className="size-3.5" />
                     </button>
                     <button
                       type="button"
