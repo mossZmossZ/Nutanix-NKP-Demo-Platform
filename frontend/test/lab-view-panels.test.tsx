@@ -20,8 +20,8 @@ test('CredentialsPanel shows lab credentials and copies a value on click', async
   render(
     <CredentialsPanel
       credentials={[
-        { id: '1', label: 'namespace', type: 'text', value: 'team-a' },
-        { id: '2', label: 'dashboard', type: 'endpoint', value: 'https://nkp.example' },
+        { id: '1', label: 'namespace', type: 'text', value: 'team-a', groupId: null },
+        { id: '2', label: 'dashboard', type: 'endpoint', value: 'https://nkp.example', groupId: null },
       ]}
     />,
   )
@@ -29,6 +29,32 @@ test('CredentialsPanel shows lab credentials and copies a value on click', async
   expect(screen.getByText('team-a')).toBeInTheDocument()
   await user.click(screen.getByRole('button', { name: /copy dashboard/i }))
   expect(writeText).toHaveBeenCalledWith('https://nkp.example')
+})
+
+test('CredentialsPanel renders credentials under group headings, ungrouped under Other', () => {
+  render(
+    <CredentialsPanel
+      groups={[{ id: 'g1', name: 'Cluster access' }]}
+      credentials={[
+        { id: '1', label: 'kubeconfig', type: 'text', value: 'abc', groupId: 'g1' },
+        { id: '2', label: 'loose', type: 'text', value: 'xyz', groupId: null },
+      ]}
+    />,
+  )
+  expect(screen.getByText('Cluster access')).toBeInTheDocument()
+  expect(screen.getByText('Other')).toBeInTheDocument()
+  expect(screen.getByText('kubeconfig')).toBeInTheDocument()
+  expect(screen.getByText('loose')).toBeInTheDocument()
+})
+
+test('CredentialsPanel shows no group headings when a lab has no groups', () => {
+  render(
+    <CredentialsPanel
+      credentials={[{ id: '1', label: 'namespace', type: 'text', value: 'team-a', groupId: null }]}
+    />,
+  )
+  expect(screen.queryByText('Other')).not.toBeInTheDocument()
+  expect(screen.getByText('namespace')).toBeInTheDocument()
 })
 
 test('CredentialsPanel shows an empty state when there are no credentials', () => {

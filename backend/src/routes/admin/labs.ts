@@ -245,6 +245,97 @@ adminLabsRouter.delete("/:slug/credential-vars/:varId", async (req, res) => {
   res.json(lab.credentialVars);
 });
 
+// Move a credential into a group (or ungroup it) WITHOUT remove+re-add, so the
+// subdoc _id — and every participant's saved value keyed by it — is preserved.
+// groupId null/"" ungroups; any other value must reference a group on this lab.
+adminLabsRouter.patch("/:slug/credential-vars/:varId", async (req, res) => {
+  const lab = await LabModel.findOne({ slug: req.params.slug });
+  if (!lab) {
+    res.status(404).json({ error: "lab not found" });
+    return;
+  }
+  const variable = lab.credentialVars.id(req.params.varId);
+  if (!variable) {
+    res.status(404).json({ error: "variable not found" });
+    return;
+  }
+  const { groupId } = req.body ?? {};
+  if (groupId === null || groupId === "" || groupId === undefined) {
+    variable.groupId = null;
+  } else if (lab.credentialGroups.id(groupId)) {
+    variable.groupId = groupId;
+  } else {
+    res.status(400).json({ error: "groupId does not reference a group on this lab" });
+    return;
+  }
+  await lab.save();
+  res.json(lab.credentialVars);
+});
+
+// Create a credential group. Order defaults to the end of the list. Returns the
+// lab's groups and vars together so the admin UI stays consistent in one hop.
+adminLabsRouter.post("/:slug/credential-groups", async (req, res) => {
+  const lab = await LabModel.findOne({ slug: req.params.slug });
+  if (!lab) {
+    res.status(404).json({ error: "lab not found" });
+    return;
+  }
+  const { name } = req.body ?? {};
+  if (typeof name !== "string" || !name.trim()) {
+    res.status(400).json({ error: "name is required" });
+    return;
+  }
+  lab.credentialGroups.push({ name: name.trim(), order: lab.credentialGroups.length });
+  await lab.save();
+  res.status(201).json({ credentialGroups: lab.credentialGroups, credentialVars: lab.credentialVars });
+});
+
+// Rename and/or reorder a group.
+adminLabsRouter.patch("/:slug/credential-groups/:groupId", async (req, res) => {
+  const lab = await LabModel.findOne({ slug: req.params.slug });
+  if (!lab) {
+    res.status(404).json({ error: "lab not found" });
+    return;
+  }
+  const group = lab.credentialGroups.id(req.params.groupId);
+  if (!group) {
+    res.status(404).json({ error: "group not found" });
+    return;
+  }
+  const { name, order } = req.body ?? {};
+  if (name !== undefined) {
+    if (typeof name !== "string" || !name.trim()) {
+      res.status(400).json({ error: "name must be a non-empty string" });
+      return;
+    }
+    group.name = name.trim();
+  }
+  if (order !== undefined) group.order = order;
+  await lab.save();
+  res.json({ credentialGroups: lab.credentialGroups, credentialVars: lab.credentialVars });
+});
+
+// Delete a group. Its credentials are kept and simply ungrouped (groupId
+// cleared) — no credential or per-user value is ever lost.
+adminLabsRouter.delete("/:slug/credential-groups/:groupId", async (req, res) => {
+  const lab = await LabModel.findOne({ slug: req.params.slug });
+  if (!lab) {
+    res.status(404).json({ error: "lab not found" });
+    return;
+  }
+  const group = lab.credentialGroups.id(req.params.groupId);
+  if (!group) {
+    res.status(404).json({ error: "group not found" });
+    return;
+  }
+  for (const v of lab.credentialVars) {
+    if (String(v.groupId) === req.params.groupId) v.groupId = null;
+  }
+  group.deleteOne();
+  await lab.save();
+  res.json({ credentialGroups: lab.credentialGroups, credentialVars: lab.credentialVars });
+});
+
 adminLabsRouter.put("/:slug/pages/:file", async (req, res) => {
   const lab = await LabModel.findOne({ slug: req.params.slug });
   if (!lab) {

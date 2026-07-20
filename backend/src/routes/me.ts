@@ -127,11 +127,15 @@ meRouter.get("/labs/:slug", async (req: AuthedRequest, res) => {
   // values; unfilled variables are dropped so a half-configured lab doesn't
   // look broken to the participant.
   const values = assignment.credentialValues;
+  const groups = [...lab.credentialGroups]
+    .sort((a, b) => a.order - b.order)
+    .map((g) => ({ id: g._id.toString(), name: g.name }));
   const credentials = lab.credentialVars
     .map((v) => ({
       id: v._id.toString(),
       label: v.label,
       type: v.type,
+      groupId: v.groupId ? v.groupId.toString() : null,
       value: values?.get(v._id.toString()) ?? "",
     }))
     .filter((c) => c.value !== "");
@@ -140,6 +144,7 @@ meRouter.get("/labs/:slug", async (req: AuthedRequest, res) => {
     lab: labSummary(lab),
     pages: listPages(lab.slug),
     completedPages: assignment.completedPages,
+    groups,
     credentials,
     // connection stays for the Phase-5 Remote/Guacamole token; no longer shown
     // in the Credentials tab.

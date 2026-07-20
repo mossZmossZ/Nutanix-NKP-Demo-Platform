@@ -6,13 +6,23 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { KeyRound, Link2, Plus, Trash2, Type as TypeIcon, FileCode, Search, FlaskConical } from "lucide-react";
+import { KeyRound, Link2, Plus, Trash2, Type as TypeIcon, FileCode, Search, FlaskConical, FolderPlus, Pencil, Check, X } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { toast } from "sonner";
 
 type VarType = "endpoint" | "yaml" | "text";
-type CredentialVar = { _id: string; label: string; type: VarType };
-type Lab = { _id: string; slug: string; title: string; credentialVars: CredentialVar[] };
+type CredentialGroup = { _id: string; name: string; order: number };
+type CredentialVar = { _id: string; label: string; type: VarType; groupId: string | null };
+type Lab = {
+  _id: string;
+  slug: string;
+  title: string;
+  credentialGroups: CredentialGroup[];
+  credentialVars: CredentialVar[];
+};
+
+// shadcn Select can't hold an empty-string value, so ungrouped uses a sentinel.
+const NO_GROUP = "__none__";
 type Assignment = {
   id: string;
   // null when the assigned user was deleted (orphaned assignment)
@@ -50,6 +60,12 @@ export function LabCredentialsPage() {
   const [newLabel, setNewLabel] = useState("");
   const [newType, setNewType] = useState<VarType>("text");
   const [varError, setVarError] = useState<string | null>(null);
+
+  // Group management
+  const [newGroupName, setNewGroupName] = useState("");
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
+  const [editingGroupName, setEditingGroupName] = useState("");
+  const [groupError, setGroupError] = useState<string | null>(null);
 
   // Per-user value form
   const [formValues, setFormValues] = useState<Record<string, string>>({});
@@ -90,6 +106,10 @@ export function LabCredentialsPage() {
   useEffect(() => {
     setUserId("");
     setFormValues({});
+    setEditingGroupId(null);
+    setEditingGroupName("");
+    setNewGroupName("");
+    setGroupError(null);
   }, [labSlug]);
 
   // Prefill the value form from the selected user's saved values.
@@ -142,6 +162,72 @@ export function LabCredentialsPage() {
     }
   }
 
+  // Merge a group/var update returned by the server into the selected lab.
+  function applyLab(update: Partial<Pick<Lab, "credentialGroups" | "credentialVars">>) {
+    if (!selectedLab) return;
+    setLabs((prev) => prev.map((l) => (l.slug === selectedLab.slug ? { ...l, ...update } : l)));
+  }
+
+  async function onAddGroup(e: FormEvent) {
+    e.preventDefault();
+    if (!selectedLab || !newGroupName.trim()) return;
+    setGroupError(null);
+    try {
+      const res = await api<Pick<Lab, "credentialGroups" | "credentialVars">>(
+        `/admin/labs/${selectedLab.slug}/credential-groups`,
+        { method: "POST", body: JSON.stringify({ name: newGroupName.trim() }) },
+      );
+      applyLab(res);
+      setNewGroupName("");
+    } catch (err) {
+      setGroupError(err instanceof ApiError ? err.message : "Failed to add group");
+    }
+  }
+
+  async function onRenameGroup(groupId: string) {
+    if (!selectedLab || !editingGroupName.trim()) return;
+    setGroupError(null);
+    try {
+      const res = await api<Pick<Lab, "credentialGroups" | "credentialVars">>(
+        `/admin/labs/${selectedLab.slug}/credential-groups/${groupId}`,
+        { method: "PATCH", body: JSON.stringify({ name: editingGroupName.trim() }) },
+      );
+      applyLab(res);
+      setEditingGroupId(null);
+      setEditingGroupName("");
+    } catch (err) {
+      setGroupError(err instanceof ApiError ? err.message : "Failed to rename group");
+    }
+  }
+
+  async function onDeleteGroup(groupId: string) {
+    if (!selectedLab) return;
+    setGroupError(null);
+    try {
+      const res = await api<Pick<Lab, "credentialGroups" | "credentialVars">>(
+        `/admin/labs/${selectedLab.slug}/credential-groups/${groupId}`,
+        { method: "DELETE" },
+      );
+      applyLab(res);
+    } catch (err) {
+      setGroupError(err instanceof ApiError ? err.message : "Failed to delete group");
+    }
+  }
+
+  async function onMoveVar(varId: string, groupId: string | null) {
+    if (!selectedLab) return;
+    setVarError(null);
+    try {
+      const updatedVars = await api<CredentialVar[]>(
+        `/admin/labs/${selectedLab.slug}/credential-vars/${varId}`,
+        { method: "PATCH", body: JSON.stringify({ groupId }) },
+      );
+      applyLab({ credentialVars: updatedVars });
+    } catch (err) {
+      setVarError(err instanceof ApiError ? err.message : "Failed to move variable");
+    }
+  }
+
   async function onSaveValues(e: FormEvent) {
     e.preventDefault();
     if (!selectedAssignment) return;
@@ -165,6 +251,26 @@ export function LabCredentialsPage() {
   }
 
   const vars = selectedLab?.credentialVars ?? [];
+  const groups = useMemo(
+    () => [...(selectedLab?.credentialGroups ?? [])].sort((a, b) => a.order - b.order),
+    [selectedLab],
+  );
+  // Rows are shown clustered under each group (in order), then an "Ungrouped"
+  // section. Group sections show even when empty so the admin can see where to
+  // assign; "Ungrouped" only shows when it has rows. With no groups at all the
+  // list stays flat (single unnamed section) — same as before grouping existed.
+  const varSections = useMemo(() => {
+    const knownIds = new Set(groups.map((g) => g._id));
+    const ungrouped = vars.filter((v) => !v.groupId || !knownIds.has(v.groupId));
+    if (groups.length === 0) return [{ key: "__flat__", name: null as string | null, items: vars }];
+    const sections = groups.map((g) => ({
+      key: g._id,
+      name: g.name as string | null,
+      items: vars.filter((v) => v.groupId === g._id),
+    }));
+    if (ungrouped.length > 0) sections.push({ key: NO_GROUP, name: "Ungrouped", items: ungrouped });
+    return sections;
+  }, [groups, vars]);
 
   return (
     <AppShell nav={adminNav} title="Lab Credentials">
@@ -237,35 +343,120 @@ export function LabCredentialsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-md">
-                <ul className="flex flex-col gap-xs">
-                  {vars.length === 0 && (
-                    <li className="rounded-md border border-dashed border-border/60 px-md py-lg text-center text-body-sm text-muted-foreground">
-                      No variables yet — add one below.
-                    </li>
+                {/* Groups — create, rename, delete. Credentials reference a group; deleting one just ungroups its credentials. */}
+                <div className="flex flex-col gap-sm rounded-md border border-border/60 bg-canvas p-md">
+                  <div className="flex items-center justify-between">
+                    <span className="text-label uppercase text-muted-foreground">Groups</span>
+                    <Badge variant="neutral">{groups.length}</Badge>
+                  </div>
+                  {groups.length > 0 && (
+                    <ul className="flex flex-wrap gap-xs">
+                      {groups.map((g) =>
+                        editingGroupId === g._id ? (
+                          <li key={g._id} className="flex items-center gap-xxs rounded-md border border-primary/40 bg-surface px-xxs py-xxs">
+                            <Input
+                              value={editingGroupName}
+                              onChange={(e) => setEditingGroupName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") { e.preventDefault(); onRenameGroup(g._id); }
+                                if (e.key === "Escape") { setEditingGroupId(null); setEditingGroupName(""); }
+                              }}
+                              className="h-7 w-36"
+                              autoFocus
+                            />
+                            <Button type="button" variant="ghost" aria-label="Save group name" className="size-7 p-0 text-primary" disabled={!editingGroupName.trim()} onClick={() => onRenameGroup(g._id)}>
+                              <Check className="size-4" />
+                            </Button>
+                            <Button type="button" variant="ghost" aria-label="Cancel rename" className="size-7 p-0 text-muted-foreground" onClick={() => { setEditingGroupId(null); setEditingGroupName(""); }}>
+                              <X className="size-4" />
+                            </Button>
+                          </li>
+                        ) : (
+                          <li key={g._id} className="flex items-center gap-xs rounded-md border border-border bg-surface px-sm py-xxs text-body-sm text-foreground">
+                            {g.name}
+                            <button type="button" aria-label={`Rename ${g.name}`} className="text-muted-foreground opacity-60 transition-opacity hover:opacity-100" onClick={() => { setEditingGroupId(g._id); setEditingGroupName(g.name); }}>
+                              <Pencil className="size-3.5" />
+                            </button>
+                            <button type="button" aria-label={`Delete ${g.name}`} className="text-muted-foreground opacity-60 transition-colors hover:text-destructive hover:opacity-100" onClick={() => onDeleteGroup(g._id)}>
+                              <X className="size-3.5" />
+                            </button>
+                          </li>
+                        ),
+                      )}
+                    </ul>
                   )}
-                  {vars.map((v) => {
-                    const Icon = TYPE_META[v.type].icon;
-                    return (
-                      <li
-                        key={v._id}
-                        className="group flex items-center gap-sm rounded-md border border-border bg-surface px-md py-sm transition-colors hover:border-ink-500/40"
-                      >
-                        <Icon className="size-4 shrink-0 text-muted-foreground" />
-                        <span className="flex-1 truncate font-mono text-body-sm text-foreground">{v.label}</span>
-                        <Badge variant="neutral" className="font-normal">{v.type}</Badge>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          aria-label={`Remove ${v.label}`}
-                          className="size-8 p-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100"
-                          onClick={() => onRemoveVar(v._id)}
-                        >
-                          <Trash2 className="size-4" />
-                        </Button>
-                      </li>
-                    );
-                  })}
-                </ul>
+                  <form onSubmit={onAddGroup} className="flex items-center gap-xs">
+                    <Input value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} placeholder="New group name" className="h-8 flex-1" />
+                    <Button type="submit" variant="secondary" className="h-8 gap-1" disabled={!newGroupName.trim()}>
+                      <FolderPlus className="size-4" />
+                      Add group
+                    </Button>
+                  </form>
+                  {groupError && <p role="alert" className="text-body-sm text-destructive">{groupError}</p>}
+                </div>
+
+                {/* Credential list, clustered under each group */}
+                {vars.length === 0 ? (
+                  <div className="rounded-md border border-dashed border-border/60 px-md py-lg text-center text-body-sm text-muted-foreground">
+                    No variables yet — add one below.
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-md">
+                    {varSections.map((section) => (
+                      <div key={section.key} className="flex flex-col gap-xs">
+                        {section.name && (
+                          <span className="text-label font-semibold uppercase tracking-wide text-muted-foreground">{section.name}</span>
+                        )}
+                        {section.items.length === 0 ? (
+                          <p className="rounded-md border border-dashed border-border/50 px-md py-sm text-center text-label text-muted-foreground">
+                            No credentials in this group yet.
+                          </p>
+                        ) : (
+                          <ul className="flex flex-col gap-xs">
+                            {section.items.map((v) => {
+                              const Icon = TYPE_META[v.type].icon;
+                              return (
+                                <li
+                                  key={v._id}
+                                  className="group flex items-center gap-sm rounded-md border border-border bg-surface px-md py-sm transition-colors hover:border-ink-500/40"
+                                >
+                                  <Icon className="size-4 shrink-0 text-muted-foreground" />
+                                  <span className="flex-1 truncate font-mono text-body-sm text-foreground">{v.label}</span>
+                                  <Badge variant="neutral" className="font-normal">{v.type}</Badge>
+                                  {groups.length > 0 && (
+                                    <Select
+                                      value={v.groupId ?? NO_GROUP}
+                                      onValueChange={(val) => onMoveVar(v._id, val === NO_GROUP ? null : val)}
+                                    >
+                                      <SelectTrigger className="h-8 w-32 shrink-0" aria-label={`Group for ${v.label}`}>
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value={NO_GROUP}>No group</SelectItem>
+                                        {groups.map((g) => (
+                                          <SelectItem key={g._id} value={g._id}>{g.name}</SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  )}
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    aria-label={`Remove ${v.label}`}
+                                    className="size-8 p-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100"
+                                    onClick={() => onRemoveVar(v._id)}
+                                  >
+                                    <Trash2 className="size-4" />
+                                  </Button>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 <form onSubmit={onAddVar} className="flex flex-col gap-sm rounded-md border border-border/60 bg-canvas p-md">
                   <div className="flex flex-col gap-sm sm:flex-row sm:items-end">
