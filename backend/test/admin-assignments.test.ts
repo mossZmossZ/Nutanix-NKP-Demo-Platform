@@ -2,6 +2,7 @@ import type { Express } from "express";
 import type { Agent } from "supertest";
 import { setup, teardown, loginAs, createUser, ADMIN } from "./helpers/harness";
 import { MachineModel } from "../src/models/Machine";
+import { UserModel } from "../src/models/User";
 
 let app: Express;
 let adminAgent: Agent;
@@ -153,6 +154,53 @@ describe("admin assignments routes", () => {
   it("DELETE /:id 404s for unknown id", async () => {
     const res = await adminAgent.delete("/api/admin/assignments/0123456789abcdef01234567");
     expect(res.status).toBe(404);
+  });
+
+  it("DELETE /api/admin/users/:id with an active assignment -> 409; succeeds after revoke", async () => {
+    const doomed = await createUser(adminAgent, "doomed-user", "doomedpass1", "user");
+    const machine = await createMachine(adminAgent, { rdpHost: "10.0.0.30" });
+    const labRes = await adminAgent
+      .post("/api/admin/labs")
+      .send({ slug: "orphan-lab", title: "Orphan Lab" });
+    const createRes = await adminAgent.post("/api/admin/assignments").send({
+      userId: doomed.id,
+      labId: labRes.body._id,
+      machineId: machine.id,
+    });
+    expect(createRes.status).toBe(201);
+
+    const del = await adminAgent.delete(`/api/admin/users/${doomed.id}`);
+    expect(del.status).toBe(409);
+    expect(del.body.error).toMatch(/assignment/);
+
+    await adminAgent.delete(`/api/admin/assignments/${createRes.body.id}`);
+    expect((await adminAgent.delete(`/api/admin/users/${doomed.id}`)).status).toBe(204);
+  });
+
+  it("GET / tolerates an assignment whose user doc is gone (user: null)", async () => {
+    const ghost = await createUser(adminAgent, "ghost-user", "ghostpass1", "user");
+    const machine = await createMachine(adminAgent, { rdpHost: "10.0.0.31" });
+    const labRes = await adminAgent
+      .post("/api/admin/labs")
+      .send({ slug: "ghost-lab", title: "Ghost Lab" });
+    const createRes = await adminAgent.post("/api/admin/assignments").send({
+      userId: ghost.id,
+      labId: labRes.body._id,
+      machineId: machine.id,
+    });
+    expect(createRes.status).toBe(201);
+    // Simulate pre-guard orphaned data: remove the user doc directly.
+    await UserModel.deleteOne({ _id: ghost.id });
+
+    const list = await adminAgent.get("/api/admin/assignments");
+    expect(list.status).toBe(200);
+    const found = list.body.find((a: { id: string }) => a.id === createRes.body.id);
+    expect(found.user).toBeNull();
+
+    // The orphan can still be revoked, freeing the machine.
+    const revoke = await adminAgent.delete(`/api/admin/assignments/${createRes.body.id}`);
+    expect(revoke.status).toBe(204);
+    expect((await MachineModel.findById(machine.id))?.status).toBe("free");
   });
 
   it("user role gets 403 on all assignment admin routes", async () => {
