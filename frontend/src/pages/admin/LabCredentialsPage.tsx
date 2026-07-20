@@ -15,7 +15,8 @@ type CredentialVar = { _id: string; label: string; type: VarType };
 type Lab = { _id: string; slug: string; title: string; credentialVars: CredentialVar[] };
 type Assignment = {
   id: string;
-  user: { id: string; username: string };
+  // null when the assigned user was deleted (orphaned assignment)
+  user: { id: string; username: string } | null;
   lab: { id: string; slug: string; title: string };
   credentialValues: Record<string, string>;
 };
@@ -56,7 +57,11 @@ export function LabCredentialsPage() {
 
   const selectedLab = useMemo(() => labs.find((l) => l.slug === labSlug) ?? null, [labs, labSlug]);
   const labAssignments = useMemo(
-    () => assignments.filter((a) => a.lab.slug === labSlug),
+    () =>
+      assignments.filter(
+        (a): a is Assignment & { user: NonNullable<Assignment["user"]> } =>
+          a.user !== null && a.lab.slug === labSlug,
+      ),
     [assignments, labSlug],
   );
   const selectedAssignment = useMemo(

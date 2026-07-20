@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { isValidObjectId } from "mongoose";
 import { UserModel, type Role } from "../../models/User";
+import { AssignmentModel } from "../../models/Assignment";
 import { requireAuth, requireAdmin, type AuthedRequest } from "../../middleware/auth";
 import { hashPassword } from "../../services/auth";
 import { recordAudit } from "../../services/audit";
@@ -144,6 +145,10 @@ adminUsersRouter.delete("/:id", async (req: AuthedRequest, res) => {
   // Guard: don't delete the last remaining admin.
   if (user.role === "admin" && (await UserModel.countDocuments({ role: "admin" })) <= 1) {
     res.status(409).json({ error: "cannot delete the last admin" });
+    return;
+  }
+  if (await AssignmentModel.exists({ userId: user._id })) {
+    res.status(409).json({ error: "user has active lab assignments" });
     return;
   }
   await user.deleteOne();

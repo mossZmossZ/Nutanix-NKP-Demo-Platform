@@ -19,7 +19,9 @@ function resetMachine(_machineId: string): void {
 
 function assignmentDTO(a: {
   id: string;
-  userId: { id: string; username: string } | string;
+  // Populated userId is null when the user doc was deleted out from under the
+  // assignment (orphaned data predating the user-delete guard).
+  userId: { id: string; username: string } | string | null;
   labId: { id: string; slug: string; title: string } | string;
   machineId: {
     id: string;
@@ -34,7 +36,9 @@ function assignmentDTO(a: {
   credentialValues?: Map<string, string>;
 }) {
   const user =
-    typeof a.userId === "object" ? { id: a.userId.id, username: a.userId.username } : a.userId;
+    a.userId && typeof a.userId === "object"
+      ? { id: a.userId.id, username: a.userId.username }
+      : a.userId;
   const lab =
     typeof a.labId === "object" ? { id: a.labId.id, slug: a.labId.slug, title: a.labId.title } : a.labId;
   const m = a.machineId;
@@ -102,7 +106,7 @@ adminAssignmentsRouter.post("/", async (req: AuthedRequest, res) => {
       { path: "machineId" },
     ]);
     const dto = assignmentDTO(populated as never);
-    const who = typeof dto.user === "object" ? dto.user.username : "";
+    const who = dto.user && typeof dto.user === "object" ? dto.user.username : "";
     const what = typeof dto.lab === "object" ? dto.lab.title : "";
     await recordAudit({
       actorId: req.user!.id,

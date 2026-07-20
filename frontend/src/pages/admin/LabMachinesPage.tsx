@@ -33,7 +33,8 @@ type Machine = {
 
 type Assignment = {
   id: string;
-  user: { id: string; username: string };
+  // null when the assigned user was deleted (orphaned assignment)
+  user: { id: string; username: string } | null;
   lab: { id: string; slug: string; title: string };
   machine: { id: string; name?: string; status: string };
   rdpHost: string;
@@ -209,9 +210,11 @@ export function LabMachinesPage() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <div className="flex size-8 items-center justify-center rounded-full bg-iris-600 text-xs font-semibold text-white uppercase">
-                            {a.user.username.charAt(0)}
+                            {a.user?.username.charAt(0) ?? "?"}
                           </div>
-                          <span className="font-medium text-foreground">{a.user.username}</span>
+                          <span className="font-medium text-foreground">
+                            {a.user?.username ?? "(deleted user)"}
+                          </span>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-sm text-muted-foreground">{a.lab.title}</td>
@@ -371,7 +374,7 @@ export function LabMachinesPage() {
           <DialogHeader>
             <DialogTitle>Revoke access</DialogTitle>
             <DialogDescription>
-              Revoke <strong>{revokeTarget?.user.username}</strong>&apos;s access to{" "}
+              Revoke <strong>{revokeTarget?.user?.username ?? "(deleted user)"}</strong>&apos;s access to{" "}
               <strong>{revokeTarget?.lab.title}</strong>? The machine returns to the free pool.
             </DialogDescription>
           </DialogHeader>
