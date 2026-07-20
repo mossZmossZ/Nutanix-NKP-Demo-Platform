@@ -4,7 +4,8 @@ import { AppShell, type NavItem } from "@/layouts/AppShell"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
-import { FlaskConical } from "lucide-react"
+import { FlaskConical, Menu } from "lucide-react"
+import { UserMenu } from "@/layouts/UserMenu"
 import { api, ApiError } from "@/lib/api"
 import { useAuth } from "@/auth/AuthContext"
 import { useMediaQuery } from "@/lib/useMediaQuery"
@@ -27,7 +28,7 @@ function loadSplit(): { docs: number; remote: number } {
   } catch {
     // no/invalid saved layout — fall through to the default split
   }
-  return { docs: 45, remote: 55 }
+  return { docs: 25, remote: 75 }
 }
 
 type LabDetail = {
@@ -49,6 +50,11 @@ export function LabViewPage() {
   // when the viewport crosses the 1280px breakpoint (split <-> tabs).
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
   const [sessionTab, setSessionTab] = useState<"remote" | "credentials">("remote")
+  // The lab view hides the global top bar to give the guide/RDP split the full
+  // viewport height, so it owns the Workspace-sidebar collapse state itself (the
+  // toggle now lives in the GuidePane header). Starts hidden, matching the prior
+  // fresh-session default; the choice is intentionally not persisted.
+  const [sidebarHidden, setSidebarHidden] = useState(true)
   const isDesktop = useMediaQuery("(min-width: 1280px)")
   // Per-user guide font size lives in auth state (follows the user across
   // devices); the GuidePane toolbar A−/A+ writes back through updateDocFontSize.
@@ -79,8 +85,15 @@ export function LabViewPage() {
   }
 
   return (
-    <AppShell nav={nav} title={detail?.lab.title ?? "Lab"} collapsible lockViewport>
-      <div className="-mx-xl -my-lg h-[calc(100vh-4rem)] overflow-hidden">
+    <AppShell
+      nav={nav}
+      title={detail?.lab.title ?? "Lab"}
+      collapsible
+      lockViewport
+      hideHeader
+      sidebarHidden={sidebarHidden}
+    >
+      <div className="-mx-xl -my-lg h-screen overflow-hidden">
         {notFound ? (
           <div className="mx-auto max-w-3xl px-xl py-xxl text-center">
             <h2 className="text-h3 text-foreground">Lab not available</h2>
@@ -111,8 +124,14 @@ export function LabViewPage() {
                 onSelectFile={setSelectedFile}
                 fontSize={docFontSize}
                 onChangeFontSize={updateDocFontSize}
+                sidebarHidden={sidebarHidden}
+                onToggleSidebar={() => setSidebarHidden((h) => !h)}
               />
             )
+            // The global top bar is hidden here, so its account/nav dropdown moves
+            // into the tab row as a hamburger. Rendered once per layout: in the
+            // Remote/Credentials row on desktop, in the Docs/Remote row on mobile.
+            const menu = <UserMenu trigger={<Menu className="size-5" />} />
             // Remote Session pane: Credentials is a secondary switch inside it,
             // not a co-equal primary (creds aren't always needed). Reused in both
             // the >=1280 split and the <1280 tabbed layout.
@@ -122,10 +141,13 @@ export function LabViewPage() {
                 onValueChange={(v) => setSessionTab(v as "remote" | "credentials")}
                 className="flex h-full min-h-0 flex-col"
               >
-                <TabsList className="m-sm w-fit shrink-0">
-                  <TabsTrigger value="remote">Remote Session</TabsTrigger>
-                  <TabsTrigger value="credentials">Credentials</TabsTrigger>
-                </TabsList>
+                <div className="flex shrink-0 items-center justify-between gap-sm px-sm py-xs">
+                  <TabsList className="w-fit">
+                    <TabsTrigger value="remote">Remote Session</TabsTrigger>
+                    <TabsTrigger value="credentials">Credentials</TabsTrigger>
+                  </TabsList>
+                  {isDesktop ? menu : null}
+                </div>
                 <TabsContent
                   value="remote"
                   className="min-h-0 flex-1 overflow-y-auto duration-[var(--duration-base)] ease-standard animate-in fade-in"
@@ -173,10 +195,13 @@ export function LabViewPage() {
               </ResizablePanelGroup>
             ) : (
               <Tabs defaultValue="docs" className="flex h-full min-h-0 flex-col">
-                <TabsList className="m-sm w-fit shrink-0">
-                  <TabsTrigger value="docs">Docs</TabsTrigger>
-                  <TabsTrigger value="remote-session">Remote Session</TabsTrigger>
-                </TabsList>
+                <div className="flex shrink-0 items-center justify-between gap-sm px-sm py-xs">
+                  <TabsList className="w-fit">
+                    <TabsTrigger value="docs">Docs</TabsTrigger>
+                    <TabsTrigger value="remote-session">Remote Session</TabsTrigger>
+                  </TabsList>
+                  {menu}
+                </div>
                 <TabsContent
                   value="docs"
                   className="min-h-0 flex-1 overflow-hidden duration-[var(--duration-base)] ease-standard animate-in fade-in"

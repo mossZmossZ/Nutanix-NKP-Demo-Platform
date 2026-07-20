@@ -21,28 +21,29 @@ export function RemotePanel({ session, label }: { session: RemoteSession; label:
 
   return (
     <div className="flex h-full flex-col bg-navy-900">
-      {/* Status strip. Connected state gets the prism top edge (design-v2.md §1.3.4). */}
+      {/* Status strip — kept deliberately slim so the desktop reclaims height for
+          the canvas. Connected state gets the prism top edge (design-v2.md §1.3.4). */}
       <div
-        className={`relative flex shrink-0 items-center justify-between gap-sm border-b border-white/10 bg-navy-800 px-md py-xs ${
+        className={`relative flex shrink-0 items-center justify-between gap-sm border-b border-white/10 bg-navy-800 px-sm py-[3px] ${
           isLive
             ? 'before:absolute before:inset-x-0 before:top-0 before:h-[2px] before:content-[""] before:[background:var(--gradient-prism)]'
             : ""
         }`}
       >
-        <span className="flex items-center gap-xs text-body-sm text-white/80">
+        <span className="flex min-w-0 items-center gap-xs text-body-sm text-white/80">
           <span
-            className={`size-2 rounded-full ${status.dot} ${status.pulse ? "animate-pulse" : ""}`}
+            className={`size-2 shrink-0 rounded-full ${status.dot} ${status.pulse ? "animate-pulse" : ""}`}
           />
           <span className="font-medium">{status.label}</span>
           <span className="text-white/40">·</span>
           <span className="truncate font-mono text-white/50">{label}</span>
         </span>
-        <span className="flex items-center gap-xs">
+        <span className="flex shrink-0 items-center gap-xs">
           {isLive ? (
             <Button
               variant="ghost"
               onClick={session.disconnect}
-              className="h-7 gap-xs text-white/70 hover:bg-white/10 hover:text-white"
+              className="h-6 gap-xs px-xs text-body-sm text-white/70 hover:bg-white/10 hover:text-white"
             >
               <Power className="size-3.5" />
               Disconnect
@@ -51,7 +52,7 @@ export function RemotePanel({ session, label }: { session: RemoteSession; label:
             <Button
               variant="ghost"
               onClick={session.reconnect}
-              className="h-7 gap-xs text-white/70 hover:bg-white/10 hover:text-white"
+              className="h-6 gap-xs px-xs text-body-sm text-white/70 hover:bg-white/10 hover:text-white"
             >
               <RotateCw className="size-3.5" />
               Reconnect

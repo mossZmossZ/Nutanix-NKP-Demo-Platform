@@ -1,14 +1,8 @@
 import { useMemo, useState, type ReactNode } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { ChevronDown, Hexagon, Home, FlaskConical, ShieldCheck, FileText, LogOut, PanelLeft, PanelLeftClose } from 'lucide-react'
+import { Link, useLocation } from 'react-router-dom'
+import { Hexagon, PanelLeft, PanelLeftClose } from 'lucide-react'
 import { useAuth } from '@/auth/AuthContext'
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu'
+import { UserMenu } from './UserMenu'
 import { Toaster } from '@/components/ui/sonner'
 
 // `disabled` renders a non-navigable, greyed-out preview item (e.g. Admin's
@@ -23,29 +17,38 @@ export type NavItem = { label: string; to: string; icon?: ReactNode; disabled?: 
 // `collapsible` opts a surface into a hideable Workspace sidebar with a fixed
 // top-bar toggle (used by the lab workshop). Other surfaces omit it and render
 // the sidebar exactly as before.
+// `hideHeader` drops the top bar entirely so a surface can reclaim its full
+// height (the lab workshop moves the sidebar toggle + account menu into its own
+// panes). When it does, sidebar collapse becomes controlled via `sidebarHidden`.
 export function AppShell({
   nav,
   title,
   children,
   collapsible = false,
   lockViewport = false,
+  hideHeader = false,
+  sidebarHidden: sidebarHiddenProp,
 }: {
   nav: NavItem[]
   title: string
   children: ReactNode
   collapsible?: boolean
   lockViewport?: boolean
+  hideHeader?: boolean
+  sidebarHidden?: boolean
 }) {
-  const { user, logout, platformName } = useAuth()
-  const navigate = useNavigate()
+  const { platformName } = useAuth()
   const { pathname } = useLocation()
 
   // Always start hidden on a fresh session (maintainer 2026-07-13): the lab view
   // reclaims the width for its guide/RDP split. The toggle still shows it for the
   // rest of the session, but the choice is intentionally not persisted.
-  const [sidebarHidden, setSidebarHidden] = useState(collapsible)
+  const [sidebarHiddenState, setSidebarHiddenState] = useState(collapsible)
+  // Controlled when a `sidebarHidden` prop is passed (headerless surfaces own the
+  // toggle); otherwise AppShell's own top-bar button drives the internal state.
+  const sidebarHidden = sidebarHiddenProp ?? sidebarHiddenState
   function toggleSidebar() {
-    setSidebarHidden((hidden) => !hidden)
+    setSidebarHiddenState((hidden) => !hidden)
   }
 
   // Longest matching `to` wins, so a nested route (e.g. /admin/users) doesn't
@@ -57,16 +60,6 @@ export function AppShell({
     if (matches.length === 0) return null
     return matches.reduce((best, item) => (item.to.length > best.to.length ? item : best)).to
   }, [nav, pathname])
-
-  const isAdmin = user?.role === 'admin'
-  const isOnAdminPage = pathname.startsWith('/admin')
-  const isOnLabAccessPage = pathname.startsWith('/lab') // Assuming lab access pages start with /lab
-  const isOnHomepage = pathname === '/'
-
-  async function handleLogout() {
-    await logout()
-    navigate('/login', { replace: true })
-  }
 
   return (
     <div className={`flex ${lockViewport ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
@@ -128,6 +121,7 @@ export function AppShell({
       </aside>
 
       <div className="flex flex-1 flex-col">
+        {!hideHeader && (
         <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-surface px-xl">
           <div className="flex items-center gap-sm">
             {collapsible ? (
@@ -144,121 +138,9 @@ export function AppShell({
             <span className="text-h4 text-foreground">{title}</span>
           </div>
 
-          {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center gap-xs rounded-md border border-border bg-surface py-[6px] pr-[12px] pl-[6px] text-button text-foreground outline-none transition-colors hover:bg-accent">
-                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-label text-primary-foreground uppercase">
-                  {user.username.charAt(0)}
-                </span>
-                <span className="max-w-[120px] truncate">{user.username}</span>
-                <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <div className="px-sm py-xs text-body-sm text-muted-foreground">{user.username}</div>
-                <DropdownMenuSeparator />
-                
-                {/* Admin on Admin UI: Homepage, Lab Access, Logout */}
-                {isAdmin && isOnAdminPage && (
-                  <>
-                    <DropdownMenuItem onSelect={() => navigate('/')}>
-                      <Home className="mr-2 size-4" />
-                      Homepage
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => navigate('/lab')}>
-                      <FlaskConical className="mr-2 size-4" />
-                      Lab Access
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onSelect={handleLogout}>
-                      <LogOut className="mr-2 size-4" />
-                      Logout
-                    </DropdownMenuItem>
-                  </>
-                )}
-
-                {/* User on Lab Access: Homepage, Logout */}
-                {!isAdmin && isOnLabAccessPage && (
-                  <>
-                    <DropdownMenuItem onSelect={() => navigate('/')}>
-                      <Home className="mr-2 size-4" />
-                      Homepage
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onSelect={handleLogout}>
-                      <LogOut className="mr-2 size-4" />
-                      Logout
-                    </DropdownMenuItem>
-                  </>
-                )}
-
-                {/* Admin on Lab Access: Homepage, Admin Portal, Logout */}
-                {isAdmin && isOnLabAccessPage && (
-                  <>
-                    <DropdownMenuItem onSelect={() => navigate('/')}>
-                      <Home className="mr-2 size-4" />
-                      Homepage
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => navigate('/admin')}>
-                      <ShieldCheck className="mr-2 size-4" />
-                      Admin Portal
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onSelect={handleLogout}>
-                      <LogOut className="mr-2 size-4" />
-                      Logout
-                    </DropdownMenuItem>
-                  </>
-                )}
-
-                {/* Admin on Homepage: Lab Access, Admin Portal, Logout */}
-                {isAdmin && isOnHomepage && (
-                  <>
-                    <DropdownMenuItem onSelect={() => navigate('/lab')}>
-                      <FlaskConical className="mr-2 size-4" />
-                      Lab Access
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => navigate('/admin')}>
-                      <ShieldCheck className="mr-2 size-4" />
-                      Admin Portal
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onSelect={handleLogout}>
-                      <LogOut className="mr-2 size-4" />
-                      Logout
-                    </DropdownMenuItem>
-                  </>
-                )}
-
-                {/* User on Homepage: Lab Access, Documentation, Logout */}
-                {!isAdmin && isOnHomepage && (
-                  <>
-                    <DropdownMenuItem onSelect={() => navigate('/lab')}>
-                      <FlaskConical className="mr-2 size-4" />
-                      Lab Access
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => navigate('/docs')}>
-                      <FileText className="mr-2 size-4" />
-                      Documentation
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onSelect={handleLogout}>
-                      <LogOut className="mr-2 size-4" />
-                      Logout
-                    </DropdownMenuItem>
-                  </>
-                )}
-
-                {/* Fallback for other pages: just show logout */}
-                {!isOnAdminPage && !isOnLabAccessPage && !isOnHomepage && (
-                  <DropdownMenuItem onSelect={handleLogout}>
-                    <LogOut className="mr-2 size-4" />
-                    Logout
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : null}
+          <UserMenu />
         </header>
+        )}
 
         <main className={`flex-1 bg-canvas px-xl py-lg ${lockViewport ? 'min-h-0 overflow-hidden' : ''}`}>
           {children}
